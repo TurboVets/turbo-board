@@ -37,9 +37,9 @@ class SetupScreen extends HookConsumerWidget {
                 AuthStepIndicator(currentStep: onStep2 ? 1 : 0),
                 const SizedBox(height: 24),
                 if (!onStep2)
-                  _ConnectStep(authState: authState, controller: tokenController, ref: ref)
+                  _ConnectStep(authState: authState, controller: tokenController)
                 else
-                  _ReposStep(query: query, ref: ref),
+                  _ReposStep(query: query),
               ],
             ),
           ),
@@ -49,15 +49,14 @@ class SetupScreen extends HookConsumerWidget {
   }
 }
 
-class _ConnectStep extends StatelessWidget {
-  const _ConnectStep({required this.authState, required this.controller, required this.ref});
+class _ConnectStep extends ConsumerWidget {
+  const _ConnectStep({required this.authState, required this.controller});
 
   final AuthState authState;
   final TextEditingController controller;
-  final WidgetRef ref;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Use local variable to enable smart-cast on the field type.
     final s = authState;
     final isValidating = s is AuthValidating;
@@ -98,14 +97,13 @@ class _ConnectStep extends StatelessWidget {
   }
 }
 
-class _ReposStep extends StatelessWidget {
-  const _ReposStep({required this.query, required this.ref});
+class _ReposStep extends ConsumerWidget {
+  const _ReposStep({required this.query});
 
   final ValueNotifier<String> query;
-  final WidgetRef ref;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final reposAsync = ref.watch(accessibleReposProvider);
     final watched = ref.watch(watchedReposProvider).toSet();
 
