@@ -30,14 +30,8 @@ class PrInboxScreen extends HookConsumerWidget {
             onDestinationSelected: (i) => selectedNavIndex.value = i,
             labelType: NavigationRailLabelType.all,
             destinations: const [
-              NavigationRailDestination(
-                icon: Icon(LucideIcons.gitPullRequest),
-                label: Text('PRs'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(LucideIcons.settings),
-                label: Text('Settings'),
-              ),
+              NavigationRailDestination(icon: Icon(LucideIcons.gitPullRequest), label: Text('PRs')),
+              NavigationRailDestination(icon: Icon(LucideIcons.settings), label: Text('Settings')),
             ],
           ),
           const VerticalDivider(width: 1),

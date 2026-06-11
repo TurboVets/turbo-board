@@ -9,12 +9,6 @@ part 'app_router.g.dart';
 GoRouter appRouter(Ref ref) {
   return GoRouter(
     initialLocation: '/',
-    routes: [
-      GoRoute(
-        path: '/',
-        name: PrInboxScreen.routeName,
-        builder: (context, state) => const PrInboxScreen(),
-      ),
-    ],
+    routes: [GoRoute(path: '/', name: PrInboxScreen.routeName, builder: (context, state) => const PrInboxScreen())],
   );
 }

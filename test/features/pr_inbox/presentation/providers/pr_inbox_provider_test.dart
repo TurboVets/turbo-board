@@ -24,9 +24,7 @@ void main() {
     test('should return PRs when repository succeeds', () async {
       // Arrange
       container = ProviderContainer(
-        overrides: [
-          prInboxRepositoryProvider.overrideWithValue(const MockPrInboxRepository()),
-        ],
+        overrides: [prInboxRepositoryProvider.overrideWithValue(const MockPrInboxRepository())],
       );
 
       // Act
@@ -38,17 +36,10 @@ void main() {
 
     test('should throw when repository fails', () async {
       // Arrange
-      container = ProviderContainer(
-        overrides: [
-          prInboxRepositoryProvider.overrideWithValue(_FailingRepo()),
-        ],
-      );
+      container = ProviderContainer(overrides: [prInboxRepositoryProvider.overrideWithValue(_FailingRepo())]);
 
       // Act & Assert
-      expect(
-        () => container.read(prInboxProvider.future),
-        throwsException,
-      );
+      expect(() => container.read(prInboxProvider.future), throwsException);
     });
   });
 }
