@@ -11,6 +11,8 @@ This document provides guidelines for AI agents (Claude, Cursor, etc.) working o
 **Design System:** Tether Design System v2.0 via turbo_ui
 **Target Platforms:** macOS, Windows, Linux, Web, and tablets (iPad / Android tablet). **Phones are NOT a target form factor.**
 
+**Design reference:** `design/mockup.html` is the interactive HTML mockup of all screens (PR Inbox board, Needs Attention, PR Detail, filters) built with verified Tether tokens — open it in a browser or read the HTML/CSS directly for layout, spacing, and color decisions. `design/README.md` documents the design direction and token tables. Product scope: `docs/V1-SCOPE.md`; AI features: `docs/AI-FEATURES.md`.
+
 ## Core Principles
 
 1. **Read before writing** - Always read existing files before making changes
