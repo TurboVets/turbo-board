@@ -1,0 +1,15 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    invalid_annotation_target: ignore
+    dangling_library_doc_comments: ignore
+    constant_identifier_names: ignore
+  plugins:
+    - riverpod_lint: ^3.1.3
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.mocks.dart"
+    - ".github/"
+    - "**/*.md"
