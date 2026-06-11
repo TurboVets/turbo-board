@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for GitHub / Anthropic API calls in all build modes (debug/profile
+         get it from their own manifests; release needs it declared here). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="turbo_board"
         android:name="${applicationName}"
