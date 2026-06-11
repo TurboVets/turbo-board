@@ -34,12 +34,21 @@ void main() {
       expect(prs, isNotEmpty);
     });
 
-    test('should throw when repository fails', () async {
+    test('should surface an error when repository fails', () async {
       // Arrange
       container = ProviderContainer(overrides: [prInboxRepositoryProvider.overrideWithValue(_FailingRepo())]);
+      // Hold a subscription so the auto-dispose provider stays mounted while its
+      // async build resolves to an error (Riverpod disposes unobserved providers
+      // that throw during loading).
+      container.listen(prInboxProvider, (_, _) {}, fireImmediately: true);
 
-      // Act & Assert
-      expect(() => container.read(prInboxProvider.future), throwsException);
+      // Act — let the async build settle.
+      await Future<void>.delayed(Duration.zero);
+      final state = container.read(prInboxProvider);
+
+      // Assert
+      expect(state.hasError, isTrue);
+      expect(state.error, isA<Exception>());
     });
   });
 }
