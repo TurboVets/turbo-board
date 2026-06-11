@@ -23,8 +23,8 @@ GoRouter appRouter(Ref ref) {
       final onSetup = state.matchedLocation == '/setup';
       return switch (auth) {
         AuthValidating() => null, // don't bounce mid-validation
-        AuthAuthenticated() => onSetup ? '/' : null,
-        _ => onSetup ? null : '/setup', // unauthenticated / error
+        AuthAuthenticated() => null, // allow both '/' and '/setup'; user exits step 2 explicitly
+        _ => onSetup ? null : '/setup', // unauthenticated / error -> force to setup
       };
     },
     routes: [

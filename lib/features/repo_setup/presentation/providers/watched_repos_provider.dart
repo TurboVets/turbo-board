@@ -10,7 +10,7 @@ const _prefsKey = 'watched_repos';
 class WatchedReposNotifier extends _$WatchedReposNotifier {
   @override
   List<String> build() {
-    // Hydrated asynchronously after first build via [load].
+    load(); // hydrate from shared_preferences on first build
     return const [];
   }
 
