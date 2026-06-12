@@ -310,7 +310,9 @@ class _GithubSection extends HookConsumerWidget {
                   _Btn(saving.value ? 'Saving…' : 'Save', kind: _BtnKind.primary, onTap: saving.value ? null : save),
                 ],
               ),
-            _hint('Classic PAT · scopes: repo · read:org · read:project · stored in Keychain / Keystore'),
+            _hint(
+              'Classic or fine-grained PAT · needs repo (read:org · read:project optional) · stored in Keychain / Keystore',
+            ),
           ],
         ),
       ),

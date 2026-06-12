@@ -202,7 +202,7 @@ class _ConnectStep extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Needs the `repo`, `read:org` and `read:project` scopes. Create one at github.com/settings/tokens.',
+          'Needs the `repo` scope; add `read:org` and `read:project` for org repos and the Lead Cockpit. Create one at github.com/settings/tokens.',
           style: TbText.label(size: 10, color: TbColors.dim, tracking: 0.3),
         ),
         const SizedBox(height: 16),

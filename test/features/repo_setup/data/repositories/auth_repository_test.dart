@@ -3,7 +3,9 @@
 // Test summary:
 // - validateToken: 200 + required scopes -> success(user)
 // - validateToken: 401 -> failure("Invalid or expired token.")
-// - validateToken: 200 but missing scope -> failure listing missing scope
+// - validateToken: classic token with only `repo` (no optional scopes) -> success (tolerant)
+// - validateToken: fine-grained token (no x-oauth-scopes header) -> success (can't introspect)
+// - validateToken: classic token missing the essential `repo` scope -> failure
 // - listAccessibleRepos: follows Link rel="next" across two pages and concatenates
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,7 +62,7 @@ void main() {
     expect((result as ResultFailure<GithubUser>).message, contains('Invalid or expired'));
   });
 
-  test('validateToken fails when a required scope is missing', () async {
+  test('validateToken succeeds with only `repo` — optional scopes are tolerated', () async {
     when(dio.get<Map<String, dynamic>>('/user')).thenAnswer(
       (_) async => resp<Map<String, dynamic>>(
         {'login': 'octocat', 'avatar_url': 'x'},
@@ -72,8 +74,33 @@ void main() {
 
     final result = await repo.validateToken('tok');
 
+    expect(result, isA<ResultSuccess<GithubUser>>());
+  });
+
+  test('validateToken succeeds for fine-grained tokens (no x-oauth-scopes header)', () async {
+    when(
+      dio.get<Map<String, dynamic>>('/user'),
+    ).thenAnswer((_) async => resp<Map<String, dynamic>>({'login': 'octocat', 'avatar_url': 'x'}));
+
+    final result = await repo.validateToken('github_pat_xxx');
+
+    expect(result, isA<ResultSuccess<GithubUser>>());
+  });
+
+  test('validateToken fails when the essential `repo` scope is missing', () async {
+    when(dio.get<Map<String, dynamic>>('/user')).thenAnswer(
+      (_) async => resp<Map<String, dynamic>>(
+        {'login': 'octocat', 'avatar_url': 'x'},
+        headers: {
+          'x-oauth-scopes': ['read:org, gist'],
+        },
+      ),
+    );
+
+    final result = await repo.validateToken('tok');
+
     expect(result, isA<ResultFailure<GithubUser>>());
-    expect((result as ResultFailure<GithubUser>).message, contains('read:org'));
+    expect((result as ResultFailure<GithubUser>).message, contains('repo'));
   });
 
   test('listAccessibleRepos follows Link pagination', () async {

@@ -18,8 +18,12 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._client);
 
   final GithubApiClient _client;
-  // `read:project` is needed for the Lead Cockpit's Projects v2 board query.
-  static const _requiredScopes = {'repo', 'read:org', 'read:project'};
+
+  // The one scope the app can't function without (read access to repos/PRs).
+  // `read:org` and `read:project` only gate optional features (org repo
+  // discovery, Lead Cockpit), so they degrade gracefully instead of blocking.
+  static const _essentialScope = 'repo';
+  static const _recommendedScopes = {'read:org', 'read:project'};
 
   @override
   Future<Result<GithubUser>> validateToken(String token) async {
@@ -34,14 +38,24 @@ class AuthRepositoryImpl implements AuthRepository {
         return Result.failure('GitHub rejected the token (HTTP ${res.statusCode}).', StackTrace.current);
       }
 
-      final granted = (res.headers.value('x-oauth-scopes') ?? '')
-          .split(',')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toSet();
-      final missing = _requiredScopes.difference(granted);
-      if (missing.isNotEmpty) {
-        return Result.failure('Token is missing scopes: ${missing.join(', ')}.', StackTrace.current);
+      // `x-oauth-scopes` is only sent for classic PATs / OAuth tokens.
+      // Fine-grained PATs and GitHub App tokens omit it — we can't introspect
+      // their permissions, so we trust them (they authenticated). We never
+      // reject for *extra* scopes; only a classic token that plainly can't
+      // read repos is blocked. Missing optional scopes are logged, not failed.
+      final scopeHeader = res.headers.value('x-oauth-scopes');
+      if (scopeHeader != null && scopeHeader.trim().isNotEmpty) {
+        final granted = scopeHeader.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toSet();
+        if (!granted.contains(_essentialScope)) {
+          return Result.failure(
+            "Token can't read repositories — add the '$_essentialScope' scope.",
+            StackTrace.current,
+          );
+        }
+        final missingOptional = _recommendedScopes.difference(granted);
+        if (missingOptional.isNotEmpty) {
+          log('GitHub token missing optional scopes (some features limited): ${missingOptional.join(', ')}');
+        }
       }
 
       return Result.success(GithubUser.fromJson(res.data!));
