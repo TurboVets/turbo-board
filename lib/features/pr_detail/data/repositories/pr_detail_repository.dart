@@ -24,6 +24,9 @@ abstract interface class PrDetailRepository {
 
   /// Merges the PR. [mergeMethod] is MERGE / SQUASH / REBASE.
   Future<Result<bool>> mergePullRequest(String pullRequestId, String mergeMethod);
+
+  /// Deletes the PR's head branch. [refId] is the head ref node id.
+  Future<Result<bool>> deleteHeadBranch(String refId);
 }
 
 class GithubPrDetailRepository implements PrDetailRepository {
@@ -81,6 +84,17 @@ class GithubPrDetailRepository implements PrDetailRepository {
       return Result.failure('Could not merge the pull request.', stackTrace);
     }
   }
+
+  @override
+  Future<Result<bool>> deleteHeadBranch(String refId) async {
+    try {
+      await _client.graphql(deleteRefMutation, {'refId': refId});
+      return Result.success(true);
+    } catch (e, stackTrace) {
+      log('Failed to delete branch', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not delete the branch.', stackTrace);
+    }
+  }
 }
 
 /// Builds a [PrDetail] from a GraphQL `repository` node ([repoNode]) and its
@@ -102,6 +116,8 @@ PrDetail prDetailFromNode(String owner, String name, Map<String, dynamic> repoNo
     author: (pr['author']?['login'] as String?) ?? 'unknown',
     baseRefName: (pr['baseRefName'] as String?) ?? '',
     headRefName: (pr['headRefName'] as String?) ?? '',
+    headRefId: pr['headRef']?['id'] as String?,
+    isCrossRepository: (pr['isCrossRepository'] as bool?) ?? false,
     bodyMarkdown: (pr['body'] as String?) ?? '',
     reviewDecision: _reviewDecisionFrom(pr['reviewDecision'] as String?),
     lastCommit: commitNode == null ? null : _commitFrom(commitNode),
@@ -210,8 +226,26 @@ List<PrReviewer> _reviewersFrom(Map<String, dynamic> pr) {
   return [for (final e in byLogin.entries) PrReviewer(login: e.key, state: e.value)];
 }
 
+/// Builds the activity timeline (mirrors the design's `timelineFor`): an
+/// "opened" event, then issue comments and reviews interleaved in chronological
+/// order. A review with a body becomes a comment card; an APPROVED /
+/// CHANGES_REQUESTED review also emits a compact state event (so the timeline
+/// reads like GitHub's own conversation view).
 List<PrTimelineEvent> _timelineFrom(Map<String, dynamic> pr) {
   final events = <PrTimelineEvent>[];
+
+  // PR opened — the first node in the timeline.
+  final opened = DateTime.tryParse((pr['createdAt'] as String?) ?? '');
+  if (opened != null) {
+    events.add(
+      PrTimelineEvent(
+        author: (pr['author']?['login'] as String?) ?? 'unknown',
+        createdAt: opened,
+        kind: PrEventKind.opened,
+      ),
+    );
+  }
+
   for (final raw in ((pr['comments']?['nodes'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>()) {
     final created = DateTime.tryParse((raw['createdAt'] as String?) ?? '');
     if (created == null) continue;
@@ -224,21 +258,120 @@ List<PrTimelineEvent> _timelineFrom(Map<String, dynamic> pr) {
       ),
     );
   }
-  for (final raw in ((pr['latestReviews']?['nodes'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>()) {
-    final body = (raw['body'] as String?) ?? '';
+
+  // Use the full review history (not `latestReviews`, which collapses to the
+  // latest review per author and silently drops earlier ones — e.g. a
+  // CHANGES_REQUESTED review with a comment that gets superseded once the PR is
+  // later approved, so its body would never appear in the timeline).
+  for (final raw in ((pr['reviews']?['nodes'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>()) {
     final created = DateTime.tryParse((raw['submittedAt'] as String?) ?? '');
-    if (body.isEmpty || created == null) continue; // skip empty review bodies
+    if (created == null) continue;
+    final author = (raw['author']?['login'] as String?) ?? 'unknown';
+    final state = _reviewerStateFrom(raw['state'] as String?);
+    final body = (raw['body'] as String?) ?? '';
+
+    // A review with prose becomes a comment card carrying the review badge.
+    if (body.isNotEmpty) {
+      events.add(
+        PrTimelineEvent(
+          author: author,
+          bodyMarkdown: body,
+          createdAt: created,
+          kind: PrEventKind.reviewComment,
+          reviewState: state,
+        ),
+      );
+    }
+    // Approve / request-changes also drop a compact state event (after the card
+    // when both exist, since they share `submittedAt` and the sort is stable).
+    if (state == PrReviewerState.approved) {
+      events.add(PrTimelineEvent(author: author, createdAt: created, kind: PrEventKind.approved));
+    } else if (state == PrReviewerState.changesRequested) {
+      events.add(PrTimelineEvent(author: author, createdAt: created, kind: PrEventKind.changesRequested));
+    }
+  }
+
+  events.addAll(_activityFrom(pr));
+
+  // Stable chronological sort: ties keep insertion order (card before its event).
+  final indexed = [for (var i = 0; i < events.length; i++) (i, events[i])];
+  indexed.sort((a, b) {
+    final byTime = a.$2.createdAt.compareTo(b.$2.createdAt);
+    return byTime != 0 ? byTime : a.$1.compareTo(b.$1);
+  });
+  return [for (final e in indexed) e.$2];
+}
+
+/// Maps GitHub `timelineItems` into compact activity events: commits pushed
+/// (consecutive commits by one author collapsed into a single "added N commits"
+/// node), review requests, force-pushes, label adds, ready-for-review, title
+/// renames, and merge/close/reopen lifecycle events.
+List<PrTimelineEvent> _activityFrom(Map<String, dynamic> pr) {
+  final nodes = ((pr['timelineItems']?['nodes'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>();
+  final events = <PrTimelineEvent>[];
+
+  // Pending run of consecutive commits by the same author.
+  String? pendingAuthor;
+  int pendingCount = 0;
+  DateTime? pendingAt;
+  void flushCommits() {
+    if (pendingCount == 0 || pendingAt == null) return;
     events.add(
       PrTimelineEvent(
-        author: (raw['author']?['login'] as String?) ?? 'unknown',
-        bodyMarkdown: body,
-        createdAt: created,
-        kind: PrEventKind.review,
-        reviewState: _reviewerStateFrom(raw['state'] as String?),
+        author: pendingAuthor ?? 'unknown',
+        createdAt: pendingAt!,
+        kind: PrEventKind.commitsPushed,
+        detail: '$pendingCount',
       ),
     );
+    pendingAuthor = null;
+    pendingCount = 0;
+    pendingAt = null;
   }
-  events.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  String? reviewerName(Map<String, dynamic>? r) => (r?['login'] ?? r?['name']) as String?;
+  DateTime? at(Map<String, dynamic> n) => DateTime.tryParse((n['createdAt'] as String?) ?? '');
+  String actor(Map<String, dynamic> n) => (n['actor']?['login'] as String?) ?? 'unknown';
+
+  for (final n in nodes) {
+    final type = n['__typename'] as String?;
+    if (type == 'PullRequestCommit') {
+      final commit = n['commit'] as Map<String, dynamic>?;
+      final when = DateTime.tryParse((commit?['committedDate'] as String?) ?? '');
+      if (when == null) continue;
+      final login = (commit?['author']?['user']?['login'] ?? commit?['author']?['name']) as String?;
+      if (pendingCount > 0 && login != pendingAuthor) flushCommits();
+      pendingAuthor = login;
+      pendingCount++;
+      pendingAt = when; // last commit in the run carries the timestamp
+      continue;
+    }
+    flushCommits(); // any non-commit ends the current run
+
+    final when = at(n);
+    if (when == null) continue;
+    final (kind, detail) = switch (type) {
+      'ReviewRequestedEvent' => (
+        PrEventKind.reviewRequested,
+        reviewerName(n['requestedReviewer'] as Map<String, dynamic>?),
+      ),
+      'ReviewRequestRemovedEvent' => (
+        PrEventKind.reviewRequestRemoved,
+        reviewerName(n['requestedReviewer'] as Map<String, dynamic>?),
+      ),
+      'LabeledEvent' => (PrEventKind.labeled, n['label']?['name'] as String?),
+      'HeadRefForcePushedEvent' => (PrEventKind.forcePushed, null),
+      'MergedEvent' => (PrEventKind.merged, null),
+      'ClosedEvent' => (PrEventKind.closed, null),
+      'ReopenedEvent' => (PrEventKind.reopened, null),
+      'ReadyForReviewEvent' => (PrEventKind.readyForReview, null),
+      'RenamedTitleEvent' => (PrEventKind.renamed, n['currentTitle'] as String?),
+      _ => (null, null),
+    };
+    if (kind == null) continue;
+    events.add(PrTimelineEvent(author: actor(n), createdAt: when, kind: kind, detail: detail));
+  }
+  flushCommits();
   return events;
 }
 
@@ -284,4 +417,7 @@ class MockPrDetailRepository implements PrDetailRepository {
 
   @override
   Future<Result<bool>> mergePullRequest(String pullRequestId, String mergeMethod) async => Result.success(true);
+
+  @override
+  Future<Result<bool>> deleteHeadBranch(String refId) async => Result.success(true);
 }

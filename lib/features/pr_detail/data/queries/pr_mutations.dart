@@ -27,3 +27,12 @@ mutation MergePr($pullRequestId: ID!, $method: PullRequestMergeMethod!) {
   }
 }
 ''';
+
+/// Deletes a git ref (the PR's head branch). `refId` is the head ref node id.
+const String deleteRefMutation = r'''
+mutation DeleteRef($refId: ID!) {
+  deleteRef(input: {refId: $refId}) {
+    clientMutationId
+  }
+}
+''';

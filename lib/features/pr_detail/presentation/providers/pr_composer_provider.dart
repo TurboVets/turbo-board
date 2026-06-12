@@ -51,4 +51,8 @@ class PrComposer extends _$PrComposer {
   /// reload, so the PR flips to merged everywhere.
   Future<bool> merge(String prId, PrMergeMethod method) =>
       _run(() => ref.read(prDetailRepositoryProvider).mergePullRequest(prId, method.graphql));
+
+  /// Deletes the PR's head branch. [refId] is the head ref node id. On success
+  /// the detail reloads; `headRef` is then null, hiding the action.
+  Future<bool> deleteBranch(String refId) => _run(() => ref.read(prDetailRepositoryProvider).deleteHeadBranch(refId));
 }

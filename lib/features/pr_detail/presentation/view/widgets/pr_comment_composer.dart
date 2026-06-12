@@ -170,6 +170,23 @@ class PrCommentComposer extends HookConsumerWidget {
                     ),
                     if (detail.canMergeAction && prId != null)
                       _MergeButton(detail: detail, owner: owner, name: name, prId: prId, busy: busy),
+                    if (detail.canDeleteBranch)
+                      _ComposerBtn(
+                        label: 'DELETE BRANCH',
+                        baseBorder: TbColors.borderStrong,
+                        baseText: TbColors.muted,
+                        hoverBorder: TbSignal.bad.border,
+                        hoverText: TbSignal.bad.text,
+                        onPressed: busy
+                            ? null
+                            : () async {
+                                final confirmed = await _confirmDeleteBranch(context, detail.headRefName);
+                                if (confirmed != true || !context.mounted) return;
+                                ref
+                                    .read(prComposerProvider(owner: owner, name: name, number: detail.number).notifier)
+                                    .deleteBranch(detail.headRefId!);
+                              },
+                      ),
                   ],
                 );
               },
@@ -179,6 +196,50 @@ class PrCommentComposer extends HookConsumerWidget {
       ),
     );
   }
+}
+
+/// Confirms a destructive branch deletion. Returns true if the user confirms.
+Future<bool?> _confirmDeleteBranch(BuildContext context, String branch) {
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: TbColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: TbColors.border),
+      ),
+      title: Text(
+        'Delete branch?',
+        style: TbText.body(size: 15, weight: FontWeight.w600, color: TbColors.text),
+      ),
+      content: Text.rich(
+        TextSpan(
+          style: TbText.body(size: 13, color: TbColors.muted),
+          children: [
+            const TextSpan(text: 'This permanently deletes '),
+            TextSpan(
+              text: branch,
+              style: TbText.body(size: 13, weight: FontWeight.w600, color: TbColors.text),
+            ),
+            const TextSpan(text: '. This cannot be undone.'),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text('Cancel', style: TbText.body(size: 13, color: TbColors.muted)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(
+            'Delete',
+            style: TbText.body(size: 13, weight: FontWeight.w600, color: TbSignal.bad.text),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Intent chips + draft state shown when "AI Draft reply" is expanded. Selecting

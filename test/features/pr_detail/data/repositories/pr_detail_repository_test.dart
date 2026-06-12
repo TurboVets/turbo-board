@@ -49,6 +49,7 @@ void main() {
           'body': '# Heading',
           'isDraft': false,
           'state': 'OPEN',
+          'createdAt': '2026-06-10T08:30:00Z',
           'baseRefName': 'main',
           'headRefName': 'feat',
           'author': {'login': 'sang'},
@@ -61,6 +62,22 @@ void main() {
             ],
           },
           'latestReviews': {
+            'nodes': [
+              {
+                'author': {'login': 'leo'},
+                'state': 'APPROVED',
+                'body': 'LGTM',
+                'submittedAt': '2026-06-10T10:00:00Z',
+              },
+              {
+                'author': {'login': 'mira'},
+                'state': 'CHANGES_REQUESTED',
+                'body': '',
+                'submittedAt': '2026-06-10T11:00:00Z',
+              },
+            ],
+          },
+          'reviews': {
             'nodes': [
               {
                 'author': {'login': 'leo'},
@@ -135,10 +152,86 @@ void main() {
     expect(byLogin['leo'], PrReviewerState.approved);
     expect(byLogin['mira'], PrReviewerState.changesRequested);
 
-    // timeline: comment(tom 09:00) + review(leo 10:00, body LGTM); mira review empty body skipped
-    expect(d.timeline.map((e) => e.author), ['tom', 'leo']);
-    expect(d.timeline.last.kind, PrEventKind.review);
-    expect(d.timeline.last.reviewState, PrReviewerState.approved);
+    // timeline (chronological): opened(sang 08:30) · comment(tom 09:00) ·
+    // leo's APPROVED review card + its approved event (10:00) · mira's empty-body
+    // CHANGES_REQUESTED yields only a changesRequested event (11:00).
+    expect(d.timeline.map((e) => e.author), ['sang', 'tom', 'leo', 'leo', 'mira']);
+    expect(d.timeline.map((e) => e.kind), [
+      PrEventKind.opened,
+      PrEventKind.comment,
+      PrEventKind.reviewComment,
+      PrEventKind.approved,
+      PrEventKind.changesRequested,
+    ]);
+    expect(d.timeline[2].reviewState, PrReviewerState.approved);
+  });
+
+  test('maps timelineItems into activity events, grouping consecutive commits', () async {
+    stub({
+      'repository': {
+        'pullRequest': {
+          'number': 7,
+          'state': 'MERGED',
+          'createdAt': '2026-06-10T08:00:00Z',
+          'author': {'login': 'sang'},
+          'timelineItems': {
+            'nodes': [
+              {
+                '__typename': 'ReviewRequestedEvent',
+                'createdAt': '2026-06-10T08:05:00Z',
+                'actor': {'login': 'sang'},
+                'requestedReviewer': {'__typename': 'User', 'login': 'leo'},
+              },
+              {
+                '__typename': 'PullRequestCommit',
+                'commit': {
+                  'committedDate': '2026-06-10T09:00:00Z',
+                  'author': {
+                    'user': {'login': 'sang'},
+                  },
+                },
+              },
+              {
+                '__typename': 'PullRequestCommit',
+                'commit': {
+                  'committedDate': '2026-06-10T09:05:00Z',
+                  'author': {
+                    'user': {'login': 'sang'},
+                  },
+                },
+              },
+              {
+                '__typename': 'LabeledEvent',
+                'createdAt': '2026-06-10T09:30:00Z',
+                'actor': {'login': 'leo'},
+                'label': {'name': 'bug'},
+              },
+              {
+                '__typename': 'MergedEvent',
+                'createdAt': '2026-06-10T10:00:00Z',
+                'actor': {'login': 'leo'},
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    final d = ((await repo.fetchDetail('o', 'r', 7)) as ResultSuccess<PrDetail>).data;
+
+    // opened(08:00) · review requested(08:05) · 2 commits grouped(09:05) ·
+    // labeled(09:30) · merged(10:00).
+    expect(d.timeline.map((e) => e.kind), [
+      PrEventKind.opened,
+      PrEventKind.reviewRequested,
+      PrEventKind.commitsPushed,
+      PrEventKind.labeled,
+      PrEventKind.merged,
+    ]);
+    final commits = d.timeline.firstWhere((e) => e.kind == PrEventKind.commitsPushed);
+    expect(commits.detail, '2'); // two consecutive commits collapsed
+    expect(d.timeline.firstWhere((e) => e.kind == PrEventKind.reviewRequested).detail, 'leo');
+    expect(d.timeline.firstWhere((e) => e.kind == PrEventKind.labeled).detail, 'bug');
   });
 
   test('null pullRequest yields failure', () async {

@@ -36,6 +36,9 @@ class _Repo implements PrDetailRepository {
 
   @override
   Future<Result<bool>> mergePullRequest(String pullRequestId, String mergeMethod) async => Result.success(true);
+
+  @override
+  Future<Result<bool>> deleteHeadBranch(String refId) async => Result.success(true);
 }
 
 void main() {

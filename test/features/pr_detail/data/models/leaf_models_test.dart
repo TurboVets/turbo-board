@@ -34,10 +34,10 @@ void main() {
       author: 'tom',
       bodyMarkdown: 'hi',
       createdAt: DateTime(2026, 6, 10),
-      kind: PrEventKind.review,
+      kind: PrEventKind.reviewComment,
       reviewState: PrReviewerState.approved,
     );
-    expect(e.kind, PrEventKind.review);
+    expect(e.kind, PrEventKind.reviewComment);
     expect(e.reviewState, PrReviewerState.approved);
   });
 }

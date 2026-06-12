@@ -41,6 +41,8 @@ sealed class PrDetail with _$PrDetail {
     required String author,
     required String baseRefName,
     required String headRefName,
+    String? headRefId, // GraphQL ref node id — needed to delete the branch; null once deleted
+    @Default(false) bool isCrossRepository, // head branch lives in a fork — can't delete from here
     @Default('') String bodyMarkdown,
     PrReviewState? reviewDecision,
     PrCommit? lastCommit,
@@ -80,4 +82,14 @@ sealed class PrDetail with _$PrDetail {
       canMergeAction &&
       mergeable == PrMergeable.mergeable &&
       const {'CLEAN', 'HAS_HOOKS', 'UNSTABLE'}.contains(mergeStateStatus);
+
+  /// Offer the "delete branch" action: the PR is done (merged or closed), the
+  /// head branch still exists in this repo (not a fork), and the viewer has
+  /// write access. After deletion [headRefId] is null on refetch, hiding it.
+  bool get canDeleteBranch =>
+      (state == PrState.merged || state == PrState.closed) &&
+      !isCrossRepository &&
+      headRefId != null &&
+      headRefName != baseRefName &&
+      canMerge;
 }
