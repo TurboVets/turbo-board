@@ -19,9 +19,13 @@ PrInboxRepository prInboxRepository(Ref ref) {
 Future<List<PrData>> prInbox(Ref ref) async {
   final repo = ref.watch(prInboxRepositoryProvider);
   final result = await repo.fetchOpenPrs();
-
-  return switch (result) {
-    ResultSuccess(:final data) => data,
-    ResultFailure(:final message) => throw Exception(message),
-  };
+  return result.when(
+    success: (data) {
+      // Guard: the autodispose provider may already be torn down after the
+      // await if nothing is listening (e.g. a one-shot `.future` read in tests).
+      if (ref.mounted) ref.keepAlive();
+      return data;
+    },
+    failure: (message, stackTrace) => throw Exception(message),
+  );
 }
