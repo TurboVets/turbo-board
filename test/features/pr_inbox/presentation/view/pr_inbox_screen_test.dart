@@ -2,8 +2,8 @@
 //
 // Test summary:
 // - groups PRs into the four review-state columns with correct counts.
-// - shows the empty state when there are no PRs.
-// - shows an error state with a Retry action when the provider throws.
+// - shows the empty state when there are no PRs (renders 'NO OPEN PRS MATCH').
+// - shows an error state with a Retry button when the provider throws.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -59,17 +59,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('PR Board'), findsOneWidget);
-    // "Needs review" and "Approved" appear in both column headers and PrCard
-    // review badges, so we check for at-least-one rather than exactly-one.
-    expect(find.text('Needs review'), findsAtLeastNWidgets(1));
-    expect(find.text('Approved'), findsAtLeastNWidgets(1));
+    // Column headers use uppercase labels — the board also renders badge text
+    // like 'NEEDS REVIEW' and 'APPROVED' on cards, so check at-least-one.
+    expect(find.text('NEEDS REVIEW'), findsAtLeastNWidgets(1));
+    expect(find.text('APPROVED'), findsAtLeastNWidgets(1));
     expect(find.byType(PrCard), findsNWidgets(3));
   });
 
   testWidgets('shows empty state', (tester) async {
     await tester.pumpWidget(_host(_StaticRepo(const [])));
     await tester.pumpAndSettle();
-    expect(find.textContaining('No open PRs'), findsOneWidget);
+    expect(find.textContaining('NO OPEN PRS MATCH'), findsOneWidget);
   });
 
   testWidgets('shows error state with retry', (tester) async {

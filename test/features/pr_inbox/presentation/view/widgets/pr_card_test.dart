@@ -1,7 +1,7 @@
 // test/features/pr_inbox/presentation/view/widgets/pr_card_test.dart
 //
 // Test summary:
-// - renders the title, slug, author and a CI/review badge for a PR.
+// - renders the title, repo slug with number, and author for a PR.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turbo_board/features/pr_inbox/data/models/pr_data.dart';
@@ -29,7 +29,10 @@ void main() {
     );
 
     expect(find.text('Add rate limiting'), findsOneWidget);
-    expect(find.textContaining('o/r#42'), findsOneWidget);
-    expect(find.textContaining('sang'), findsOneWidget);
+    // Repo slug 'o/r' and '#42' are rendered as separate TextSpan runs in the
+    // same RichText; textContaining matches within the rendered inline text.
+    expect(find.textContaining('o/r'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('#42'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('sang'), findsAtLeastNWidgets(1));
   });
 }

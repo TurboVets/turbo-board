@@ -13,6 +13,9 @@ import 'package:turbo_board/features/pr_inbox/presentation/view/pr_inbox_screen.
 import 'package:turbo_board/features/repo_setup/data/models/github_repo.dart';
 import 'package:turbo_board/features/repo_setup/data/models/github_user.dart';
 import 'package:turbo_board/features/repo_setup/data/repositories/auth_repository.dart';
+import 'package:turbo_board/features/pr_inbox/data/models/pr_data.dart';
+import 'package:turbo_board/features/pr_inbox/data/repositories/pr_inbox_repository.dart';
+import 'package:turbo_board/features/pr_inbox/presentation/providers/pr_inbox_provider.dart';
 import 'package:turbo_board/features/repo_setup/data/services/token_store.dart';
 import 'package:turbo_board/features/repo_setup/presentation/providers/auth_provider.dart';
 import 'package:turbo_board/features/repo_setup/presentation/view/setup_screen.dart';
@@ -31,6 +34,12 @@ class _Repo implements AuthRepository {
       user != null ? Result.success(user!) : Result.failure('no', StackTrace.current);
   @override
   Future<Result<List<GithubRepo>>> listAccessibleRepos() async => Result.success(const []);
+}
+
+// A stub PR inbox repo that returns empty — prevents Riverpod retry timers in tests.
+class _EmptyPrInboxRepo implements PrInboxRepository {
+  @override
+  Future<Result<List<PrData>>> fetchOpenPrs() async => Result.success(const []);
 }
 
 // Returns a non-empty repos list — used by the full-flow integration test.
@@ -100,6 +109,8 @@ void main() {
           _RepoWithRepos(const GithubUser(login: 'o', avatarUrl: ''), const [testRepo]),
         ),
         tokenStoreProvider.overrideWithValue(InMemoryTokenStore()),
+        // Prevent real GitHub API calls (and the Riverpod retry timer they create).
+        prInboxRepositoryProvider.overrideWithValue(_EmptyPrInboxRepo()),
       ],
     );
     addTearDown(c.dispose);

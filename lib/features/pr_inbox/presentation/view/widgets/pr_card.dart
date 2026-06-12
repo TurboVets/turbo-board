@@ -1,12 +1,13 @@
 // lib/features/pr_inbox/presentation/view/widgets/pr_card.dart
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:turbo_ui/turbo_ui.dart';
 
+import '../../../../../shared/ui/theme/tb_text.dart';
+import '../../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../../shared/ui/widgets/tb_badge.dart';
 import '../../../data/models/pr_data.dart';
 
-/// A single PR row on the board.
+/// A single PR card on the board.
 class PrCard extends StatelessWidget {
   const PrCard({super.key, required this.pr, this.onTap});
 
@@ -15,81 +16,128 @@ class PrCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final text = Theme.of(context).textTheme;
-
-    return TetherCard(
+    return GestureDetector(
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                pr.isDraft ? LucideIcons.gitPullRequestDraft : LucideIcons.gitPullRequest,
-                size: 18,
-                color: colors.foreground.link,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(pr.title, style: text.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${pr.slug} · ${pr.author} · ${timeago.format(pr.updatedAt)}',
-            style: text.bodySmall?.copyWith(color: colors.foreground.primaryMuted),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              TetherBadge(label: _ciLabel(pr.ciState), color: _ciColor(pr.ciState), size: TetherBadgeSize.small),
-              TetherBadge(
-                label: _reviewLabel(pr.reviewState),
-                color: _reviewColor(pr.reviewState),
-                size: TetherBadgeSize.small,
-              ),
-              if (pr.commentsCount > 0)
-                TetherBadge(
-                  label: '${pr.commentsCount}',
-                  icon: LucideIcons.messageSquare,
-                  color: TetherBadgeColor.gray,
-                  size: TetherBadgeSize.small,
+      child: Container(
+        decoration: BoxDecoration(
+          color: TbColors.surface2,
+          border: Border.all(color: TbColors.border),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Repo line: signal dot + slug + #num
+            Row(
+              children: [
+                TbSignalDot(color: TbRepoColor.forSlug(pr.repo), size: 9),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: pr.repo),
+                        TextSpan(
+                          text: ' #${pr.number}',
+                          style: TbText.label(size: 10, weight: FontWeight.w600, color: TbColors.muted, tracking: 0.5),
+                        ),
+                      ],
+                      style: TbText.label(size: 10, weight: FontWeight.w500, color: TbColors.muted, tracking: 0.5),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 7),
+            // Title (with optional Draft badge inline before it)
+            Text.rich(
+              TextSpan(
+                children: [
+                  if (pr.isDraft) ...[
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: TbColors.surface2,
+                          border: Border.all(color: const Color(0x73BABBBF)),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'DRAFT',
+                          style: TbText.label(size: 10, weight: FontWeight.w500, color: TbColors.muted, tracking: 0.4),
+                        ),
+                      ),
+                    ),
+                  ],
+                  TextSpan(
+                    text: pr.title,
+                    style: TbText.body(size: 13, weight: FontWeight.w600, color: TbColors.text, height: 1.4),
+                  ),
+                ],
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 10),
+            // CI + review badges
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                TbBadge(_ciLabel(pr.ciState), _ciSignal(pr.ciState)),
+                TbBadge(_reviewLabel(pr.reviewState), _reviewSignal(pr.reviewState)),
+              ],
+            ),
+            const SizedBox(height: 11),
+            // Footer: avatar tile + author · updated · Nc
+            Row(
+              children: [
+                TbAvatarTile(login: pr.author, size: 18),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    '${pr.author} · ${timeago.format(pr.updatedAt)}${pr.commentsCount > 0 ? ' · ${pr.commentsCount}c' : ''}',
+                    style: TbText.label(size: 10, weight: FontWeight.w400, color: TbColors.dim, tracking: 0.3),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 String _ciLabel(PrCiState s) => switch (s) {
-  PrCiState.passing => 'Checks',
-  PrCiState.pending => 'Checks',
-  PrCiState.failing => 'Checks',
+  PrCiState.passing => '✓ CHECKS',
+  PrCiState.pending => '● CHECKS',
+  PrCiState.failing => '✕ CHECKS',
 };
 
-TetherBadgeColor _ciColor(PrCiState s) => switch (s) {
-  PrCiState.passing => TetherBadgeColor.green,
-  PrCiState.pending => TetherBadgeColor.yellow,
-  PrCiState.failing => TetherBadgeColor.red,
+TbSignal _ciSignal(PrCiState s) => switch (s) {
+  PrCiState.passing => TbSignal.ok,
+  PrCiState.pending => TbSignal.warn,
+  PrCiState.failing => TbSignal.bad,
 };
 
 String _reviewLabel(PrReviewState s) => switch (s) {
-  PrReviewState.needsReview => 'Needs review',
-  PrReviewState.changesRequested => 'Changes req',
-  PrReviewState.approved => 'Approved',
-  PrReviewState.waitingOnAuthor => 'Waiting',
+  PrReviewState.needsReview => 'NEEDS REVIEW',
+  PrReviewState.changesRequested => 'CHANGES REQ',
+  PrReviewState.approved => 'APPROVED',
+  PrReviewState.waitingOnAuthor => 'WAITING',
 };
 
-TetherBadgeColor _reviewColor(PrReviewState s) => switch (s) {
-  PrReviewState.needsReview => TetherBadgeColor.blue,
-  PrReviewState.changesRequested => TetherBadgeColor.red,
-  PrReviewState.approved => TetherBadgeColor.green,
-  PrReviewState.waitingOnAuthor => TetherBadgeColor.gray,
+TbSignal _reviewSignal(PrReviewState s) => switch (s) {
+  PrReviewState.needsReview => TbSignal.info,
+  PrReviewState.changesRequested => TbSignal.bad,
+  PrReviewState.approved => TbSignal.ok,
+  PrReviewState.waitingOnAuthor => TbSignal.gray,
 };
