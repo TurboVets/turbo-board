@@ -6,8 +6,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
-import '../../../filters/presentation/helpers/pr_filtering.dart';
-import '../../../filters/presentation/providers/filters_provider.dart';
 import '../../data/models/pr_data.dart';
 import '../providers/pr_inbox_provider.dart';
 import 'widgets/pr_column.dart';
@@ -30,9 +28,8 @@ class PrInboxScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final query = useState('');
     // Watch prInboxProvider directly so error/loading states propagate correctly.
-    // Apply filters + search in the data branch.
+    // Client-side search is applied in the data branch.
     final prs = ref.watch(prInboxProvider);
-    final activeFilters = ref.watch(activeFiltersProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -50,12 +47,11 @@ class PrInboxScreen extends HookConsumerWidget {
             loading: () => const _LoadingState(),
             error: (err, _) => _ErrorState(message: '$err', onRetry: () => ref.invalidate(prInboxProvider)),
             data: (items) {
-              // Apply active filters then client-side search
-              final afterFilters = applyFilters(items, activeFilters);
+              // Client-side search over the watched-repo PRs.
               final q = query.value.trim().toLowerCase();
               final filtered = q.isEmpty
-                  ? afterFilters
-                  : afterFilters.where((p) {
+                  ? items
+                  : items.where((p) {
                       return p.title.toLowerCase().contains(q) ||
                           p.repo.toLowerCase().contains(q) ||
                           '#${p.number}'.contains(q) ||
