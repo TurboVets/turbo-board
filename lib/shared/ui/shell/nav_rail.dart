@@ -64,24 +64,33 @@ class AppNavRail extends ConsumerWidget {
           const Divider(height: 1),
           const SizedBox(height: 12),
           // User footer + sign out
-          Row(
-            children: [
-              TetherAvatar(initials: _initials(login), size: TetherAvatarSize.sm),
-              if (!collapsed) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(login ?? '—', style: text.bodySmall, overflow: TextOverflow.ellipsis),
-                ),
-              ],
-              TetherIconButton(
+          if (collapsed)
+            Center(
+              child: TetherIconButton(
                 icon: LucideIcons.logOut,
                 type: TetherButtonType.ghost,
                 size: TetherButtonSize.small,
                 semanticsLabel: 'Sign out',
                 onPressed: () => ref.read(authStateProvider.notifier).signOut(),
               ),
-            ],
-          ),
+            )
+          else
+            Row(
+              children: [
+                TetherAvatar(initials: _initials(login), size: TetherAvatarSize.sm),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(login ?? '—', style: text.bodySmall, overflow: TextOverflow.ellipsis),
+                ),
+                TetherIconButton(
+                  icon: LucideIcons.logOut,
+                  type: TetherButtonType.ghost,
+                  size: TetherButtonSize.small,
+                  semanticsLabel: 'Sign out',
+                  onPressed: () => ref.read(authStateProvider.notifier).signOut(),
+                ),
+              ],
+            ),
         ],
       ),
     );
