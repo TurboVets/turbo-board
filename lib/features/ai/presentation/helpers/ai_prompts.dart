@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
+import '../../../pr_inbox/data/models/pr_data.dart';
+import '../../data/models/triage_item.dart';
 
 /// Canned reply intents for the Reply Drafter.
 enum ReplyIntent { nudgeReviewer, requestChanges, approve, askForUpdate }
@@ -93,6 +97,101 @@ Status counts (of ${s.totalIssues}): ${s.done} done, ${s.inProgress} in progress
 ${s.notStarted} not started, ${s.atRisk} at risk, ${s.unestimated} unestimated.
 Overloaded members: ${overloaded.isEmpty ? 'none' : overloaded}.
 Aging / stuck items: ${stuck.isEmpty ? 'none' : stuck}.''';
+}
+
+// ─── Board triage ──────────────────────────────────────────────────────────
+
+String _ciName(PrCiState s) => switch (s) {
+  PrCiState.passing => 'passing',
+  PrCiState.pending => 'pending',
+  PrCiState.failing => 'failing',
+};
+
+String _reviewName(PrReviewState s) => switch (s) {
+  PrReviewState.needsReview => 'review required',
+  PrReviewState.changesRequested => 'changes requested',
+  PrReviewState.approved => 'approved',
+  PrReviewState.waitingOnAuthor => 'waiting on author',
+};
+
+/// Compact relative-age label for a PR ("3d", "5h", "12m").
+String prAgeLabel(DateTime updatedAt, {DateTime? now}) {
+  final delta = (now ?? DateTime.now()).difference(updatedAt);
+  if (delta.inDays > 0) return '${delta.inDays}d';
+  if (delta.inHours > 0) return '${delta.inHours}h';
+  if (delta.inMinutes > 0) return '${delta.inMinutes}m';
+  return 'now';
+}
+
+/// Prompt for AI Board Triage: send every open PR and ask the model to rank the
+/// most action-worthy ones (review first / unblock / merge / nudge). The model
+/// must reply with a JSON array only — parsed by [parseTriage].
+String buildTriagePrompt(List<PrData> prs, {DateTime? now}) {
+  final clock = now ?? DateTime.now();
+  final rows = prs
+      .map((p) {
+        final age = clock.difference(p.updatedAt).inDays;
+        return '- repo: ${p.repo}, number: ${p.number}, title: "${p.title}", '
+            'review: ${_reviewName(p.reviewState)}, ci: ${_ciName(p.ciState)}, '
+            'draft: ${p.isDraft}, updated: ${age}d ago';
+      })
+      .join('\n');
+
+  return '''
+You are triaging open GitHub pull requests for a busy engineer who watches many repos.
+Rank the most action-worthy PRs (at most 5), highest priority first. Prioritize, in order:
+1. PRs that need review now (review required, not draft) — especially with failing CI.
+2. PRs blocked by failing checks.
+3. Approved PRs with passing CI that are ready to merge.
+4. Stale PRs (no updates for many days) that need a nudge or close.
+Skip draft PRs and anything that needs no action.
+
+Reply with ONLY a JSON array (no prose, no markdown fences). Each element:
+{"repo": "owner/name", "number": 123, "category": "review_first|unblock|merge|nudge", "reason": "<= 80 chars, why it matters"}
+
+Open PRs:
+$rows''';
+}
+
+/// Parses the triage JSON, matching each entry back to a [PrData] by repo +
+/// number (so the row can open the right PR). Unmatched / malformed entries are
+/// skipped; the result is capped at 5 and re-ranked 1..n.
+List<TriageItem> parseTriage(String response, List<PrData> prs, {DateTime? now}) {
+  final start = response.indexOf('[');
+  final end = response.lastIndexOf(']');
+  if (start < 0 || end <= start) return const [];
+
+  final List<dynamic> raw;
+  try {
+    raw = jsonDecode(response.substring(start, end + 1)) as List<dynamic>;
+  } catch (_) {
+    return const [];
+  }
+
+  final byKey = {for (final p in prs) '${p.repo}#${p.number}': p};
+  final items = <TriageItem>[];
+  for (final entry in raw) {
+    if (entry is! Map<String, dynamic>) continue;
+    final repo = entry['repo']?.toString() ?? '';
+    final number = entry['number'] is int ? entry['number'] as int : int.tryParse('${entry['number']}');
+    if (number == null) continue;
+    final pr = byKey['$repo#$number'];
+    if (pr == null) continue;
+    final reason = entry['reason']?.toString().trim();
+    items.add(
+      TriageItem(
+        rank: items.length + 1,
+        repo: pr.repo,
+        number: pr.number,
+        title: pr.title,
+        reason: reason == null || reason.isEmpty ? 'Needs attention' : reason,
+        category: TriageCategory.fromWire(entry['category']?.toString()),
+        updatedLabel: prAgeLabel(pr.updatedAt, now: now),
+      ),
+    );
+    if (items.length >= 5) break;
+  }
+  return items;
 }
 
 /// Splits the model's bullet response into clean lines (no leading markers).

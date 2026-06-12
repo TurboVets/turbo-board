@@ -8,7 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:turbo_board/features/ai/data/repositories/ai_repository.dart';
 import 'package:turbo_board/features/ai/presentation/helpers/ai_prompts.dart';
+import 'package:turbo_board/features/ai/data/models/triage_item.dart';
 import 'package:turbo_board/features/ai/presentation/providers/ai_provider.dart';
+import 'package:turbo_board/features/pr_inbox/data/models/pr_data.dart';
 import 'package:turbo_board/features/lead_cockpit/data/models/cockpit_data.dart';
 import 'package:turbo_board/features/lead_cockpit/data/repositories/lead_cockpit_repository.dart';
 import 'package:turbo_board/features/lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
@@ -30,6 +32,8 @@ class _StubAi implements AiRepository {
   Future<Result<List<String>>> summarize(PrDetail detail) => throw UnimplementedError();
   @override
   Future<Result<String>> draftReply(PrDetail detail, ReplyIntent intent) => throw UnimplementedError();
+  @override
+  Future<Result<List<TriageItem>>> triage(List<PrData> prs) => throw UnimplementedError();
 }
 
 /// Selection notifier with a fixed value (no shared_preferences plugin in tests).

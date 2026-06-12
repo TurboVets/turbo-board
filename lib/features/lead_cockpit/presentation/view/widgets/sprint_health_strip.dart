@@ -287,7 +287,7 @@ class _StatusBar extends StatelessWidget {
               for (final (count, color) in segments)
                 Expanded(
                   flex: count,
-                  child:  SizedBox( height: 8, child: ColoredBox(color: color)),
+                  child: SizedBox(height: 8, child: ColoredBox(color: color)),
                 ),
             ],
           ),

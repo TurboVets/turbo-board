@@ -5,8 +5,10 @@ import 'package:turbo_core/core.dart';
 
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
+import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../repo_setup/data/services/github_api_client.dart';
 import '../../presentation/helpers/ai_prompts.dart';
+import '../models/triage_item.dart';
 import '../services/anthropic_api_client.dart';
 
 /// AI features over the Anthropic Messages API (BYOK). Errors are caught here
@@ -23,6 +25,10 @@ abstract class AiRepository {
 
   /// A short sprint-risk narrative for the Lead Cockpit, from the board state.
   Future<Result<String>> sprintBrief(CockpitData cockpit);
+
+  /// Ranks the most action-worthy open PRs (review first / unblock / merge /
+  /// nudge) from the current board.
+  Future<Result<List<TriageItem>>> triage(List<PrData> prs);
 }
 
 class AnthropicAiRepository implements AiRepository {
@@ -77,6 +83,20 @@ class AnthropicAiRepository implements AiRepository {
     } catch (e, stackTrace) {
       log('Failed to generate sprint brief', error: e, stackTrace: stackTrace);
       return Result.failure('Could not generate the sprint brief.', stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<List<TriageItem>>> triage(List<PrData> prs) async {
+    try {
+      if (prs.isEmpty) return Result.success(const []);
+      final text = await _anthropic.complete(prompt: buildTriagePrompt(prs), maxTokens: 700);
+      final items = parseTriage(text, prs);
+      if (items.isEmpty) return Result.failure('The model returned no triage results.', StackTrace.current);
+      return Result.success(items);
+    } catch (e, stackTrace) {
+      log('Failed to triage PRs', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not triage the board.', stackTrace);
     }
   }
 

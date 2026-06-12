@@ -4,9 +4,14 @@
 // - buildSummaryPrompt notes missing description / omits empty diff
 // - buildReplyPrompt includes the intent instruction, title, and author
 // - ReplyIntent labels are stable
+// - buildTriagePrompt lists each PR with repo/number/state and the ranking rules
+// - parseTriage matches entries by repo+number, re-ranks, caps at 5, maps category
+// - parseTriage tolerates prose around the JSON and drops malformed/unknown entries
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turbo_board/features/ai/data/models/triage_item.dart';
 import 'package:turbo_board/features/ai/presentation/helpers/ai_prompts.dart';
 import 'package:turbo_board/features/pr_detail/data/models/pr_detail.dart';
+import 'package:turbo_board/features/pr_inbox/data/models/pr_data.dart';
 
 PrDetail _detail({String body = 'Adds a thing.'}) => PrDetail(
   repo: 'org/app',
@@ -17,6 +22,23 @@ PrDetail _detail({String body = 'Adds a thing.'}) => PrDetail(
   baseRefName: 'main',
   headRefName: 'feature',
   bodyMarkdown: body,
+);
+
+PrData _pr({
+  String repo = 'org/app',
+  int number = 1,
+  String title = 'A PR',
+  PrReviewState review = PrReviewState.needsReview,
+  PrCiState ci = PrCiState.passing,
+  DateTime? updatedAt,
+}) => PrData(
+  repo: repo,
+  number: number,
+  title: title,
+  author: 'alex',
+  reviewState: review,
+  ciState: ci,
+  updatedAt: updatedAt ?? DateTime(2026, 6, 10),
 );
 
 void main() {
@@ -64,5 +86,72 @@ void main() {
     expect(ReplyIntent.requestChanges.label, 'Request changes');
     expect(ReplyIntent.approve.label, 'Approve');
     expect(ReplyIntent.askForUpdate.label, 'Ask for update');
+  });
+
+  group('buildTriagePrompt', () {
+    test('lists each PR and the ranking rules', () {
+      final now = DateTime(2026, 6, 12);
+      final p = buildTriagePrompt([
+        _pr(repo: 'org/api', number: 7, title: 'Fix login', updatedAt: DateTime(2026, 6, 9)),
+        _pr(repo: 'org/web', number: 12, ci: PrCiState.failing),
+      ], now: now);
+      expect(p, contains('org/api'));
+      expect(p, contains('number: 7'));
+      expect(p, contains('Fix login'));
+      expect(p, contains('3d ago')); // Jun 12 - Jun 9
+      expect(p, contains('JSON array'));
+      expect(p, contains('review_first'));
+    });
+  });
+
+  group('parseTriage', () {
+    final prs = [
+      _pr(repo: 'org/api', number: 7, title: 'Fix login', updatedAt: DateTime(2026, 6, 9)),
+      _pr(repo: 'org/web', number: 12, title: 'Bump deps'),
+    ];
+
+    test('matches by repo+number, re-ranks, and maps category', () {
+      const raw =
+          '[{"repo":"org/web","number":12,"category":"merge","reason":"green & approved"},'
+          '{"repo":"org/api","number":7,"category":"review_first","reason":"needs review"}]';
+      final items = parseTriage(raw, prs, now: DateTime(2026, 6, 12));
+      expect(items, hasLength(2));
+      expect(items[0].rank, 1);
+      expect(items[0].repo, 'org/web');
+      expect(items[0].category, TriageCategory.merge);
+      expect(items[0].title, 'Bump deps'); // pulled from PrData, not the model
+      expect(items[1].rank, 2);
+      expect(items[1].category, TriageCategory.reviewFirst);
+      expect(items[1].updatedLabel, '3d');
+    });
+
+    test('tolerates surrounding prose and drops unmatched / malformed entries', () {
+      const raw =
+          'Here you go:\n'
+          '[{"repo":"org/api","number":7,"category":"unblock","reason":"red CI"},'
+          '{"repo":"org/ghost","number":99,"category":"merge","reason":"nope"},'
+          '{"number":"bad"}]\nDone.';
+      final items = parseTriage(raw, prs);
+      expect(items, hasLength(1));
+      expect(items.single.repo, 'org/api');
+      expect(items.single.category, TriageCategory.unblock);
+    });
+
+    test('caps the result at 5', () {
+      final many = [for (var i = 1; i <= 8; i++) _pr(repo: 'org/api', number: i)];
+      final raw =
+          '[${many.map((p) => '{"repo":"org/api","number":${p.number},"category":"nudge","reason":"x"}').join(',')}]';
+      expect(parseTriage(raw, many), hasLength(5));
+    });
+
+    test('returns empty when there is no JSON array', () {
+      expect(parseTriage('no json here', prs), isEmpty);
+      expect(parseTriage('{not an array}', prs), isEmpty);
+    });
+
+    test('unknown category falls back to watch', () {
+      const raw = '[{"repo":"org/api","number":7,"category":"explode","reason":"?"}]';
+      expect(parseTriage(raw, prs).single.category, TriageCategory.watch);
+    });
   });
 }

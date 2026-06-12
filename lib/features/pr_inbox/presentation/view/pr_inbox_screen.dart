@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/turbo_mark.dart';
+import '../../../ai/presentation/view/widgets/ai_triage_pane.dart';
 import '../../../filters/presentation/helpers/pr_filtering.dart';
 import '../../../filters/presentation/providers/filters_provider.dart';
 import '../../../filters/presentation/view/widgets/filter_bar.dart';
@@ -81,7 +82,14 @@ class PrInboxScreen extends HookConsumerWidget {
                       : null,
                 );
               }
-              return _Board(items: filtered);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // AI Board Triage — ranks the currently-shown PRs.
+                  AiTriagePane(prs: filtered),
+                  Expanded(child: _Board(items: filtered)),
+                ],
+              );
             },
           ),
         ),

@@ -3,7 +3,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
 import '../../../pr_detail/data/models/pr_detail.dart';
+import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
+import '../../data/models/triage_item.dart';
 import '../../data/repositories/ai_repository.dart';
 import '../../data/services/anthropic_api_client.dart';
 import '../../data/services/api_key_store.dart';
@@ -142,4 +144,23 @@ class ReplyDraftController extends _$ReplyDraftController {
   }
 
   void clear() => state = null;
+}
+
+/// Board-level AI triage ranking. `null` = not run yet (idle); loading while
+/// the model ranks; data holds the ranked rows. Single instance for the board.
+@riverpod
+class TriageController extends _$TriageController {
+  @override
+  AsyncValue<List<TriageItem>>? build() => null;
+
+  Future<void> run(List<PrData> prs) async {
+    state = const AsyncValue.loading();
+    final result = await ref.read(aiRepositoryProvider).triage(prs);
+    state = switch (result) {
+      ResultSuccess(:final data) => AsyncValue.data(data),
+      ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+    };
+  }
+
+  void dismiss() => state = null;
 }
