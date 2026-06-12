@@ -35,6 +35,16 @@ class LeadCockpitScreen extends ConsumerWidget {
     }
 
     final cockpit = ref.watch(leadCockpitProvider);
+    if (cockpit.isLoading && !cockpit.hasValue) {
+      // Loading for the first time → show a spinner.
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: const [
+          _Topbar(onRefresh: null, isRefreshing: true),
+          Expanded(child: Center(child: CircularProgressIndicator())),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

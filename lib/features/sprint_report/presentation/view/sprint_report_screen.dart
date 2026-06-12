@@ -195,6 +195,8 @@ class _HeaderStrip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(selectedSprintProvider.notifier);
+    // Disable nav while a sprint is loading to prevent racing rapid switches.
+    final loading = ref.watch(sprintReportProvider).isLoading;
     final subtitle = [
       if (report.dateRange.isNotEmpty) report.dateRange,
       if (report.daysRemaining > 0) '${report.daysRemaining} days remaining',
@@ -215,7 +217,11 @@ class _HeaderStrip extends ConsumerWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _SprintChevron(enabled: report.hasPrev, left: true, onTap: () => notifier.select(report.prevTitle)),
+              _SprintChevron(
+                enabled: report.hasPrev && !loading,
+                left: true,
+                onTap: () => notifier.select(report.prevTitle),
+              ),
               const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,7 +238,11 @@ class _HeaderStrip extends ConsumerWidget {
                 ],
               ),
               const SizedBox(width: 8),
-              _SprintChevron(enabled: report.hasNext, left: false, onTap: () => notifier.select(report.nextTitle)),
+              _SprintChevron(
+                enabled: report.hasNext && !loading,
+                left: false,
+                onTap: () => notifier.select(report.nextTitle),
+              ),
             ],
           ),
           _Stat(value: '${report.totalTickets}', label: 'Tickets'),

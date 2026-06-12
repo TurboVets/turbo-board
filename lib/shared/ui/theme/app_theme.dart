@@ -19,5 +19,6 @@ ThemeData getAppTheme({Brightness brightness = Brightness.dark}) {
     textTheme: GoogleFonts.inclusiveSansTextTheme(
       base.textTheme,
     ).apply(bodyColor: TbColors.text, displayColor: TbColors.text),
+    progressIndicatorTheme: base.progressIndicatorTheme.copyWith(color: TbColors.blue),
   );
 }
