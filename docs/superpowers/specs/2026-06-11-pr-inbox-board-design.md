@@ -30,6 +30,10 @@ watched repos.
   (sub-project C), not this board.
 - **Sign-out** is wired into the rail footer in B (the `signOut()` notifier
   method already exists from A, currently unused).
+- **Naming:** the user-facing label for this surface is **"PR Board"** (the
+  layout is kanban columns, not an inbox list; the inbox-shaped triage view is
+  Needs Attention in C). The code keeps the `pr_inbox` feature dir / provider /
+  screen / route names to avoid churn — only display strings say "PR Board".
 
 ### Out of scope (B)
 
@@ -64,7 +68,7 @@ A's pattern: errors caught only in the repository, surfaced as `Result<T>`.
 
 **`nav_rail.dart`** — `AppNavRail`:
 - Brand: Tether crosshair mark + "TURBO" wordmark.
-- Nav group "Workspace": "PR Inbox" (active, navigates `/`), and disabled
+- Nav group "Workspace": "PR Board" (active, navigates `/`), and disabled
   placeholders "Needs attention", "Filters", "Issues" (greyed, non-tappable —
   wired in C).
 - "Watched repos" group: from `watchedReposProvider`, each row a colored signal
@@ -138,7 +142,7 @@ ref.watch(watchedReposProvider))` (so it refetches when watched repos change).
 `prInboxProvider` unchanged in shape (returns `List<PrData>` or throws).
 
 **Board — `view/pr_inbox_screen.dart` (rebuilt):**
-- Topbar: title "PR Inbox" + a refresh `TetherIconButton` → `ref.invalidate(prInboxProvider)`.
+- Topbar: title "PR Board" + a refresh `TetherIconButton` → `ref.invalidate(prInboxProvider)`.
 - Body: `prInboxProvider.when(...)`:
   - `loading` → centered spinner.
   - `error` → centered message + "Retry" button (invalidate).
