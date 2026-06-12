@@ -2,27 +2,92 @@ import 'dart:developer';
 
 import 'package:turbo_core/core.dart';
 
+import '../../../lead_cockpit/data/queries/project_board.dart';
+import '../../../repo_setup/data/services/github_api_client.dart';
 import '../models/sprint_report.dart';
+import 'sprint_report_mapper.dart';
 
 /// Data access for the Sprint Report (GitHub Projects v2 board rollup).
 ///
-/// v0 ships a mock seeded with the design's sample sprint so the screen can be
-/// built and tested. The live implementation rolls up the same `projectV2`
-/// board query the Lead Cockpit uses (points come from the Complexity field);
-/// the burndown's `actualRemaining` series fills in once the snapshot history
-/// lands — see `docs/V2-ISSUES-SCOPE.md`.
+/// Reads the same `projectV2` board as the Lead Cockpit and rolls it up for one
+/// sprint iteration (points come from the Complexity field; epics from each
+/// issue's sub-issue summary). [sprintTitle] selects the iteration; null = the
+/// current one. The burndown's daily history is a separate follow-up
+/// (docs/plans) — see the mapper.
 abstract class SprintReportRepository {
-  Future<Result<SprintReport>> fetchReport();
+  Future<Result<SprintReport>> fetchReport({String? sprintTitle});
 }
 
+/// Reads a live GitHub Projects v2 board. Requires a token with `read:project`
+/// + org access.
+class GithubSprintReportRepository implements SprintReportRepository {
+  GithubSprintReportRepository(
+    this._client, {
+    required this.org,
+    required this.projectNumber,
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now;
+
+  final GithubApiClient _client;
+  final String org;
+  final int projectNumber;
+  final DateTime Function() _clock;
+
+  static const int _pageSize = 100;
+  static const int _maxPages = 10; // safety cap (≈1000 items)
+
+  @override
+  Future<Result<SprintReport>> fetchReport({String? sprintTitle}) async {
+    try {
+      final nodes = <Map<String, dynamic>>[];
+      String? boardTitle;
+      String? after;
+
+      for (var page = 0; page < _maxPages; page++) {
+        final data = await _client.graphql(projectBoardQuery, {
+          'org': org,
+          'number': projectNumber,
+          'first': _pageSize,
+          'after': after,
+        });
+
+        final project = data['organization']?['projectV2'] as Map<String, dynamic>?;
+        if (project == null) return Result.failure('No access to project #$projectNumber in $org.', StackTrace.current);
+        boardTitle ??= project['title'] as String?;
+
+        final items = project['items'] as Map<String, dynamic>?;
+        nodes.addAll(((items?['nodes'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>());
+
+        final pageInfo = items?['pageInfo'] as Map<String, dynamic>?;
+        if ((pageInfo?['hasNextPage'] as bool?) != true) break;
+        after = pageInfo?['endCursor'] as String?;
+        if (after == null) break;
+      }
+
+      return Result.success(
+        sprintReportFromProjectItems(boardTitle ?? 'Project board', nodes, now: _clock(), selectedSprint: sprintTitle),
+      );
+    } catch (e, stackTrace) {
+      log('Failed to fetch sprint report', error: e, stackTrace: stackTrace);
+      final message = e.toString().contains('read:project')
+          ? 'Your GitHub token is missing the `read:project` scope. Add it at '
+                'github.com/settings/tokens, then re-enter the token in Settings.'
+          : 'Failed to load the sprint report';
+      return Result.failure(message, stackTrace);
+    }
+  }
+}
+
+/// Mock seeded with the design's sample sprint, for tests / offline dev.
 class MockSprintReportRepository implements SprintReportRepository {
   const MockSprintReportRepository();
 
   @override
-  Future<Result<SprintReport>> fetchReport() async {
+  Future<Result<SprintReport>> fetchReport({String? sprintTitle}) async {
     try {
       await Future<void>.delayed(const Duration(milliseconds: 400));
-      return Result.success(_sample);
+      final index = _sample.sprintTitles.indexOf(sprintTitle ?? '');
+      return Result.success(index >= 0 ? _sample.copyWith(sprintIndex: index) : _sample);
     } catch (e, stackTrace) {
       log('Failed to load the sprint report', error: e, stackTrace: stackTrace);
       return Result.failure('Failed to load the sprint report', stackTrace);
@@ -37,7 +102,7 @@ const _sample = SprintReport(
   totalTickets: 145,
   pointsCommitted: 168,
   repoCount: 3,
-  forecastLabel: 'Trending ~2D behind',
+  forecastLabel: 'Trending ~2d behind',
   forecastDetail: '74 pts done vs 96 ideal at day 8 of 14 — gap of 22 pts ≈ 2.4 days at the current rate',
   behind: true,
   pointsDone: 74,
@@ -77,4 +142,6 @@ const _sample = SprintReport(
     snapshotsTotal: 14,
     actualRemaining: [168, 168, 160, 148, 142, 128, 120, 104, 94],
   ),
+  sprintTitles: ['Sprint 22', 'Sprint 23', 'Sprint 24', 'Sprint 25'],
+  sprintIndex: 2,
 );

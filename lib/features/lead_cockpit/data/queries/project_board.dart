@@ -22,6 +22,7 @@ query ProjectBoard($org: String!, $number: Int!, $first: Int!, $after: String) {
               url
               repository { name }
               assignees(first: 5) { nodes { login } }
+              subIssuesSummary { total completed percentCompleted }
             }
           }
           fieldValues(first: 20) {

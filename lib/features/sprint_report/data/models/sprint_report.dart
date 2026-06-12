@@ -108,10 +108,20 @@ sealed class SprintReport with _$SprintReport {
     @Default(<AssigneePoints>[]) List<AssigneePoints> people,
     @Default(<EpicProgress>[]) List<EpicProgress> epics,
     required Burndown burndown,
+
+    /// All sprint iteration titles (oldest → newest) for the prev/next picker,
+    /// and the index of the one this report covers.
+    @Default(<String>[]) List<String> sprintTitles,
+    @Default(0) int sprintIndex,
   }) = _SprintReport;
 
   factory SprintReport.fromJson(Map<String, dynamic> json) => _$SprintReportFromJson(json);
 
   int get percentDone => pointsCommitted == 0 ? 0 : (pointsDone / pointsCommitted * 100).round();
   int get unestimatedPercent => totalTickets == 0 ? 0 : (unestimatedTickets / totalTickets * 100).round();
+
+  bool get hasPrev => sprintIndex > 0;
+  bool get hasNext => sprintIndex < sprintTitles.length - 1;
+  String? get prevTitle => hasPrev ? sprintTitles[sprintIndex - 1] : null;
+  String? get nextTitle => hasNext ? sprintTitles[sprintIndex + 1] : null;
 }

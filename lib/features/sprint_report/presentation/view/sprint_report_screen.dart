@@ -181,13 +181,19 @@ class _Card extends StatelessWidget {
 
 // ─── Header strip ───────────────────────────────────────────────────────────
 
-class _HeaderStrip extends StatelessWidget {
+class _HeaderStrip extends ConsumerWidget {
   const _HeaderStrip({required this.report});
 
   final SprintReport report;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(selectedSprintProvider.notifier);
+    final subtitle = [
+      if (report.dateRange.isNotEmpty) report.dateRange,
+      if (report.daysRemaining > 0) '${report.daysRemaining} days remaining',
+    ].join(' · ');
+
     return Container(
       decoration: BoxDecoration(
         color: TbColors.surface,
@@ -200,16 +206,27 @@ class _HeaderStrip extends StatelessWidget {
         spacing: 26,
         runSpacing: 12,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(report.sprintName, style: TbText.display(size: 15, tracking: 1.5)),
-              const SizedBox(height: 2),
-              Text(
-                '${report.dateRange} · ${report.daysRemaining} days remaining',
-                style: TbText.label(size: 10, weight: FontWeight.w400, color: TbColors.dim, tracking: 0.6),
+              _SprintChevron(enabled: report.hasPrev, left: true, onTap: () => notifier.select(report.prevTitle)),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(report.sprintName, style: TbText.display(size: 15, tracking: 1.5)),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TbText.label(size: 10, weight: FontWeight.w400, color: TbColors.dim, tracking: 0.6),
+                    ),
+                  ],
+                ],
               ),
+              const SizedBox(width: 8),
+              _SprintChevron(enabled: report.hasNext, left: false, onTap: () => notifier.select(report.nextTitle)),
             ],
           ),
           _Stat(value: '${report.totalTickets}', label: 'Tickets'),
@@ -243,6 +260,37 @@ class _Stat extends StatelessWidget {
           style: TbText.label(size: 9, weight: FontWeight.w400, color: TbColors.dim, tracking: 1.0),
         ),
       ],
+    );
+  }
+}
+
+class _SprintChevron extends StatelessWidget {
+  const _SprintChevron({required this.enabled, required this.left, required this.onTap});
+
+  final bool enabled;
+  final bool left;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Container(
+      width: 26,
+      height: 26,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        border: Border.all(color: enabled ? TbColors.borderStrong : TbColors.border),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Icon(
+        left ? Icons.chevron_left : Icons.chevron_right,
+        size: 18,
+        color: enabled ? TbColors.text : TbColors.dim,
+      ),
+    );
+    if (!enabled) return Opacity(opacity: 0.4, child: child);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(onTap: onTap, child: child),
     );
   }
 }
@@ -646,7 +694,9 @@ class _BurndownCard extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final target = useState(true);
+    // Default to the live "no history" view; only start on the target visual
+    // when an actual burndown series is present (e.g. mock / once snapshots land).
+    final target = useState(burndown.actualRemaining.length >= 2);
 
     return Container(
       decoration: BoxDecoration(
