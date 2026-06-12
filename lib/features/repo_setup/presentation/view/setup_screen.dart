@@ -6,6 +6,7 @@ import 'package:turbo_ui/turbo_ui.dart';
 
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
+import '../../../../shared/ui/widgets/turbo_mark.dart';
 import '../providers/auth_provider.dart';
 import '../providers/watched_repos_provider.dart';
 import 'widgets/repo_pick_list.dart';
@@ -84,7 +85,7 @@ class SetupScreen extends HookConsumerWidget {
   }
 }
 
-/// The 452px card with blue top accent, crosshair mark, and step bar.
+/// The 452px card with blue top accent, the Viewfinder T mark, and step bar.
 class _SetupCard extends StatelessWidget {
   const _SetupCard({required this.step, required this.child});
 
@@ -122,8 +123,8 @@ class _SetupCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Crosshair "T" mark
-                CustomPaint(painter: _TurboMarkPainter(), size: const Size(46, 46)),
+                // Viewfinder "T" mark
+                const TurboMark(size: 46),
                 const SizedBox(height: 20),
 
                 // 2-segment step bar
@@ -158,30 +159,6 @@ class _SetupCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The blue "T" crosshair glyph (SVG viewBox 0 0 32 32), painted at 46×46.
-class _TurboMarkPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final sx = size.width / 32;
-    final sy = size.height / 32;
-    final paint = Paint()..color = TbColors.blue;
-
-    void r(double x, double y, double w, double h) =>
-        canvas.drawRect(Rect.fromLTWH(x * sx, y * sy, w * sx, h * sy), paint);
-
-    r(14.5, 6, 3, 20); // vertical stem
-    r(8, 9, 16, 2.4); // horizontal crossbar
-    r(6, 6, 4, 4); // top-left corner
-    r(22, 6, 4, 4); // top-right corner
-    r(10.5, 22, 3, 3); // bottom-left serif
-    r(18.5, 22, 3, 3); // bottom-right serif
-    r(13, 2, 6, 3); // top cap
-  }
-
-  @override
-  bool shouldRepaint(covariant _TurboMarkPainter oldDelegate) => false;
 }
 
 // ─── Step 1: connect a PAT ────────────────────────────────────────────────────

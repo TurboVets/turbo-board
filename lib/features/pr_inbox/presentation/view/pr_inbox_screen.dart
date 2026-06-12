@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../shared/ui/widgets/turbo_mark.dart';
 import '../../../filters/presentation/helpers/pr_filtering.dart';
 import '../../../filters/presentation/providers/filters_provider.dart';
 import '../../../filters/presentation/view/widgets/filter_bar.dart';
@@ -370,7 +371,7 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Opacity(opacity: 0.35, child: Icon(Icons.adjust, size: 44, color: TbColors.dim)),
+          const Opacity(opacity: 0.45, child: TurboMark(size: 44, muted: true)),
           const SizedBox(height: 18),
           Text('NO OPEN PRS MATCH', style: TbText.display(size: 14, color: TbColors.muted, tracking: 2.0)),
           const SizedBox(height: 8),
