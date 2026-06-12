@@ -1,0 +1,80 @@
+import 'dart:developer';
+
+import 'package:dio/dio.dart';
+import 'package:turbo_core/core.dart';
+
+import '../../../pr_detail/data/models/pr_detail.dart';
+import '../../../repo_setup/data/services/github_api_client.dart';
+import '../../presentation/helpers/ai_prompts.dart';
+import '../services/anthropic_api_client.dart';
+
+/// AI features over the Anthropic Messages API (BYOK). Errors are caught here
+/// and surfaced as [Result] failures; nothing above the repo layer throws.
+abstract class AiRepository {
+  /// True if the stored key is valid, false if rejected (401).
+  Future<Result<bool>> validateKey();
+
+  /// 3-bullet TL;DR of the PR (title + description + diff).
+  Future<Result<List<String>>> summarize(PrDetail detail);
+
+  /// An editable reply draft in the given [intent].
+  Future<Result<String>> draftReply(PrDetail detail, ReplyIntent intent);
+}
+
+class AnthropicAiRepository implements AiRepository {
+  AnthropicAiRepository(this._anthropic, this._github);
+
+  final AnthropicApiClient _anthropic;
+  final GithubApiClient _github;
+
+  @override
+  Future<Result<bool>> validateKey() async {
+    try {
+      return Result.success(await _anthropic.validateKey());
+    } catch (e, stackTrace) {
+      log('Failed to validate Anthropic key', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not reach Anthropic. Check your connection and try again.', stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<List<String>>> summarize(PrDetail detail) async {
+    try {
+      final parts = detail.repo.split('/');
+      final diff = parts.length == 2 ? await _fetchDiff(parts[0], parts[1], detail.number) : '';
+      final text = await _anthropic.complete(prompt: buildSummaryPrompt(detail, diff), maxTokens: 400);
+      final bullets = parseBullets(text);
+      if (bullets.isEmpty) return Result.failure('The model returned an empty summary.', StackTrace.current);
+      return Result.success(bullets);
+    } catch (e, stackTrace) {
+      log('Failed to summarize PR', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not generate a summary.', stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<String>> draftReply(PrDetail detail, ReplyIntent intent) async {
+    try {
+      final text = await _anthropic.complete(prompt: buildReplyPrompt(detail, intent), maxTokens: 300);
+      return Result.success(text.trim());
+    } catch (e, stackTrace) {
+      log('Failed to draft reply', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not draft a reply.', stackTrace);
+    }
+  }
+
+  /// Fetches the unified diff via GitHub REST. Returns '' on any failure so a
+  /// summary can still be produced from title + description alone.
+  Future<String> _fetchDiff(String owner, String repo, int number) async {
+    try {
+      final res = await _github.dio.get<String>(
+        '/repos/$owner/$repo/pulls/$number',
+        options: Options(headers: {'Accept': 'application/vnd.github.diff'}, responseType: ResponseType.plain),
+      );
+      return res.statusCode == 200 ? (res.data ?? '') : '';
+    } catch (e) {
+      log('Diff fetch failed; summarizing without diff', error: e);
+      return '';
+    }
+  }
+}

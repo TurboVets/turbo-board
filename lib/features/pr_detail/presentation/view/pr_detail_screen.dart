@@ -6,6 +6,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
+import '../../../ai/presentation/view/widgets/pr_summary_card.dart';
+import '../../../ai/presentation/view/widgets/reply_drafter.dart';
 import '../../data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart' show PrReviewState;
 import '../providers/pr_detail_provider.dart';
@@ -75,6 +77,10 @@ class _DetailBody extends StatelessWidget {
     final aside = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        PrSummaryCard(detail: detail),
+        const SizedBox(height: 12),
+        ReplyDrafter(detail: detail),
+        const SizedBox(height: 12),
         PrReviewersCard(reviewers: detail.reviewers),
         if (detail.lastCommit != null) ...[const SizedBox(height: 12), PrCommitCard(commit: detail.lastCommit!)],
       ],

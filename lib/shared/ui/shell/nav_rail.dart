@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../features/needs_attention/presentation/providers/needs_attention_provider.dart';
 import '../../../features/repo_setup/presentation/providers/auth_provider.dart';
 import '../../../features/repo_setup/presentation/providers/watched_repos_provider.dart';
 import '../theme/tb_text.dart';
@@ -23,6 +24,7 @@ class AppNavRail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final watched = ref.watch(watchedReposProvider);
     final auth = ref.watch(authStateProvider);
+    final attentionCount = ref.watch(needsAttentionBadgeProvider);
     // maybeOf so the rail still renders in isolation (widget tests) without a router.
     final location = GoRouter.maybeOf(context)?.state.matchedLocation ?? '/';
 
@@ -62,8 +64,23 @@ class AppNavRail extends ConsumerWidget {
                     onTap: () => context.go('/'),
                   ),
 
+                  _NavItem(
+                    icon: LucideIcons.circleDot,
+                    label: 'Needs attention',
+                    collapsed: collapsed,
+                    active: location == '/needs-attention',
+                    badgeCount: attentionCount,
+                    onTap: () => context.go('/needs-attention'),
+                  ),
+                  _NavItem(
+                    icon: LucideIcons.sparkles,
+                    label: 'AI Settings',
+                    collapsed: collapsed,
+                    active: location == '/ai-settings',
+                    onTap: () => context.go('/ai-settings'),
+                  ),
+
                   // Disabled entries matching the design
-                  _NavItem(icon: LucideIcons.circleDot, label: 'Needs attention', collapsed: collapsed, enabled: false),
                   _NavItem(icon: LucideIcons.settings2, label: 'Filters', collapsed: collapsed, enabled: false),
                   _NavItem(icon: LucideIcons.circleDashed, label: 'Issues', collapsed: collapsed, enabled: false),
 
@@ -193,6 +210,7 @@ class _NavItem extends StatefulWidget {
     required this.collapsed,
     this.active = false,
     this.enabled = true,
+    this.badgeCount = 0,
     this.onTap,
   });
 
@@ -201,6 +219,7 @@ class _NavItem extends StatefulWidget {
   final bool collapsed;
   final bool active;
   final bool enabled;
+  final int badgeCount;
   final VoidCallback? onTap;
 
   @override
@@ -261,7 +280,20 @@ class _NavItemState extends State<_NavItem> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ],
+                if (widget.badgeCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                    decoration: BoxDecoration(color: TbColors.navy, borderRadius: BorderRadius.circular(4)),
+                    child: Text(
+                      '${widget.badgeCount}',
+                      style: TbText.label(size: 11, weight: FontWeight.w600, color: TbColors.cyan, tracking: 0),
+                    ),
+                  ),
+              ] else if (widget.badgeCount > 0)
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: TbSignalDot(color: TbColors.cyan, size: 6),
+                ),
             ],
           ),
         ),

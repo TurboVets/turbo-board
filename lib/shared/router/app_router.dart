@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../features/ai/presentation/view/ai_settings_screen.dart';
+import '../../features/needs_attention/presentation/view/needs_attention_screen.dart';
 import '../../features/pr_detail/presentation/view/pr_detail_screen.dart';
 import '../../features/pr_inbox/presentation/view/pr_inbox_screen.dart';
 import '../../features/repo_setup/presentation/providers/auth_provider.dart';
@@ -34,6 +36,16 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           GoRoute(path: '/', name: PrInboxScreen.routeName, builder: (context, state) => const PrInboxScreen()),
+          GoRoute(
+            path: '/needs-attention',
+            name: NeedsAttentionScreen.routeName,
+            builder: (context, state) => const NeedsAttentionScreen(),
+          ),
+          GoRoute(
+            path: '/ai-settings',
+            name: AiSettingsScreen.routeName,
+            builder: (context, state) => const AiSettingsScreen(),
+          ),
           GoRoute(
             path: '/pr/:owner/:repo/:number',
             name: PrDetailScreen.routeName,
