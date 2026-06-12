@@ -44,6 +44,8 @@ class PrInboxScreen extends HookConsumerWidget {
           query: query.value,
           onQueryChanged: (v) => query.value = v,
           onRefresh: () => ref.invalidate(prInboxProvider),
+          // Reloading on top of existing data (skipLoadingOnReload keeps the board up).
+          isRefreshing: prs.isLoading && prs.hasValue,
           filtersOpen: showFilters.value,
           filterCount: filters.activeFacetCount,
           onToggleFilters: () => showFilters.value = !showFilters.value,
@@ -95,6 +97,7 @@ class _Topbar extends StatelessWidget {
     required this.query,
     required this.onQueryChanged,
     required this.onRefresh,
+    required this.isRefreshing,
     required this.filtersOpen,
     required this.filterCount,
     required this.onToggleFilters,
@@ -103,6 +106,7 @@ class _Topbar extends StatelessWidget {
   final String query;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onRefresh;
+  final bool isRefreshing;
   final bool filtersOpen;
   final int filterCount;
   final VoidCallback onToggleFilters;
@@ -133,7 +137,7 @@ class _Topbar extends StatelessWidget {
           const _LiveIndicator(),
           const SizedBox(width: 14),
           // REFRESH button
-          _OutlineButton(label: 'REFRESH', onPressed: onRefresh),
+          _OutlineButton(label: isRefreshing ? 'REFRESHING' : 'REFRESH', onPressed: onRefresh, busy: isRefreshing),
           const SizedBox(width: 8),
           // FILTERS toggle — opens the inline filter bar; shows active count.
           _OutlineButton(
@@ -222,24 +226,28 @@ class _LiveIndicator extends StatelessWidget {
 }
 
 class _OutlineButton extends StatelessWidget {
-  const _OutlineButton({required this.label, required this.onPressed, this.active = false});
+  const _OutlineButton({required this.label, required this.onPressed, this.active = false, this.busy = false});
 
   final String label;
   final VoidCallback? onPressed;
   final bool active;
 
+  /// When true, shows a spinner and ignores taps (e.g. a refresh in flight).
+  final bool busy;
+
   @override
   Widget build(BuildContext context) {
-    final fg = onPressed == null
+    final enabled = onPressed != null && !busy;
+    final fg = !enabled
         ? TbColors.dim
         : active
         ? TbColors.cyan
         : TbColors.text;
     return OutlinedButton(
-      onPressed: onPressed,
+      onPressed: busy ? null : onPressed,
       style: OutlinedButton.styleFrom(
         foregroundColor: fg,
-        side: BorderSide(color: onPressed == null ? TbColors.border : (active ? TbColors.cyan : TbColors.borderStrong)),
+        side: BorderSide(color: !enabled ? TbColors.border : (active ? TbColors.cyan : TbColors.borderStrong)),
         backgroundColor: active ? TbColors.navy : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         minimumSize: Size.zero,
@@ -247,7 +255,16 @@ class _OutlineButton extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         textStyle: TbText.label(size: 12, tracking: 0.8),
       ),
-      child: Text(label),
+      child: busy
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: TbColors.dim)),
+                const SizedBox(width: 8),
+                Text(label),
+              ],
+            )
+          : Text(label),
     );
   }
 }

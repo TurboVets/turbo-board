@@ -349,7 +349,20 @@ class _WatchedReposSection extends HookConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (slugs.isEmpty)
+          if (slugs.isEmpty && accessibleAsync.isLoading)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
+            )
+          else if (slugs.isEmpty && accessibleAsync.hasError)
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Text(
+                'Could not load repositories. Add one manually below.',
+                style: TbText.body(size: 13, color: TbColors.muted),
+              ),
+            )
+          else if (slugs.isEmpty)
             Padding(
               padding: const EdgeInsets.all(14),
               child: Text('No repositories yet — add one below.', style: TbText.body(size: 13, color: TbColors.muted)),

@@ -39,7 +39,10 @@ class LeadCockpitScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Topbar(onRefresh: () => ref.invalidate(leadCockpitProvider)),
+        _Topbar(
+          onRefresh: () => ref.invalidate(leadCockpitProvider),
+          isRefreshing: cockpit.isLoading && cockpit.hasValue,
+        ),
         Expanded(
           child: cockpit.when(
             skipLoadingOnReload: true,
@@ -182,9 +185,10 @@ class _StuckList extends StatelessWidget {
 }
 
 class _Topbar extends StatefulWidget {
-  const _Topbar({required this.onRefresh});
+  const _Topbar({required this.onRefresh, this.isRefreshing = false});
 
   final VoidCallback? onRefresh;
+  final bool isRefreshing;
 
   @override
   State<_Topbar> createState() => _TopbarState();
@@ -208,25 +212,38 @@ class _TopbarState extends State<_Topbar> {
           const Spacer(),
           if (widget.onRefresh != null)
             MouseRegion(
-              cursor: SystemMouseCursors.click,
+              cursor: widget.isRefreshing ? SystemMouseCursors.basic : SystemMouseCursors.click,
               onEnter: (_) => setState(() => _hovered = true),
               onExit: (_) => setState(() => _hovered = false),
               child: GestureDetector(
-                onTap: widget.onRefresh,
+                onTap: widget.isRefreshing ? null : widget.onRefresh,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                   decoration: BoxDecoration(
-                    border: Border.all(color: _hovered ? TbColors.blue : TbColors.borderStrong),
+                    border: Border.all(color: _hovered && !widget.isRefreshing ? TbColors.blue : TbColors.borderStrong),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(
-                    'REFRESH',
-                    style: TbText.label(
-                      size: 12,
-                      weight: FontWeight.w600,
-                      color: _hovered ? TbColors.blue : TbColors.text,
-                      tracking: 0.96,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.isRefreshing) ...[
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: TbColors.dim),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        widget.isRefreshing ? 'REFRESHING' : 'REFRESH',
+                        style: TbText.label(
+                          size: 12,
+                          weight: FontWeight.w600,
+                          color: widget.isRefreshing ? TbColors.dim : (_hovered ? TbColors.blue : TbColors.text),
+                          tracking: 0.96,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
