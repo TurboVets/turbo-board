@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../shared/ui/theme/tb_breakpoints.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/turbo_mark.dart';
@@ -260,8 +261,30 @@ class _OutlineButton extends StatelessWidget {
 
 // ─── Board grid ───────────────────────────────────────────────────────────────
 
+/// Opens the PR detail overlay for [pr]; shared by the desktop and mobile boards.
+void _openPr(BuildContext context, PrData pr) {
+  final parts = pr.repo.split('/');
+  if (parts.length != 2) return;
+  // push (not go) so the board stays below the overlay drawer
+  context.pushNamed('prDetail', pathParameters: {'owner': parts[0], 'repo': parts[1], 'number': '${pr.number}'});
+}
+
+/// Chooses between the desktop 4-column board and the phone single-column board
+/// with a horizontal column selector.
 class _Board extends StatelessWidget {
   const _Board({required this.items});
+
+  final List<PrData> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return context.isMobile ? _MobileBoard(items: items) : _DesktopBoard(items: items);
+  }
+}
+
+/// Desktop/tablet: all four columns side by side, horizontally scrollable.
+class _DesktopBoard extends StatelessWidget {
+  const _DesktopBoard({required this.items});
 
   final List<PrData> items;
 
@@ -284,15 +307,7 @@ class _Board extends StatelessWidget {
                     title: label,
                     accent: accent,
                     prs: items.where((p) => p.reviewState == state).toList(),
-                    onCardTap: (pr) {
-                      final parts = pr.repo.split('/');
-                      if (parts.length != 2) return;
-                      // push (not go) so the board stays below the overlay drawer
-                      context.pushNamed(
-                        'prDetail',
-                        pathParameters: {'owner': parts[0], 'repo': parts[1], 'number': '${pr.number}'},
-                      );
-                    },
+                    onCardTap: (pr) => _openPr(context, pr),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -301,6 +316,102 @@ class _Board extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Phone: a horizontal pill selector (one chip per column, with its count) above
+/// a single full-width column showing only the selected review state.
+class _MobileBoard extends HookWidget {
+  const _MobileBoard({required this.items});
+
+  final List<PrData> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = useState(PrInboxScreen._columns.first.$1);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Column selector pills.
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+          child: Row(
+            children: [
+              for (final (state, label, accent) in PrInboxScreen._columns) ...[
+                _ColumnPill(
+                  label: label.split(' ').first,
+                  count: items.where((p) => p.reviewState == state).length,
+                  accent: accent,
+                  selected: selected.value == state,
+                  onTap: () => selected.value = state,
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+        // Selected column, full width.
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
+            child: Builder(
+              builder: (context) {
+                final (state, label, accent) = PrInboxScreen._columns.firstWhere((c) => c.$1 == selected.value);
+                return PrColumn(
+                  title: label,
+                  accent: accent,
+                  prs: items.where((p) => p.reviewState == state).toList(),
+                  onCardTap: (pr) => _openPr(context, pr),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ColumnPill extends StatelessWidget {
+  const _ColumnPill({
+    required this.label,
+    required this.count,
+    required this.accent,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final Color accent;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? accent : Colors.transparent,
+          border: Border.all(color: selected ? accent : TbColors.border),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          '$label · $count',
+          style: TbText.label(
+            size: 12,
+            weight: FontWeight.w600,
+            color: selected ? Colors.white : TbColors.muted,
+            tracking: 0.72,
+          ),
+        ),
+      ),
     );
   }
 }

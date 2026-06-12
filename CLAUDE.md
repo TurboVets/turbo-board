@@ -9,7 +9,7 @@ This document provides guidelines for AI agents (Claude, Cursor, etc.) working o
 **State Management:** Riverpod with code generation
 **Backend:** GitHub REST/GraphQL API via turbo_core network clients
 **Design System:** Tether Design System v2.0 via turbo_ui
-**Target Platforms:** macOS, Windows, Linux, Web, and tablets (iPad / Android tablet). **Phones are NOT a target form factor.**
+**Target Platforms:** macOS, Windows, Linux, Web, tablets (iPad / Android tablet), **and phones**. The layout is responsive across three breakpoints (see Responsive Design): phone <640px (bottom tab bar), tablet 640–1100px (collapsed rail), desktop ≥1100px (full rail).
 
 **Design reference:** `design/mockup.html` is the interactive HTML mockup of all screens (PR Inbox board, Needs Attention, PR Detail, filters) built with verified Tether tokens — open it in a browser or read the HTML/CSS directly for layout, spacing, and color decisions. `design/README.md` documents the design direction and token tables. Product scope: `docs/V1-SCOPE.md`; AI features: `docs/AI-FEATURES.md`.
 
@@ -60,7 +60,7 @@ TurboBoard builds for **macos, windows, linux, web, android, ios** (android/ios 
 2. **Avoid mobile-only plugins** — camera/scanner, firebase_crashlytics, push notifications, etc.
 3. **Depend on `turbo_core` + `turbo_ui` directly, never the `turbo_sdk` umbrella.** `turbo_services` and `turbo_task` pull in mobile-only plugins (cunning_document_scanner, firebase_crashlytics) that break desktop/web builds.
 4. **No `dart:io` in shared code paths** without a web fallback (`kIsWeb` check or conditional imports).
-5. **Design for pointer + keyboard first**, touch second. Minimum window/layout width assumption: ~840px (tablet landscape). Do not build phone layouts.
+5. **Design for pointer + keyboard first**, touch second — but the app must also work down to phone widths (~360px). Use the breakpoints in `lib/shared/ui/theme/tb_breakpoints.dart` (`TbBreakpoints` / the `context.isMobile|isTablet|isDesktop` extension).
 6. **Web caveats:** flutter_secure_storage uses WebCrypto on web (keys don't survive browser data clears); direct GitHub API calls may need CORS handling.
 
 ---
@@ -400,19 +400,31 @@ Status signal mapping (PR dashboard semantics):
 
 ### Responsive Design
 
-Desktop-first, tablet-friendly. No phone layouts.
+Desktop-first, but responsive down to phones. Three breakpoints, defined in
+`lib/shared/ui/theme/tb_breakpoints.dart`:
+
+- **Phone** (`<640px`, `TbBreakpoints.mobile`) — nav rail replaced by a fixed
+  bottom tab bar (`AppBottomNav`); multi-column boards collapse to a single
+  column (PR Board shows a horizontal column selector); the PR detail drawer
+  goes full-width.
+- **Tablet** (`640–1100px`) — nav rail collapsed to icons.
+- **Desktop** (`≥1100px`, `TbBreakpoints.tablet`) — full expanded rail.
 
 ```dart
-// Use LayoutBuilder for adaptive widgets
+// Window/screen size — use the context extension:
+if (context.isMobile) return MobileLayout();
+
+// Local content box (e.g. inside a drawer) — use LayoutBuilder:
 LayoutBuilder(
   builder: (context, constraints) {
-    if (constraints.maxWidth < 1100) {
-      return TabletLayout();   // collapsed rail, single column + drawer detail
-    }
-    return DesktopLayout();    // rail + board + detail/filter column
+    if (constraints.maxWidth < TbBreakpoints.mobile) return SingleColumn();
+    return MultiColumn();
   },
 )
 ```
+
+Wide multi-column rows (e.g. the cockpit stuck-issue list) must collapse to a
+stacked/wrapping layout below ~520px so they never overflow on a phone.
 
 ### Widget Types
 

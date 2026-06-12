@@ -3,6 +3,7 @@
 // Test summary:
 // - renders the rail and the routed child.
 // - at tablet width (<1100) the rail collapses (no text labels).
+// - at phone width (<640) the rail is replaced by a bottom tab bar.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -68,5 +69,22 @@ void main() {
 
     expect(find.text('ROUTED-CHILD'), findsOneWidget);
     expect(find.text('PR Board'), findsNothing); // collapsed rail hides labels
+  });
+
+  testWidgets('phone width shows bottom tab bar instead of the rail', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_host(size: const Size(400, 800)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ROUTED-CHILD'), findsOneWidget);
+    // Rail header gone; bottom tab labels present.
+    expect(find.text('TURBO-BOARD'), findsNothing);
+    expect(find.text('BOARD'), findsOneWidget);
+    expect(find.text('ATTENTION'), findsOneWidget);
+    expect(find.text('SETTINGS'), findsOneWidget);
   });
 }
