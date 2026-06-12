@@ -19,6 +19,8 @@ sealed class PrDetail with _$PrDetail {
     required String repo, // "owner/name"
     required int number,
     required String title,
+    String? url, // PR page on github.com
+
     required PrState state,
     @Default(false) bool isDraft,
     required String author,

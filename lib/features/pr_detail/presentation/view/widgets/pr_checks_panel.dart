@@ -1,5 +1,5 @@
 // lib/features/pr_detail/presentation/view/widgets/pr_checks_panel.dart
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
@@ -39,7 +39,18 @@ class PrChecksPanel extends StatelessWidget {
               child: Text('No checks reported.', style: TbText.body(size: 13, color: TbColors.muted)),
             )
           else
-            for (int i = 0; i < checks.length; i++) _CheckRow(check: checks[i], isLast: i == checks.length - 1),
+            // Cap height so a long list scrolls instead of stretching the panel.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 196),
+              child: Scrollbar(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: checks.length,
+                  itemBuilder: (context, i) => _CheckRow(check: checks[i], isLast: i == checks.length - 1),
+                ),
+              ),
+            ),
         ],
       ),
     );

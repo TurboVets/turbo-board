@@ -188,6 +188,7 @@ class _CategorySection extends StatelessWidget {
   static void _openDetail(BuildContext context, PrData pr) {
     final parts = pr.repo.split('/');
     if (parts.length != 2) return;
-    context.goNamed('prDetail', pathParameters: {'owner': parts[0], 'repo': parts[1], 'number': '${pr.number}'});
+    // push (not go) so the board stays below the overlay drawer
+    context.pushNamed('prDetail', pathParameters: {'owner': parts[0], 'repo': parts[1], 'number': '${pr.number}'});
   }
 }

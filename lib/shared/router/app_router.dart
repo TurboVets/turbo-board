@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -61,10 +61,18 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: '/pr/:owner/:repo/:number',
             name: PrDetailScreen.routeName,
-            builder: (context, state) => PrDetailScreen(
-              owner: state.pathParameters['owner']!,
-              repo: state.pathParameters['repo']!,
-              number: int.tryParse(state.pathParameters['number'] ?? '') ?? 0,
+            // Transparent overlay so the board stays painted behind the drawer.
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              opaque: false,
+              barrierDismissible: false,
+              transitionDuration: const Duration(milliseconds: 220),
+              child: PrDetailScreen(
+                owner: state.pathParameters['owner']!,
+                repo: state.pathParameters['repo']!,
+                number: int.tryParse(state.pathParameters['number'] ?? '') ?? 0,
+              ),
+              transitionsBuilder: (context, animation, _, child) => FadeTransition(opacity: animation, child: child),
             ),
           ),
         ],

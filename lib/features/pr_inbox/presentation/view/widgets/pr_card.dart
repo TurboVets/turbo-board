@@ -4,6 +4,7 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../../shared/ui/widgets/open_on_github_button.dart';
 import '../../../../../shared/ui/widgets/tb_badge.dart';
 import '../../../data/models/pr_data.dart';
 
@@ -49,6 +50,7 @@ class PrCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (pr.htmlUrl != null) ...[const SizedBox(width: 6), OpenOnGitHubButton.icon(url: pr.htmlUrl!)],
               ],
             ),
             const SizedBox(height: 7),

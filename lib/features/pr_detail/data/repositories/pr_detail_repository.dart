@@ -45,6 +45,7 @@ PrDetail prDetailFromNode(String owner, String name, Map<String, dynamic> pr) {
     repo: '$owner/$name',
     number: (pr['number'] as int?) ?? 0,
     title: (pr['title'] as String?) ?? '',
+    url: pr['url'] as String?,
     state: _stateFrom(pr['state'] as String?),
     isDraft: (pr['isDraft'] as bool?) ?? false,
     author: (pr['author']?['login'] as String?) ?? 'unknown',
