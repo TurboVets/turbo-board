@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'shared/router/app_router.dart';
+import 'shared/ui/providers/auto_refresh_provider.dart';
 import 'shared/ui/providers/text_scale_provider.dart';
 import 'shared/ui/theme/app_theme.dart';
 import 'shared/ui/widgets/brand_frame.dart';
@@ -52,6 +53,8 @@ class TurboBoardApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
     final scale = ref.watch(textScaleProvider);
     final notifier = ref.read(textScaleProvider.notifier);
+    // Keep the app-wide periodic refresh alive; rebuilds restart its timer.
+    ref.watch(autoRefreshProvider);
 
     return Shortcuts(
       shortcuts: _shortcuts,

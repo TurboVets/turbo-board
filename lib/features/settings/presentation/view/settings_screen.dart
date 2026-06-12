@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../shared/ui/providers/refresh_interval_provider.dart';
 import '../../../../shared/ui/providers/text_scale_provider.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
@@ -54,6 +55,8 @@ class SettingsScreen extends StatelessWidget {
                     _AnthropicKeySection(),
                     SizedBox(height: 14),
                     _BillingCard(),
+                    SizedBox(height: 14),
+                    _RefreshSection(),
                     SizedBox(height: 14),
                     _AppearanceSection(),
                   ],
@@ -712,6 +715,84 @@ class _BillingCard extends StatelessWidget {
             style: TbText.body(size: 13, color: TbColors.muted, height: 1.6),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Auto-refresh ───────────────────────────────────────────────────────────
+
+class _RefreshSection extends ConsumerWidget {
+  const _RefreshSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final seconds = ref.watch(refreshIntervalProvider);
+    final index = refreshIntervalSteps.indexOf(seconds).clamp(0, refreshIntervalSteps.length - 1);
+
+    return _Card(
+      title: 'Auto-refresh',
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Refresh interval', style: TbText.body(size: 13)),
+                  const SizedBox(height: 2),
+                  Text(
+                    'How often the board, triage and PR detail refetch from GitHub',
+                    style: TbText.body(size: 11, color: TbColors.muted),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 240,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderThemeData(
+                        trackHeight: 4,
+                        activeTrackColor: TbColors.blue,
+                        inactiveTrackColor: TbColors.border,
+                        thumbColor: TbColors.text,
+                        overlayShape: SliderComponentShape.noOverlay,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                      ),
+                      child: Slider(
+                        min: 0,
+                        max: (refreshIntervalSteps.length - 1).toDouble(),
+                        divisions: refreshIntervalSteps.length - 1,
+                        value: index.toDouble(),
+                        onChanged: (v) =>
+                            ref.read(refreshIntervalProvider.notifier).setSeconds(refreshIntervalSteps[v.round()]),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    width: 44,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    decoration: BoxDecoration(
+                      color: TbColors.navy,
+                      border: Border.all(color: TbColors.cyan),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      refreshIntervalLabel(seconds),
+                      style: TbText.label(size: 11, weight: FontWeight.w600, color: TbColors.cyan, tracking: 0.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

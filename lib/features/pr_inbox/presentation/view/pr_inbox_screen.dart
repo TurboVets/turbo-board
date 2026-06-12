@@ -133,9 +133,6 @@ class _Topbar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          // LIVE indicator
-          const _LiveIndicator(),
-          const SizedBox(width: 14),
           // REFRESH button
           _OutlineButton(label: isRefreshing ? 'REFRESHING' : 'REFRESH', onPressed: onRefresh, busy: isRefreshing),
           const SizedBox(width: 8),
@@ -205,22 +202,6 @@ class _SearchFieldState extends State<_SearchField> {
         ),
         isDense: true,
       ),
-    );
-  }
-}
-
-class _LiveIndicator extends StatelessWidget {
-  const _LiveIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 7, height: 7, color: const Color(0xFF54AE39)),
-        const SizedBox(width: 7),
-        Text('LIVE', style: TbText.label(size: 11, color: const Color(0xFF54AE39), tracking: 1.2)),
-      ],
     );
   }
 }
