@@ -267,11 +267,11 @@ class _StatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final segments = <(int, Color)>[
-      (sprint.done, const Color(0xFF54AE39)),
-      (sprint.inProgress, const Color(0xFF13ACFF)),
-      (sprint.inReview, const Color(0xFFFFB000)),
-      (sprint.notStarted, const Color(0xFFBABBBF)),
-      (sprint.unestimated, const Color(0xFFFF5A1F)),
+      (3, const Color(0xFF54AE39)),
+      (3, const Color(0xFF13ACFF)),
+      (3, const Color(0xFFFFB000)),
+      (3, const Color(0xFFBABBBF)),
+      (3, const Color(0xFFFF5A1F)),
     ].where((s) => s.$1 > 0).toList();
 
     return ClipRRect(
@@ -287,7 +287,7 @@ class _StatusBar extends StatelessWidget {
               for (final (count, color) in segments)
                 Expanded(
                   flex: count,
-                  child: ColoredBox(color: color),
+                  child:  SizedBox( height: 8, child: ColoredBox(color: color)),
                 ),
             ],
           ),
