@@ -11,9 +11,16 @@ import '../models/pr_detail.dart';
 import '../models/pr_reviewer.dart';
 import '../models/pr_timeline_event.dart';
 import '../queries/pr_detail_query.dart';
+import '../queries/pr_mutations.dart';
 
 abstract interface class PrDetailRepository {
   Future<Result<PrDetail>> fetchDetail(String owner, String name, int number);
+
+  /// Posts a comment to the PR conversation. [subjectId] is the PR node id.
+  Future<Result<bool>> addComment(String subjectId, String body);
+
+  /// Submits a PR review. [event] is APPROVE / REQUEST_CHANGES / COMMENT.
+  Future<Result<bool>> submitReview(String pullRequestId, String event, String body);
 }
 
 class GithubPrDetailRepository implements PrDetailRepository {
@@ -33,6 +40,32 @@ class GithubPrDetailRepository implements PrDetailRepository {
       return Result.failure('Could not load the pull request.', stackTrace);
     }
   }
+
+  @override
+  Future<Result<bool>> addComment(String subjectId, String body) async {
+    try {
+      await _client.graphql(addCommentMutation, {'subjectId': subjectId, 'body': body});
+      return Result.success(true);
+    } catch (e, stackTrace) {
+      log('Failed to post PR comment', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not post your comment.', stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<bool>> submitReview(String pullRequestId, String event, String body) async {
+    try {
+      await _client.graphql(addReviewMutation, {
+        'pullRequestId': pullRequestId,
+        'event': event,
+        'body': body.isEmpty ? null : body,
+      });
+      return Result.success(true);
+    } catch (e, stackTrace) {
+      log('Failed to submit PR review', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not submit your review.', stackTrace);
+    }
+  }
 }
 
 /// Builds a [PrDetail] from a GraphQL `repository.pullRequest` node.
@@ -43,6 +76,7 @@ PrDetail prDetailFromNode(String owner, String name, Map<String, dynamic> pr) {
 
   return PrDetail(
     repo: '$owner/$name',
+    id: pr['id'] as String?,
     number: (pr['number'] as int?) ?? 0,
     title: (pr['title'] as String?) ?? '',
     url: pr['url'] as String?,
@@ -203,4 +237,10 @@ class MockPrDetailRepository implements PrDetailRepository {
       ],
     ),
   );
+
+  @override
+  Future<Result<bool>> addComment(String subjectId, String body) async => Result.success(true);
+
+  @override
+  Future<Result<bool>> submitReview(String pullRequestId, String event, String body) async => Result.success(true);
 }

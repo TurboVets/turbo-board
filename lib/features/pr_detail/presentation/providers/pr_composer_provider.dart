@@ -1,0 +1,43 @@
+// lib/features/pr_detail/presentation/providers/pr_composer_provider.dart
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:turbo_core/core.dart';
+
+import 'pr_detail_provider.dart';
+
+part 'pr_composer_provider.g.dart';
+
+/// Drives the PR detail comment composer: posting a comment, approving, or
+/// requesting changes. State is `null` when idle, [AsyncLoading] while a
+/// request is in flight, [AsyncData] on success, [AsyncError] on failure.
+///
+/// On success the matching [prDetailProvider] is invalidated so the freshly
+/// posted comment / review shows up in the timeline.
+@riverpod
+class PrComposer extends _$PrComposer {
+  @override
+  AsyncValue<void>? build({required String owner, required String name, required int number}) => null;
+
+  Future<bool> _run(Future<Result<bool>> Function() op) async {
+    state = const AsyncLoading();
+    final res = await op();
+    switch (res) {
+      case ResultSuccess():
+        state = const AsyncData(null);
+        ref.invalidate(prDetailProvider(owner: owner, name: name, number: number));
+        return true;
+      case ResultFailure(:final message):
+        state = AsyncError(message, StackTrace.current);
+        return false;
+    }
+  }
+
+  /// Posts [body] as a comment on the PR conversation. [prId] is the PR node id.
+  Future<bool> comment(String prId, String body) =>
+      _run(() => ref.read(prDetailRepositoryProvider).addComment(prId, body));
+
+  Future<bool> approve(String prId, String body) =>
+      _run(() => ref.read(prDetailRepositoryProvider).submitReview(prId, 'APPROVE', body));
+
+  Future<bool> requestChanges(String prId, String body) =>
+      _run(() => ref.read(prDetailRepositoryProvider).submitReview(prId, 'REQUEST_CHANGES', body));
+}

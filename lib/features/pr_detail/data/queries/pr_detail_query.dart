@@ -5,7 +5,7 @@ const String prDetailQuery = r'''
 query PrDetail($owner: String!, $name: String!, $number: Int!) {
   repository(owner: $owner, name: $name) {
     pullRequest(number: $number) {
-      number title body isDraft state url
+      id number title body isDraft state url
       baseRefName headRefName
       author { login }
       reviewDecision

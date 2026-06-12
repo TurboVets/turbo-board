@@ -15,6 +15,7 @@ import '../../data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart' show PrReviewState;
 import '../providers/pr_detail_provider.dart';
 import 'widgets/pr_checks_panel.dart';
+import 'widgets/pr_comment_composer.dart';
 import 'widgets/pr_commit_card.dart';
 import 'widgets/pr_reviewers_card.dart';
 import 'widgets/pr_timeline.dart';
@@ -189,6 +190,7 @@ class _DetailBody extends StatelessWidget {
         Text('CONVERSATION', style: TbText.label(size: 10, color: TbColors.muted, tracking: 1.4)),
         const SizedBox(height: 8),
         PrTimeline(events: detail.timeline),
+        PrCommentComposer(detail: detail),
       ],
     );
 

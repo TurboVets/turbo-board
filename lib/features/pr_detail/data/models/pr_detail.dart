@@ -17,6 +17,7 @@ sealed class PrDetail with _$PrDetail {
 
   const factory PrDetail({
     required String repo, // "owner/name"
+    String? id, // GraphQL node id — needed to post comments / reviews
     required int number,
     required String title,
     String? url, // PR page on github.com
