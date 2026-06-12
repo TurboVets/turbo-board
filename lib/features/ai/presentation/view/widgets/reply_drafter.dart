@@ -52,7 +52,7 @@ class ReplyDrafter extends HookConsumerWidget {
                   style: TbText.body(size: 13, color: TbColors.muted),
                 ),
                 const SizedBox(height: 10),
-                AiGhostButton(label: 'OPEN AI SETTINGS', onPressed: () => context.go('/ai-settings')),
+                AiGhostButton(label: 'OPEN SETTINGS', onPressed: () => context.go('/settings')),
               ],
             )
           else ...[

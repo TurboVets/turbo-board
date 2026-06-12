@@ -71,6 +71,14 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   }
 }
 
+/// The stored GitHub token (raw) for the Settings PAT row. Re-reads when auth
+/// state changes (e.g. after a PAT change). Mask before displaying.
+@riverpod
+Future<String?> githubToken(Ref ref) async {
+  ref.watch(authStateProvider); // refresh after a PAT change / sign-out
+  return ref.watch(tokenStoreProvider).read();
+}
+
 @riverpod
 Future<List<GithubRepo>> accessibleRepos(Ref ref) async {
   final result = await ref.watch(authRepositoryProvider).listAccessibleRepos();

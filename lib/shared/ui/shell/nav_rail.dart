@@ -73,15 +73,14 @@ class AppNavRail extends ConsumerWidget {
                     onTap: () => context.go('/needs-attention'),
                   ),
                   _NavItem(
-                    icon: LucideIcons.sparkles,
-                    label: 'AI Settings',
+                    icon: LucideIcons.settings2,
+                    label: 'Settings',
                     collapsed: collapsed,
-                    active: location == '/ai-settings',
-                    onTap: () => context.go('/ai-settings'),
+                    active: location == '/settings',
+                    onTap: () => context.go('/settings'),
                   ),
 
-                  // Disabled entries matching the design
-                  _NavItem(icon: LucideIcons.settings2, label: 'Filters', collapsed: collapsed, enabled: false),
+                  // Disabled entry matching the design
                   _NavItem(icon: LucideIcons.circleDashed, label: 'Issues', collapsed: collapsed, enabled: false),
 
                   // WATCHED REPOS section label

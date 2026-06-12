@@ -31,6 +31,9 @@ class TextScaleNotifier extends _$TextScaleNotifier {
 
   void reset() => _set(textScaleDefault);
 
+  /// Sets an absolute scale (used by the Appearance slider). Clamped + persisted.
+  void setScale(double scale) => _set(scale);
+
   Future<void> _set(double value) async {
     // Round to one decimal to avoid float drift across many steps.
     final clamped = value.clamp(textScaleMin, textScaleMax);

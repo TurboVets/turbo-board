@@ -51,4 +51,11 @@ void main() {
     notifier().reset();
     expect(scale(), textScaleDefault);
   });
+
+  test('setScale sets an absolute value (slider), clamped', () {
+    notifier().setScale(18 / 14); // 18px via the Appearance slider
+    expect(scale(), closeTo(1.3, 1e-9));
+    notifier().setScale(99);
+    expect(scale(), textScaleMax);
+  });
 }
