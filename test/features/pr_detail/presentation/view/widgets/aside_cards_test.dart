@@ -24,7 +24,7 @@ void main() {
       ),
     );
     expect(find.text('sang'), findsOneWidget);
-    expect(find.text('Approved'), findsOneWidget);
+    expect(find.text('APPROVED'), findsOneWidget);
   });
 
   testWidgets('commit card shows headline + oid', (tester) async {

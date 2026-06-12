@@ -2,11 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:turbo_ui/turbo_ui.dart';
 
+import '../../../../shared/ui/theme/tb_text.dart';
+import '../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../shared/ui/widgets/tb_badge.dart';
 import '../../data/models/pr_detail.dart';
+import '../../../pr_inbox/data/models/pr_data.dart' show PrReviewState;
 import '../providers/pr_detail_provider.dart';
-import 'widgets/markdown_body.dart';
 import 'widgets/pr_checks_panel.dart';
 import 'widgets/pr_commit_card.dart';
 import 'widgets/pr_reviewers_card.dart';
@@ -32,11 +34,13 @@ class PrDetailScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Could not load PR.\n$err', textAlign: TextAlign.center),
+            TbBadge('ERROR', TbSignal.bad),
             const SizedBox(height: 12),
-            TetherActionButton(
-              label: 'Retry',
-              onPressed: () => ref.invalidate(prDetailProvider(owner: owner, name: repo, number: number)),
+            Text('Could not load PR.\n$err', textAlign: TextAlign.center, style: TbText.body(size: 14)),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => ref.invalidate(prDetailProvider(owner: owner, name: repo, number: number)),
+              child: Text('Retry', style: TbText.body(size: 14, color: TbColors.cyan)),
             ),
           ],
         ),
@@ -53,39 +57,7 @@ class _DetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final colors = context.appColors;
-
-    final header = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () => context.go('/'),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text('← Back to board', style: text.bodySmall?.copyWith(color: colors.foreground.link)),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(detail.repo, style: text.bodySmall?.copyWith(color: colors.foreground.primaryMuted)),
-        const SizedBox(height: 4),
-        Text('${detail.title}  #${detail.number}', style: text.headlineSmall),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            TetherBadge(label: _stateLabel(detail), color: _stateColor(detail), size: TetherBadgeSize.small),
-            Text(
-              '${detail.author} → ${detail.baseRefName}',
-              style: text.bodySmall?.copyWith(color: colors.foreground.primaryMuted),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (detail.bodyMarkdown.trim().isNotEmpty) MarkdownBody(detail.bodyMarkdown),
-      ],
-    );
+    final header = _HeaderSection(detail: detail);
 
     final main = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -94,7 +66,7 @@ class _DetailBody extends StatelessWidget {
         const SizedBox(height: 16),
         PrChecksPanel(checks: detail.checks),
         const SizedBox(height: 16),
-        Text('Conversation', style: text.titleSmall),
+        Text('CONVERSATION', style: TbText.label(size: 10, color: TbColors.muted, tracking: 1.4)),
         const SizedBox(height: 8),
         PrTimeline(events: detail.timeline),
       ],
@@ -104,8 +76,7 @@ class _DetailBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         PrReviewersCard(reviewers: detail.reviewers),
-        const SizedBox(height: 12),
-        if (detail.lastCommit != null) PrCommitCard(commit: detail.lastCommit!),
+        if (detail.lastCommit != null) ...[const SizedBox(height: 12), PrCommitCard(commit: detail.lastCommit!)],
       ],
     );
 
@@ -135,7 +106,82 @@ class _DetailBody extends StatelessWidget {
   }
 }
 
-String _stateLabel(PrDetail d) => d.isDraft
+class _HeaderSection extends StatelessWidget {
+  const _HeaderSection({required this.detail});
+
+  final PrDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    // Parse repo slug for the signal dot (the detail.repo is "owner/name")
+    final repoSlug = detail.repo;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Back nav
+        GestureDetector(
+          onTap: () => context.go('/'),
+          child: Text('← Back to board', style: TbText.label(size: 11, color: TbColors.cyan, tracking: 0.6)),
+        ),
+        const SizedBox(height: 10),
+        // Repo line
+        Row(
+          children: [
+            TbSignalDot(color: TbRepoColor.forSlug(repoSlug), size: 7),
+            const SizedBox(width: 6),
+            Text(repoSlug, style: TbText.label(size: 11, color: TbColors.muted, tracking: 0.6)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        // Title + number
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Flexible(
+              child: Text(detail.title, style: TbText.body(size: 18, weight: FontWeight.w700)),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '  #${detail.number}',
+              style: TbText.body(size: 18, weight: FontWeight.w700, color: TbColors.muted),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Badge row
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            // State badge
+            TbBadge(_stateBadgeLabel(detail), _stateBadgeSignal(detail), small: true),
+            // Review decision badge (optional)
+            if (detail.reviewDecision != null)
+              TbBadge(
+                _reviewDecisionLabel(detail.reviewDecision!),
+                _reviewDecisionSignal(detail.reviewDecision!),
+                small: true,
+              ),
+            // Author row
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TbAvatarTile(login: detail.author),
+                const SizedBox(width: 6),
+                Text('${detail.author} → ${detail.baseRefName}', style: TbText.body(size: 12, color: TbColors.muted)),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+String _stateBadgeLabel(PrDetail d) => d.isDraft
     ? 'Draft'
     : switch (d.state) {
         PrState.open => 'Open',
@@ -143,10 +189,24 @@ String _stateLabel(PrDetail d) => d.isDraft
         PrState.closed => 'Closed',
       };
 
-TetherBadgeColor _stateColor(PrDetail d) => d.isDraft
-    ? TetherBadgeColor.gray
+TbSignal _stateBadgeSignal(PrDetail d) => d.isDraft
+    ? TbSignal.gray
     : switch (d.state) {
-        PrState.open => TetherBadgeColor.green,
-        PrState.merged => TetherBadgeColor.purple,
-        PrState.closed => TetherBadgeColor.red,
+        PrState.open => TbSignal.ok,
+        PrState.merged => TbSignal.info,
+        PrState.closed => TbSignal.bad,
       };
+
+String _reviewDecisionLabel(PrReviewState s) => switch (s) {
+  PrReviewState.needsReview => 'NEEDS REVIEW',
+  PrReviewState.changesRequested => 'CHANGES REQ',
+  PrReviewState.approved => 'APPROVED',
+  PrReviewState.waitingOnAuthor => 'WAITING',
+};
+
+TbSignal _reviewDecisionSignal(PrReviewState s) => switch (s) {
+  PrReviewState.needsReview => TbSignal.info,
+  PrReviewState.changesRequested => TbSignal.bad,
+  PrReviewState.approved => TbSignal.ok,
+  PrReviewState.waitingOnAuthor => TbSignal.gray,
+};

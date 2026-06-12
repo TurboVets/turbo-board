@@ -1,10 +1,12 @@
 // lib/features/pr_detail/presentation/view/widgets/pr_checks_panel.dart
-import 'package:flutter/material.dart';
-import 'package:turbo_ui/turbo_ui.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../../../../shared/ui/theme/tb_text.dart';
+import '../../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../../shared/ui/widgets/tb_badge.dart';
 import '../../../data/models/pr_check.dart';
 
-/// A panel listing CI checks with a signal dot per check.
+/// A card listing CI checks with a signal dot per check.
 class PrChecksPanel extends StatelessWidget {
   const PrChecksPanel({super.key, required this.checks});
 
@@ -12,42 +14,71 @@ class PrChecksPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final colors = context.appColors;
-
-    return TetherCard(
+    return Container(
+      decoration: BoxDecoration(
+        color: TbColors.surface,
+        border: Border.all(color: TbColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text('Checks', style: text.titleSmall),
+          // Header bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            color: TbColors.surface2,
+            child: Text(
+              'CHECKS',
+              style: TbText.label(size: 11, weight: FontWeight.w600, color: TbColors.text, tracking: 1.0),
+            ),
           ),
           if (checks.isEmpty)
-            Text('No checks reported.', style: text.bodySmall?.copyWith(color: colors.foreground.primaryMuted))
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              child: Text('No checks reported.', style: TbText.body(size: 13, color: TbColors.muted)),
+            )
           else
-            for (final c in checks)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    TetherSignalDot(color: _dotColor(c.state), size: 8),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(c.name, style: text.bodySmall)),
-                    if (c.summary != null)
-                      Text(c.summary!, style: text.bodySmall?.copyWith(color: colors.foreground.primaryMuted)),
-                  ],
-                ),
-              ),
+            for (int i = 0; i < checks.length; i++) _CheckRow(check: checks[i], isLast: i == checks.length - 1),
         ],
       ),
     );
   }
 }
 
-TetherBadgeColor _dotColor(PrCheckState s) => switch (s) {
-  PrCheckState.success => TetherBadgeColor.green,
-  PrCheckState.pending => TetherBadgeColor.yellow,
-  PrCheckState.failure => TetherBadgeColor.red,
-  PrCheckState.neutral => TetherBadgeColor.gray,
+class _CheckRow extends StatelessWidget {
+  const _CheckRow({required this.check, required this.isLast});
+
+  final PrCheck check;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: isLast ? null : const Border(bottom: BorderSide(color: TbColors.border)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: Row(
+          children: [
+            TbSignalDot(color: _dotColor(check.state), size: 7),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(check.name, style: TbText.label(size: 12, color: TbColors.text, tracking: 0.2)),
+            ),
+            if (check.summary != null)
+              Text(check.summary!, style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.5)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Color _dotColor(PrCheckState s) => switch (s) {
+  PrCheckState.success => TbSignal.ok.border,
+  PrCheckState.pending => TbSignal.warn.border,
+  PrCheckState.failure => TbSignal.bad.border,
+  PrCheckState.neutral => TbSignal.gray.border,
 };

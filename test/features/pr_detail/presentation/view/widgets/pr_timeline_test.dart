@@ -40,7 +40,7 @@ void main() {
     expect(find.byType(PrTimelineTile), findsNWidgets(2));
     expect(find.text('tom'), findsOneWidget);
     expect(find.text('sang'), findsOneWidget);
-    expect(find.text('Changes requested'), findsOneWidget);
+    expect(find.text('CHANGES REQ'), findsOneWidget);
   });
 
   testWidgets('shows empty message', (tester) async {

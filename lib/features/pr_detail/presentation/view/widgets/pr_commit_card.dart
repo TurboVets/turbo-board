@@ -1,9 +1,12 @@
-import 'package:flutter/material.dart';
+// lib/features/pr_detail/presentation/view/widgets/pr_commit_card.dart
+import 'package:flutter/widgets.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:turbo_ui/turbo_ui.dart';
 
+import '../../../../../shared/ui/theme/tb_text.dart';
+import '../../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../data/models/pr_commit.dart';
 
+/// A card showing the last commit SHA, message headline and relative date.
 class PrCommitCard extends StatelessWidget {
   const PrCommitCard({super.key, required this.commit});
 
@@ -11,25 +14,40 @@ class PrCommitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final colors = context.appColors;
-    return TetherCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text('Last commit', style: text.titleSmall),
-          ),
-          Text(commit.messageHeadline, style: text.bodySmall),
-          const SizedBox(height: 4),
-          Text(
-            commit.committedDate == null
-                ? commit.abbreviatedOid
-                : '${commit.abbreviatedOid} · ${timeago.format(commit.committedDate!)}',
-            style: text.bodySmall?.copyWith(color: colors.foreground.primaryMuted),
-          ),
-        ],
+    final relativeDate = commit.committedDate == null ? null : timeago.format(commit.committedDate!);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: TbColors.surface,
+        border: Border.all(color: TbColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: Row(
+          children: [
+            // SHA chip
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(color: TbColors.surface2, borderRadius: BorderRadius.circular(2)),
+              child: Text(commit.abbreviatedOid, style: TbText.label(size: 12, color: TbColors.text, tracking: 0.4)),
+            ),
+            const SizedBox(width: 10),
+            // Message headline
+            Expanded(
+              child: Text(
+                commit.messageHeadline,
+                style: TbText.body(size: 13, color: TbColors.muted),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (relativeDate != null) ...[
+              const SizedBox(width: 8),
+              Text(relativeDate, style: TbText.label(size: 10, color: TbColors.dim, tracking: 0.5)),
+            ],
+          ],
+        ),
       ),
     );
   }

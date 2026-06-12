@@ -25,7 +25,7 @@ void main() {
     );
     expect(find.text('build'), findsOneWidget);
     expect(find.text('test'), findsOneWidget);
-    expect(find.text('Checks'), findsOneWidget);
+    expect(find.text('CHECKS'), findsOneWidget);
   });
 
   testWidgets('shows empty message', (tester) async {
