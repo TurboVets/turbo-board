@@ -132,10 +132,10 @@ class _RailHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('TURBO', style: TbText.display(size: 16, tracking: 2.88), overflow: TextOverflow.ellipsis),
+                  Text('TURBO-BOARD', style: TbText.display(size: 16, tracking: 2.88), overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
                   Text(
-                    'TETHER · TURBOVETS',
+                    'Boost your flow, ship faster',
                     style: TbText.label(size: 9, color: TbColors.dim, tracking: 1.08, weight: FontWeight.w400),
                     overflow: TextOverflow.ellipsis,
                   ),
