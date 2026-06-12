@@ -30,7 +30,6 @@ void main() {
       expect(data.sprint.totalIssues, 145);
       expect(data.team, isNotEmpty);
       expect(data.stuck, isNotEmpty);
-      expect(data.aiBrief, isNotEmpty);
     });
 
     test('should surface an error when the repository fails', () async {

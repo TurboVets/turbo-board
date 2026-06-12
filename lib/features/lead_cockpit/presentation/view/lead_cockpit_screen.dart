@@ -72,7 +72,7 @@ class _CockpitBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SprintHealthStrip(sprint: data.sprint, aiBrief: data.aiBrief),
+              SprintHealthStrip(data: data),
               const SizedBox(height: 18),
 
               const _SectionLabel('TEAM LOAD'),

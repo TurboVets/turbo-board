@@ -248,11 +248,4 @@ const _sampleCockpit = CockpitData(
       prLabel: 'PR #338 ✓ approved, unmerged',
     ),
   ],
-  aiBrief:
-      'Sprint 24 is trending one to two days behind: 58 of 133 estimated items are done with 6 days left, '
-      'and 9 items are at risk — 5 of them sit with tromero-tv, who is carrying 6 WIP items, roughly twice '
-      'the team median. The biggest schedule threat is "Harden deeplink cold-start routes" (P0, 9 days in '
-      'progress, checks failing on PR #1198). In Review is backing up: 17 items, 6 of them older than 4 days, '
-      'mostly awaiting reviews from snguyen-tv. Consider rebalancing two of tromero-tv\'s P1s to mkim-tv or '
-      'lbarros-tv and clearing the review queue before Friday.',
 );

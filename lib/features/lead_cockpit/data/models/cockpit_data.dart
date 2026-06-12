@@ -111,10 +111,6 @@ sealed class CockpitData with _$CockpitData {
     required SprintHealth sprint,
     required List<TeamMemberLoad> team,
     required List<StuckIssue> stuck,
-
-    /// Canned narrative shown when the user requests the AI sprint brief.
-    /// Wired to the real Anthropic client in a follow-up; mocked for now.
-    required String aiBrief,
   }) = _CockpitData;
 
   factory CockpitData.fromJson(Map<String, dynamic> json) => _$CockpitDataFromJson(json);

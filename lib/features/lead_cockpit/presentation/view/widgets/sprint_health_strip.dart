@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../ai/presentation/providers/ai_provider.dart';
 import '../../../data/models/cockpit_data.dart';
+import '../../providers/lead_cockpit_provider.dart';
 
 /// Top strip of the Lead Cockpit: sprint name + days left, the AI Sprint Brief
-/// toggle, a proportional status bar, and six count tiles.
-class SprintHealthStrip extends HookWidget {
-  const SprintHealthStrip({super.key, required this.sprint, required this.aiBrief});
+/// toggle (live BYOK Anthropic call), a proportional status bar, and six count
+/// tiles.
+class SprintHealthStrip extends ConsumerWidget {
+  const SprintHealthStrip({super.key, required this.data});
 
-  final SprintHealth sprint;
-  final String aiBrief;
+  final CockpitData data;
+
+  SprintHealth get sprint => data.sprint;
 
   String get _subtitle => [
     if (sprint.daysRemaining > 0) '${sprint.daysRemaining} days remaining',
@@ -20,29 +24,26 @@ class SprintHealthStrip extends HookWidget {
   ].join(' · ');
 
   @override
-  Widget build(BuildContext context) {
-    // Local AI-brief state: idle → loading → ready. Mirrors the design's mock
-    // delay; the real Anthropic call replaces the timer in a follow-up.
-    final briefState = useState(_BriefState.idle);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final keyReady = ref.watch(aiKeyReadyProvider);
+    final brief = ref.watch(cockpitBriefControllerProvider);
+    final controller = ref.read(cockpitBriefControllerProvider.notifier);
 
-    Future<void> toggleBrief() async {
-      switch (briefState.value) {
-        case _BriefState.loading:
-          return;
-        case _BriefState.ready:
-          briefState.value = _BriefState.idle;
-        case _BriefState.idle:
-          briefState.value = _BriefState.loading;
-          await Future<void>.delayed(const Duration(milliseconds: 1100));
-          if (context.mounted) briefState.value = _BriefState.ready;
+    final btnLabel = switch (brief) {
+      AsyncLoading() => 'Analyzing…',
+      AsyncData() => 'Hide brief',
+      AsyncError() => 'Retry brief',
+      _ => 'Sprint Brief',
+    };
+
+    void onBriefTap() {
+      if (brief is AsyncLoading) return;
+      if (brief is AsyncData) {
+        controller.clear();
+      } else {
+        controller.generate(data);
       }
     }
-
-    final btnLabel = switch (briefState.value) {
-      _BriefState.ready => 'Hide brief',
-      _BriefState.loading => 'Analyzing…',
-      _BriefState.idle => 'Sprint Brief',
-    };
 
     return Container(
       decoration: BoxDecoration(
@@ -73,21 +74,20 @@ class SprintHealthStrip extends HookWidget {
                     ],
                   ),
                 ),
-                // The AI brief is a BYOK feature; only offer it when a brief is
-                // available (the live board repo leaves this empty for now).
-                if (aiBrief.isNotEmpty) ...[
-                  const SizedBox(width: 14),
-                  _BriefButton(label: btnLabel, onTap: toggleBrief),
-                ],
+                // The AI brief is a BYOK feature; only offer it once a key is set
+                // (Settings → Anthropic API key).
+                if (keyReady) ...[const SizedBox(width: 14), _BriefButton(label: btnLabel, onTap: onBriefTap)],
               ],
             ),
           ),
 
           // ── AI brief panel ───────────────────────────────────────────────
-          if (briefState.value == _BriefState.loading)
-            const _BriefSkeleton()
-          else if (briefState.value == _BriefState.ready)
-            _BriefPanel(text: aiBrief),
+          switch (brief) {
+            AsyncLoading() => const _BriefSkeleton(),
+            AsyncData(:final value) => _BriefPanel(text: value),
+            AsyncError(:final error) => _BriefError(message: '$error'),
+            _ => const SizedBox.shrink(),
+          },
 
           // ── Status bar + tiles ───────────────────────────────────────────
           Padding(
@@ -106,8 +106,6 @@ class SprintHealthStrip extends HookWidget {
     );
   }
 }
-
-enum _BriefState { idle, loading, ready }
 
 class _BriefButton extends StatefulWidget {
   const _BriefButton({required this.label, required this.onTap});
@@ -165,6 +163,23 @@ class _BriefButtonState extends State<_BriefButton> {
   }
 }
 
+class _BriefError extends StatelessWidget {
+  const _BriefError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: TbColors.border)),
+      ),
+      child: Text(message, style: TbText.body(size: 13, color: const Color(0xFFFBD0D3), height: 1.55)),
+    );
+  }
+}
+
 class _BriefPanel extends StatelessWidget {
   const _BriefPanel({required this.text});
 
@@ -188,7 +203,7 @@ class _BriefPanel extends StatelessWidget {
                 Text(text, style: TbText.body(size: 13, color: const Color(0xFFDADADD), height: 1.65)),
                 const SizedBox(height: 9),
                 Text(
-                  'Generated from sprint board + PR state · claude-haiku · BYOK',
+                  'Generated from the sprint board · claude-haiku · BYOK',
                   style: TbText.label(size: 9, color: TbColors.dim, tracking: 0.8, weight: FontWeight.w400),
                 ),
               ],

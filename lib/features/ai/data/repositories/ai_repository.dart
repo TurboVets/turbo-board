@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:turbo_core/core.dart';
 
+import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../repo_setup/data/services/github_api_client.dart';
 import '../../presentation/helpers/ai_prompts.dart';
@@ -19,6 +20,9 @@ abstract class AiRepository {
 
   /// An editable reply draft in the given [intent].
   Future<Result<String>> draftReply(PrDetail detail, ReplyIntent intent);
+
+  /// A short sprint-risk narrative for the Lead Cockpit, from the board state.
+  Future<Result<String>> sprintBrief(CockpitData cockpit);
 }
 
 class AnthropicAiRepository implements AiRepository {
@@ -60,6 +64,19 @@ class AnthropicAiRepository implements AiRepository {
     } catch (e, stackTrace) {
       log('Failed to draft reply', error: e, stackTrace: stackTrace);
       return Result.failure('Could not draft a reply.', stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<String>> sprintBrief(CockpitData cockpit) async {
+    try {
+      final text = await _anthropic.complete(prompt: buildSprintBriefPrompt(cockpit), maxTokens: 320);
+      final trimmed = text.trim();
+      if (trimmed.isEmpty) return Result.failure('The model returned an empty brief.', StackTrace.current);
+      return Result.success(trimmed);
+    } catch (e, stackTrace) {
+      log('Failed to generate sprint brief', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not generate the sprint brief.', stackTrace);
     }
   }
 

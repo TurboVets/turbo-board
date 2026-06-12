@@ -103,14 +103,7 @@ CockpitData cockpitFromProjectItems(String boardTitle, List<Map<String, dynamic>
         return p != 0 ? p : b.ageDays.compareTo(a.ageDays);
       });
 
-  return CockpitData(
-    sprint: sprint,
-    team: team.take(6).toList(),
-    stuck: stuck.take(10).toList(),
-    // The AI sprint brief is a separate BYOK feature; the strip hides its
-    // button while this is empty.
-    aiBrief: '',
-  );
+  return CockpitData(sprint: sprint, team: team.take(6).toList(), stuck: stuck.take(10).toList());
 }
 
 /// A flattened board item parsed out of the GraphQL `fieldValues` shape.
