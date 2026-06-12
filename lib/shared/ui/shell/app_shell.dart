@@ -2,11 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../theme/tb_breakpoints.dart';
 import '../theme/tb_tokens.dart';
+import 'bottom_nav.dart';
 import 'nav_rail.dart';
 
-/// Responsive two-region shell: a left nav rail beside the routed [child].
-/// The rail collapses to icon-only at tablet widths (<1100 px).
+/// Responsive app shell around the routed [child].
+///
+/// - Phone (<640px): content fills the width with a fixed bottom tab bar below.
+/// - Tablet (640–1100px): a left nav rail collapsed to icons.
+/// - Desktop (≥1100px): the full expanded left nav rail.
+///
 /// The outer [BrandFrame] (rails + grid canvas) already wraps this widget, so
 /// the scaffold background is transparent and the canvas shows through.
 class AppShell extends ConsumerWidget {
@@ -14,22 +20,33 @@ class AppShell extends ConsumerWidget {
 
   final Widget child;
 
-  /// Below this width the rail collapses to icons (tablet). No phone layout.
-  static const double _collapseBelow = 1100;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final collapsed = constraints.maxWidth < _collapseBelow;
+          final width = constraints.maxWidth;
+          final content = ColoredBox(color: TbColors.canvas, child: child);
+
+          // Phone: single content column with a bottom tab bar.
+          if (width < TbBreakpoints.mobile) {
+            return Column(
+              children: [
+                Expanded(child: content),
+                // Not const: must rebuild on each shell rebuild so the active
+                // tab tracks the current route (matchedLocation).
+                AppBottomNav(),
+              ],
+            );
+          }
+
+          // Tablet/desktop: left rail beside the content (collapsed <1100px).
+          final collapsed = width < TbBreakpoints.tablet;
           return Row(
             children: [
               AppNavRail(collapsed: collapsed),
-              Expanded(
-                child: ColoredBox(color: TbColors.canvas, child: child),
-              ),
+              Expanded(child: content),
             ],
           );
         },

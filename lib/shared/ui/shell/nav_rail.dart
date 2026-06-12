@@ -247,7 +247,20 @@ class _NavItemState extends State<_NavItem> {
           padding: const EdgeInsets.fromLTRB(9, 9, 11, 9),
           child: Row(
             children: [
-              SizedBox(width: 15, child: Icon(widget.icon, size: 14, color: fgColor)),
+              SizedBox(
+                width: 15,
+                // Collapsed: overlay the badge dot on the icon (no room for a
+                // sibling in the 21px-wide icon-only row).
+                child: widget.collapsed && widget.badgeCount > 0
+                    ? Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Icon(widget.icon, size: 14, color: fgColor),
+                          Positioned(right: -4, top: -3, child: TbSignalDot(color: TbColors.cyan, size: 6)),
+                        ],
+                      )
+                    : Icon(widget.icon, size: 14, color: fgColor),
+              ),
               if (!widget.collapsed) ...[
                 const SizedBox(width: 11),
                 Expanded(
@@ -266,11 +279,7 @@ class _NavItemState extends State<_NavItem> {
                       style: TbText.label(size: 11, weight: FontWeight.w600, color: TbColors.cyan, tracking: 0),
                     ),
                   ),
-              ] else if (widget.badgeCount > 0)
-                Padding(
-                  padding: const EdgeInsets.only(left: 2),
-                  child: TbSignalDot(color: TbColors.cyan, size: 6),
-                ),
+              ],
             ],
           ),
         ),

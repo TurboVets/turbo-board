@@ -67,15 +67,18 @@ class SetupScreen extends HookConsumerWidget {
             ),
           ),
 
-          // Centered card
+          // Centered card — capped at 452px but shrinks to fit narrow phones.
           Center(
-            child: SizedBox(
-              width: 452,
-              child: _SetupCard(
-                step: onStep2 ? 1 : 0,
-                child: onStep2
-                    ? _ReposStep(query: query)
-                    : _ConnectStep(authState: authState, controller: tokenController),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 452),
+                child: _SetupCard(
+                  step: onStep2 ? 1 : 0,
+                  child: onStep2
+                      ? _ReposStep(query: query)
+                      : _ConnectStep(authState: authState, controller: tokenController),
+                ),
               ),
             ),
           ),

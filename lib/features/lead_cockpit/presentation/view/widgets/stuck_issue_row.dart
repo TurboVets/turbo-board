@@ -21,66 +21,117 @@ class StuckIssueRow extends StatelessWidget {
     final ageColor = issue.critical ? const Color(0xFFE94A5F) : const Color(0xFFFF5A1F);
     final url = issue.url;
 
+    final priorityBadge = TbBadge(
+      CockpitPalette.priorityLabel(issue.priority),
+      CockpitPalette.prioritySignal(issue.priority),
+      small: true,
+      tooltip: CockpitPalette.priorityTooltip(issue.priority),
+    );
+    final ageText = Text(
+      '${issue.ageDays}D IN ${statusLabel.toUpperCase()}',
+      style: TbText.label(size: 10, weight: FontWeight.w600, color: ageColor, tracking: 0.4),
+    );
+
     final container = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         border: showDivider ? const Border(bottom: BorderSide(color: TbColors.border)) : null,
       ),
-      child: Row(
-        children: [
-          SizedBox(width: 7, height: 7, child: ColoredBox(color: CockpitPalette.statusDot(issue.status))),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              issue.title,
-              overflow: TextOverflow.ellipsis,
-              style: TbText.body(size: 13, weight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(width: 12),
-          _RepoChip(repo: issue.repo),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 88,
-            child: Text(
-              issue.assignee,
-              overflow: TextOverflow.ellipsis,
-              style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.4, weight: FontWeight.w400),
-            ),
-          ),
-          const SizedBox(width: 12),
-          TbBadge(
-            CockpitPalette.priorityLabel(issue.priority),
-            CockpitPalette.prioritySignal(issue.priority),
-            small: true,
-            tooltip: CockpitPalette.priorityTooltip(issue.priority),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 78,
-            child: Text(
-              statusLabel,
-              style: TbText.label(size: 10, color: TbColors.dim, tracking: 0.5, weight: FontWeight.w400),
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 112,
-            child: Text(
-              '${issue.ageDays}D IN ${statusLabel.toUpperCase()}',
-              style: TbText.label(size: 10, weight: FontWeight.w600, color: ageColor, tracking: 0.4),
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 148,
-            child: Text(
-              issue.prLabel,
-              overflow: TextOverflow.ellipsis,
-              style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.3, weight: FontWeight.w400),
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Phone: the eight columns can't fit on one line — stack the metadata
+          // under the title as a wrapping chip row.
+          if (constraints.maxWidth < 520) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(width: 7, height: 7, child: ColoredBox(color: CockpitPalette.statusDot(issue.status))),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        issue.title,
+                        overflow: TextOverflow.ellipsis,
+                        style: TbText.body(size: 13, weight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    priorityBadge,
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(left: 19),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _RepoChip(repo: issue.repo),
+                      Text(
+                        issue.assignee,
+                        style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.4, weight: FontWeight.w400),
+                      ),
+                      ageText,
+                      if (issue.prLabel.isNotEmpty)
+                        Text(
+                          issue.prLabel,
+                          style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.3, weight: FontWeight.w400),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              SizedBox(width: 7, height: 7, child: ColoredBox(color: CockpitPalette.statusDot(issue.status))),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  issue.title,
+                  overflow: TextOverflow.ellipsis,
+                  style: TbText.body(size: 13, weight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _RepoChip(repo: issue.repo),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 88,
+                child: Text(
+                  issue.assignee,
+                  overflow: TextOverflow.ellipsis,
+                  style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.4, weight: FontWeight.w400),
+                ),
+              ),
+              const SizedBox(width: 12),
+              priorityBadge,
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 78,
+                child: Text(
+                  statusLabel,
+                  style: TbText.label(size: 10, color: TbColors.dim, tracking: 0.5, weight: FontWeight.w400),
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(width: 112, child: ageText),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 148,
+                child: Text(
+                  issue.prLabel,
+                  overflow: TextOverflow.ellipsis,
+                  style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.3, weight: FontWeight.w400),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
 
