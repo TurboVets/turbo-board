@@ -1,6 +1,5 @@
 // lib/features/sprint_report/presentation/view/sprint_report_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../shared/ui/theme/tb_text.dart';
@@ -777,16 +776,16 @@ class _EpicProgressCard extends StatelessWidget {
 
 // ─── Burndown ───────────────────────────────────────────────────────────────
 
-class _BurndownCard extends HookWidget {
+class _BurndownCard extends StatelessWidget {
   const _BurndownCard({required this.burndown});
 
   final Burndown burndown;
 
   @override
   Widget build(BuildContext context) {
-    // Default to the live "no history" view; only start on the target visual
-    // when an actual burndown series is present (e.g. mock / once snapshots land).
-    final target = useState(burndown.actualRemaining.length >= 2);
+    // The actual line is reconstructed from issue close dates; it needs at least
+    // two points to draw (a sprint with no closed issues yet has none).
+    final showActual = burndown.actualRemaining.length >= 2;
 
     return Container(
       decoration: BoxDecoration(
@@ -804,14 +803,11 @@ class _BurndownCard extends HookWidget {
             child: Row(
               children: [
                 Text('Sprint burndown', style: TbText.label(size: 11, weight: FontWeight.w600, tracking: 1.0)),
-                const SizedBox(width: 10),
-                const TbBadge('Coming · needs history', TbSignal.gray, small: true),
+                if (!showActual) ...[
+                  const SizedBox(width: 10),
+                  const TbBadge('No closed issues yet', TbSignal.gray, small: true),
+                ],
                 const Spacer(),
-                _Segment(
-                  options: const ['Target visual', 'V1 · no history'],
-                  selected: target.value ? 0 : 1,
-                  onSelect: (i) => target.value = i == 0,
-                ),
               ],
             ),
           ),
@@ -821,8 +817,8 @@ class _BurndownCard extends HookWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                BurndownChart(data: burndown, showActual: target.value),
-                if (!target.value)
+                BurndownChart(data: burndown, showActual: showActual),
+                if (!showActual)
                   Container(
                     margin: const EdgeInsets.only(bottom: 30),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -835,7 +831,7 @@ class _BurndownCard extends HookWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'HISTORY ACCRUING',
+                          'NO COMPLETED ISSUES YET',
                           style: TbText.label(
                             size: 11,
                             weight: FontWeight.w600,
@@ -847,8 +843,8 @@ class _BurndownCard extends HookWidget {
                         SizedBox(
                           width: 300,
                           child: Text(
-                            '${burndown.snapshotsCaptured} of ${burndown.snapshotsTotal} daily snapshots captured. '
-                            'The burndown line unlocks as snapshots accrue — the ideal line and today marker are live now.',
+                            'No issues in this sprint have been closed yet, so there is nothing to burn down. '
+                            'The actual line draws from issue close dates as work completes.',
                             textAlign: TextAlign.center,
                             style: TbText.body(size: 12, color: TbColors.muted, height: 1.5),
                           ),
@@ -862,52 +858,10 @@ class _BurndownCard extends HookWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
             child: Text(
-              'Remaining story points vs ideal run-rate · daily snapshots start with the reporting job (Sprint 25)',
+              'Remaining story points vs ideal run-rate · actual line reconstructed from issue close dates',
               style: TbText.label(size: 9, weight: FontWeight.w400, color: TbColors.dim, tracking: 0.8),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Segment extends StatelessWidget {
-  const _Segment({required this.options, required this.selected, required this.onSelect});
-
-  final List<String> options;
-  final int selected;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: TbColors.surface2,
-        border: Border.all(color: TbColors.border),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < options.length; i++)
-            GestureDetector(
-              onTap: () => onSelect(i),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-                color: i == selected ? TbColors.blue : Colors.transparent,
-                child: Text(
-                  options[i].toUpperCase(),
-                  style: TbText.label(
-                    size: 9,
-                    weight: FontWeight.w500,
-                    color: i == selected ? Colors.white : TbColors.muted,
-                    tracking: 0.6,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );

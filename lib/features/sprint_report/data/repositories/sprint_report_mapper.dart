@@ -1,10 +1,10 @@
 // Pure transform from raw Projects v2 `items.nodes` into a SprintReport for a
 // chosen sprint iteration. No network/IO — unit-tested with fixture JSON.
 //
-// Points come from the board's Complexity number field. Burndown actuals need
-// daily snapshots (not available from a single query), so `actualRemaining` is
-// left empty and the chart shows the "history accruing" treatment — A1 in
-// docs/plans. Epic rollups use each epic issue's `subIssuesSummary` (B2).
+// Points come from the board's Complexity number field. The burndown actual
+// line is reconstructed from each issue's `closedAt` (a closed issue = its
+// points burned down on that date) — works retroactively for the whole sprint,
+// no daily snapshots needed. Epic rollups use each issue's `subIssuesSummary`.
 import '../models/sprint_report.dart';
 
 const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -119,6 +119,22 @@ SprintReport sprintReportFromProjectItems(
     dateRange = '${_months[start.month - 1]} ${start.day} – ${_months[end.month - 1]} ${end.day}';
   }
 
+  // ── Burndown actuals from issue close dates ──
+  // remaining(day d) = committed − points of in-sprint items closed by end of day d.
+  // Closes before the sprint start count at day 0. Spans day 0..elapsed.
+  final actualRemaining = <int>[];
+  if (start != null) {
+    final closedPts = current
+        .where((i) => i.closed && i.closedAt != null && i.complexity != null)
+        .map((i) => (start: i.closedAt!, pts: i.complexity!.round()))
+        .toList();
+    for (var d = 0; d <= elapsed; d++) {
+      final dayEnd = start.add(Duration(days: d + 1)); // end of day d
+      final burned = closedPts.where((c) => c.start.isBefore(dayEnd)).fold<int>(0, (s, c) => s + c.pts);
+      actualRemaining.add((committed - burned).clamp(0, committed));
+    }
+  }
+
   return SprintReport(
     sprintName: title == null ? boardTitle : '$title · $boardTitle',
     dateRange: dateRange,
@@ -140,9 +156,9 @@ SprintReport sprintReportFromProjectItems(
       committedPoints: committed,
       totalDays: totalDays,
       todayDay: elapsed,
-      snapshotsCaptured: 0,
-      snapshotsTotal: totalDays,
-      actualRemaining: const [], // A1 — no daily history yet
+      snapshotsCaptured: actualRemaining.length,
+      snapshotsTotal: totalDays + 1,
+      actualRemaining: actualRemaining,
     ),
     sprintTitles: sprintTitles,
     sprintIndex: sprintIndex < 0 ? 0 : sprintIndex,
@@ -170,11 +186,15 @@ class _RItem {
     required this.subsTotal,
     required this.subsDone,
     required this.subsPercent,
+    required this.closed,
+    required this.closedAt,
   });
 
   final String title;
   final String repo;
   final List<String> assignees;
+  final bool closed;
+  final DateTime? closedAt;
 
   /// Status mapped to a report bucket; null for Triage/Cancelled/unknown (those
   /// are excluded from the committed total and the status slices).
@@ -235,6 +255,8 @@ class _RItem {
       subsTotal: (subs?['total'] as num?)?.toInt() ?? 0,
       subsDone: (subs?['completed'] as num?)?.toInt() ?? 0,
       subsPercent: (subs?['percentCompleted'] as num?)?.toDouble() ?? 0,
+      closed: (content['closed'] as bool?) ?? false,
+      closedAt: DateTime.tryParse((content['closedAt'] as String?) ?? ''),
     );
   }
 

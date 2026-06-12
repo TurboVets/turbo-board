@@ -20,6 +20,8 @@ query ProjectBoard($org: String!, $number: Int!, $first: Int!, $after: String) {
               number
               title
               url
+              closed
+              closedAt
               repository { name }
               assignees(first: 5) { nodes { login } }
               subIssuesSummary { total completed percentCompleted }

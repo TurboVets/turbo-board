@@ -6,7 +6,6 @@ import '../../../lead_cockpit/data/queries/project_board.dart';
 import '../../../repo_setup/data/services/github_api_client.dart';
 import '../models/sprint_report.dart';
 import 'sprint_report_mapper.dart';
-import 'sprint_snapshot_store.dart';
 
 /// Data access for the Sprint Report (GitHub Projects v2 board rollup).
 ///
@@ -26,15 +25,12 @@ class GithubSprintReportRepository implements SprintReportRepository {
     this._client, {
     required this.org,
     required this.projectNumber,
-    SprintSnapshotStore? snapshotStore,
     DateTime Function()? clock,
-  }) : _store = snapshotStore ?? const SharedPrefsSprintSnapshotStore(),
-       _clock = clock ?? DateTime.now;
+  }) : _clock = clock ?? DateTime.now;
 
   final GithubApiClient _client;
   final String org;
   final int projectNumber;
-  final SprintSnapshotStore _store;
   final DateTime Function() _clock;
 
   static const int _pageSize = 100;
@@ -68,14 +64,9 @@ class GithubSprintReportRepository implements SprintReportRepository {
         if (after == null) break;
       }
 
-      final now = _clock();
-      final report = sprintReportFromProjectItems(
-        boardTitle ?? 'Project board',
-        nodes,
-        now: now,
-        selectedSprint: sprintTitle,
+      return Result.success(
+        sprintReportFromProjectItems(boardTitle ?? 'Project board', nodes, now: _clock(), selectedSprint: sprintTitle),
       );
-      return Result.success(await _withBurndownHistory(report, now));
     } catch (e, stackTrace) {
       log('Failed to fetch sprint report', error: e, stackTrace: stackTrace);
       final message = e.toString().contains('read:project')
@@ -84,26 +75,6 @@ class GithubSprintReportRepository implements SprintReportRepository {
           : 'Failed to load the sprint report';
       return Result.failure(message, stackTrace);
     }
-  }
-
-  /// Records today's remaining points, then fills the burndown's actual line
-  /// from the accumulated daily history. Best-effort: any store failure leaves
-  /// the report's empty burndown untouched.
-  Future<SprintReport> _withBurndownHistory(SprintReport report, DateTime now) async {
-    if (report.sprintTitles.isEmpty) return report;
-    final title = report.sprintTitles[report.sprintIndex.clamp(0, report.sprintTitles.length - 1)];
-    final sprintKey = '$org#$projectNumber:$title';
-    final today = report.burndown.todayDay;
-    final remainingToday = (report.pointsCommitted - report.pointsDone).clamp(0, report.pointsCommitted);
-
-    await _store.capture(sprintKey: sprintKey, day: today, remaining: remainingToday, now: now);
-    final history = await _store.history(sprintKey);
-    if (history.isEmpty) return report;
-
-    final actual = buildBurndownActuals(committedPoints: report.pointsCommitted, todayDay: today, history: history);
-    return report.copyWith(
-      burndown: report.burndown.copyWith(actualRemaining: actual, snapshotsCaptured: history.length),
-    );
   }
 }
 
