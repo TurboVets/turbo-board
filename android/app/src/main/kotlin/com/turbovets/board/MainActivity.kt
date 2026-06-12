@@ -1,4 +1,4 @@
-package com.example.turbo_board
+package com.turbovets.board
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = turbo_board
+PRODUCT_NAME = TURBO BOARD
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.turboBoard
+PRODUCT_BUNDLE_IDENTIFIER = com.turbovets.board
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 TurboVets. All rights reserved.

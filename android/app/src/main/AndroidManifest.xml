@@ -3,7 +3,7 @@
          get it from their own manifests; release needs it declared here). -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="turbo_board"
+        android:label="TURBO BOARD"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
