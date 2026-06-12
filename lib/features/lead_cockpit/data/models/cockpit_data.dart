@@ -69,9 +69,10 @@ sealed class SprintHealth with _$SprintHealth {
 }
 
 /// One ticket title + its status, shown under a team member's card.
+/// [url] is the GitHub issue page, opened when the row is tapped.
 @freezed
 sealed class MemberItem with _$MemberItem {
-  const factory MemberItem({required String title, required IssueStatus status}) = _MemberItem;
+  const factory MemberItem({required String title, required IssueStatus status, String? url}) = _MemberItem;
 
   factory MemberItem.fromJson(Map<String, dynamic> json) => _$MemberItemFromJson(json);
 }
@@ -112,6 +113,9 @@ sealed class StuckIssue with _$StuckIssue {
 
     /// True when the age is past the hard threshold (red) vs merely aging (orange).
     @Default(false) bool critical,
+
+    /// The GitHub issue page, opened when the row is tapped.
+    String? url,
   }) = _StuckIssue;
 
   factory StuckIssue.fromJson(Map<String, dynamic> json) => _$StuckIssueFromJson(json);

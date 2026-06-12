@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../features/filters/presentation/providers/filters_provider.dart';
 import '../../../features/needs_attention/presentation/providers/needs_attention_provider.dart';
+import '../../../features/pr_inbox/presentation/providers/pr_inbox_provider.dart';
 import '../../../features/repo_setup/presentation/providers/auth_provider.dart';
 import '../../../features/repo_setup/presentation/providers/watched_repos_provider.dart';
 import '../theme/tb_text.dart';
@@ -279,64 +281,84 @@ class _NavItemState extends State<_NavItem> {
 
 // ─── Repo item ────────────────────────────────────────────────────────────────
 
-class _RepoItem extends StatefulWidget {
+/// A watched-repo row in the nav rail. Tapping it includes/excludes that repo
+/// from the board (see [ActiveFilters.toggleRepoVisibility]); excluded rows dim.
+class _RepoItem extends ConsumerStatefulWidget {
   const _RepoItem({required this.slug, required this.collapsed});
 
   final String slug;
   final bool collapsed;
 
   @override
-  State<_RepoItem> createState() => _RepoItemState();
+  ConsumerState<_RepoItem> createState() => _RepoItemState();
 }
 
-class _RepoItemState extends State<_RepoItem> {
+class _RepoItemState extends ConsumerState<_RepoItem> {
   bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final name = widget.slug.contains('/') ? widget.slug.split('/').last : widget.slug;
     final dotColor = TbRepoColor.forSlug(widget.slug);
+
+    final visible = ref.watch(activeFiltersProvider.select((f) => f.repos.isEmpty || f.repos.contains(widget.slug)));
+    final count = ref.watch(prCountsByRepoProvider)[widget.slug];
+
     final fgColor = _hovered ? TbColors.text : TbColors.muted;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        margin: const EdgeInsets.symmetric(vertical: 1),
-        decoration: BoxDecoration(
-          color: _hovered ? TbColors.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
-          border: const Border(left: BorderSide(color: Colors.transparent, width: 2)),
-        ),
-        padding: const EdgeInsets.fromLTRB(9, 9, 11, 9),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 15,
-              child: Center(child: TbSignalDot(color: dotColor, size: 8)),
+      cursor: SystemMouseCursors.click,
+      child: Tooltip(
+        message: visible ? 'Click to hide from the board' : 'Click to show on the board',
+        waitDuration: const Duration(milliseconds: 500),
+        child: GestureDetector(
+          onTap: () => ref
+              .read(activeFiltersProvider.notifier)
+              .toggleRepoVisibility(widget.slug, ref.read(watchedReposProvider)),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 120),
+            opacity: visible ? 1 : 0.4,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              margin: const EdgeInsets.symmetric(vertical: 1),
+              decoration: BoxDecoration(
+                color: _hovered ? TbColors.surface : Colors.transparent,
+                borderRadius: BorderRadius.circular(4),
+                border: const Border(left: BorderSide(color: Colors.transparent, width: 2)),
+              ),
+              padding: const EdgeInsets.fromLTRB(9, 9, 11, 9),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 15,
+                    child: Center(child: TbSignalDot(color: dotColor, size: 8)),
+                  ),
+                  if (!widget.collapsed) ...[
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Text(
+                        name,
+                        overflow: TextOverflow.ellipsis,
+                        style: TbText.body(size: 13, weight: FontWeight.w500, color: fgColor, height: 1),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Open-PR count chip — em-dash until the board data lands.
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7),
+                      decoration: BoxDecoration(color: TbColors.surface2, borderRadius: BorderRadius.circular(4)),
+                      child: Text(
+                        count == null ? '—' : '$count',
+                        style: TbText.label(size: 11, weight: FontWeight.w600, color: TbColors.muted, tracking: 0),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            if (!widget.collapsed) ...[
-              const SizedBox(width: 11),
-              Expanded(
-                child: Text(
-                  name,
-                  overflow: TextOverflow.ellipsis,
-                  style: TbText.body(size: 13, weight: FontWeight.w500, color: fgColor, height: 1),
-                ),
-              ),
-              const SizedBox(width: 6),
-              // Count chip (display-only — no count data yet)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7),
-                decoration: BoxDecoration(color: TbColors.surface2, borderRadius: BorderRadius.circular(4)),
-                child: Text(
-                  '—',
-                  style: TbText.label(size: 11, weight: FontWeight.w600, color: TbColors.muted, tracking: 0),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );

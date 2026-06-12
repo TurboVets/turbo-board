@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
@@ -18,8 +19,9 @@ class StuckIssueRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusLabel = CockpitPalette.statusLabel(issue.status);
     final ageColor = issue.critical ? const Color(0xFFE94A5F) : const Color(0xFFFF5A1F);
+    final url = issue.url;
 
-    return Container(
+    final container = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         border: showDivider ? const Border(bottom: BorderSide(color: TbColors.border)) : null,
@@ -79,6 +81,17 @@ class StuckIssueRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (url == null) return container;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+        child: Tooltip(message: 'Open issue on GitHub', child: container),
       ),
     );
   }

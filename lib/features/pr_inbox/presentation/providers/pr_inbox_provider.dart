@@ -29,3 +29,16 @@ Future<List<PrData>> prInbox(Ref ref) async {
     failure: (message, stackTrace) => throw Exception(message),
   );
 }
+
+/// Open-PR count per repo slug, derived from the current inbox data. Drives the
+/// count chips in the nav rail's watched-repos section. Empty map while the
+/// board is loading or errored.
+@riverpod
+Map<String, int> prCountsByRepo(Ref ref) {
+  final prs = ref.watch(prInboxProvider).asData?.value ?? const <PrData>[];
+  final counts = <String, int>{};
+  for (final pr in prs) {
+    counts[pr.repo] = (counts[pr.repo] ?? 0) + 1;
+  }
+  return counts;
+}

@@ -77,7 +77,7 @@ CockpitData cockpitFromProjectItems(String boardTitle, List<Map<String, dynamic>
       loadPercent: maxOpen == 0 ? 0 : ((list.length / maxOpen) * 100).round().clamp(0, 100),
       items: (list..sort((a, b) => b.ageDays(now).compareTo(a.ageDays(now))))
           .take(3)
-          .map((i) => MemberItem(title: i.title, status: i.status ?? IssueStatus.notStarted))
+          .map((i) => MemberItem(title: i.title, status: i.status ?? IssueStatus.notStarted, url: i.url))
           .toList(),
     );
   }).toList()..sort((a, b) => b.loadPercent.compareTo(a.loadPercent));
@@ -94,6 +94,7 @@ CockpitData cockpitFromProjectItems(String boardTitle, List<Map<String, dynamic>
           status: i.status ?? IssueStatus.notStarted,
           ageDays: age,
           critical: age >= _criticalAgeDays || i.priority == IssuePriority.p0,
+          url: i.url,
           // Live linked-PR state is a follow-up (needs a per-issue timeline query).
           prLabel: '—',
         );
@@ -113,6 +114,7 @@ class _BoardItem {
     required this.repo,
     required this.assignees,
     required this.updatedAt,
+    this.url,
     this.status,
     this.priority,
     this.complexity,
@@ -125,6 +127,7 @@ class _BoardItem {
   final String repo;
   final List<String> assignees;
   final DateTime updatedAt;
+  final String? url;
   final IssueStatus? status;
   final IssuePriority? priority;
   final num? complexity;
@@ -179,6 +182,7 @@ class _BoardItem {
     return _BoardItem(
       title: (content['title'] as String?) ?? '',
       repo: (content['repository']?['name'] as String?) ?? '',
+      url: content['url'] as String?,
       assignees: assignees,
       updatedAt: DateTime.tryParse((node['updatedAt'] as String?) ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
       status: status,

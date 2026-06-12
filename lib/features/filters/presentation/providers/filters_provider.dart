@@ -17,6 +17,24 @@ class ActiveFilters extends _$ActiveFilters {
 
   void toggleRepo(String repo) => state = state.copyWith(repos: _toggle(state.repos, repo));
 
+  /// Toggles a repo's visibility on the board from the nav rail. Unlike
+  /// [toggleRepo] (filter bar — builds an allowlist *up* from "all"), this seeds
+  /// from the full watched set so a single tap *removes* one repo, matching the
+  /// mockup's "click to include / exclude from the board". Collapses back to the
+  /// empty (= "all") set once every repo is visible again, so the filter reads
+  /// clean. Hiding the last visible repo also collapses to "all" — the board
+  /// can't show zero repos.
+  void toggleRepoVisibility(String slug, List<String> allWatched) {
+    final visible = state.repos.isEmpty ? allWatched.toSet() : state.repos.toSet();
+    visible.contains(slug) ? visible.remove(slug) : visible.add(slug);
+    final isAll = visible.isEmpty || (visible.length == allWatched.length && visible.containsAll(allWatched));
+    state = state.copyWith(repos: isAll ? const <String>{} : visible);
+  }
+
+  /// Whether [slug] currently shows on the board: true when no repo facet is
+  /// set (all visible) or when the allowlist contains it.
+  bool isRepoVisible(String slug) => state.repos.isEmpty || state.repos.contains(slug);
+
   void toggleStatus(PrStatus s) => state = state.copyWith(statuses: _toggle(state.statuses, s));
 
   void toggleReviewState(PrReviewState s) => state = state.copyWith(reviewStates: _toggle(state.reviewStates, s));

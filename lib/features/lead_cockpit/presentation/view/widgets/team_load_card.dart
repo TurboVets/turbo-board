@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
@@ -97,24 +98,48 @@ class TeamLoadCard extends StatelessWidget {
           const SizedBox(height: 11),
 
           // Member's tickets
-          for (final item in member.items)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  SizedBox(width: 6, height: 6, child: ColoredBox(color: CockpitPalette.statusDot(item.status))),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      item.title,
-                      overflow: TextOverflow.ellipsis,
-                      style: TbText.body(size: 11, color: TbColors.muted, height: 1.2),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          for (final item in member.items) _TicketRow(item: item),
         ],
+      ),
+    );
+  }
+}
+
+/// One ticket line under a member card. Opens the GitHub issue on tap when a
+/// [MemberItem.url] is present; otherwise renders as a plain (non-tappable) row.
+class _TicketRow extends StatelessWidget {
+  const _TicketRow({required this.item});
+
+  final MemberItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = item.url;
+    final row = Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          SizedBox(width: 6, height: 6, child: ColoredBox(color: CockpitPalette.statusDot(item.status))),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              item.title,
+              overflow: TextOverflow.ellipsis,
+              style: TbText.body(size: 11, color: TbColors.muted, height: 1.2),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (url == null) return row;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+        child: Tooltip(message: 'Open issue on GitHub', child: row),
       ),
     );
   }
