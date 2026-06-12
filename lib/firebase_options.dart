@@ -49,28 +49,26 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBXPLSjgh-4lFaPk2re3CiesGN6NwfvmXw',
-    appId: '1:556680712056:android:887c2ff6de42f3ef44c28d',
+    appId: '1:556680712056:android:06447c9ce1eb005944c28d',
     messagingSenderId: '556680712056',
     projectId: 'turboboard-59499',
     storageBucket: 'turboboard-59499.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDAuN2QyoBDpy1hE1NJLMD0OuBCcBaxM3g',
-    appId: '1:556680712056:ios:a75ce5845bb4eb8344c28d',
+    appId: '1:556680712056:ios:0e5144ac800398e544c28d',
     messagingSenderId: '556680712056',
     projectId: 'turboboard-59499',
     storageBucket: 'turboboard-59499.firebasestorage.app',
-    iosBundleId: 'com.example.turboBoard',
+    iosBundleId: 'com.turbovets.board',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDAuN2QyoBDpy1hE1NJLMD0OuBCcBaxM3g',
-    appId: '1:556680712056:ios:a75ce5845bb4eb8344c28d',
+    appId: '1:556680712056:ios:0e5144ac800398e544c28d',
     messagingSenderId: '556680712056',
     projectId: 'turboboard-59499',
     storageBucket: 'turboboard-59499.firebasestorage.app',
-    iosBundleId: 'com.example.turboBoard',
+    iosBundleId: 'com.turbovets.board',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
