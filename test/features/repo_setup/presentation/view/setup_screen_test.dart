@@ -5,6 +5,8 @@
 // - Submitting an invalid token shows the error text (provider returns AuthError).
 // - Valid token advances to step 2; "Open PR Board →" is initially DISABLED when no repo
 //   is watched, then becomes ENABLED after the repo toggle is tapped.
+// - On step 2, the search box filters the repo list: a non-matching query hides the repo,
+//   a matching query shows it again.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -88,5 +90,27 @@ void main() {
     // Button should now be ENABLED.
     final buttonAfter = tester.widget<TetherActionButton>(find.widgetWithText(TetherActionButton, 'Open PR Board →'));
     expect(buttonAfter.onPressed, isNotNull);
+  });
+
+  testWidgets('search box filters the accessible repo list', (tester) async {
+    await tester.pumpWidget(_app(_Repo()));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'goodtoken');
+    await tester.tap(find.text('Validate & continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('TurboVets/platform'), findsOneWidget);
+
+    // Non-matching query hides the repo.
+    await tester.enterText(find.byType(TextField).first, 'zzz');
+    await tester.pumpAndSettle();
+    expect(find.text('TurboVets/platform'), findsNothing);
+    expect(find.text('No matching repositories.'), findsOneWidget);
+
+    // Matching query brings it back.
+    await tester.enterText(find.byType(TextField).first, 'plat');
+    await tester.pumpAndSettle();
+    expect(find.text('TurboVets/platform'), findsOneWidget);
   });
 }

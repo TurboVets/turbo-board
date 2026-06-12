@@ -242,6 +242,14 @@ class _ReposStep extends ConsumerWidget {
         ),
         const SizedBox(height: 18),
 
+        // Search box — filters the accessible repo list as you type.
+        TetherTextField(
+          hintText: 'Search repositories…',
+          trailingIcon: const Icon(Icons.search, size: 20, color: TbColors.muted),
+          onChanged: (value) => query.value = value,
+        ),
+        const SizedBox(height: 12),
+
         // Scrollable bordered repo list
         Container(
           constraints: const BoxConstraints(maxHeight: 240),
