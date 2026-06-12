@@ -17,3 +17,13 @@ mutation AddPrReview($pullRequestId: ID!, $event: PullRequestReviewEvent!, $body
   }
 }
 ''';
+
+/// Merges a pull request. `method` is MERGE / SQUASH / REBASE. Commit
+/// headline/body are left to GitHub's defaults.
+const String mergePrMutation = r'''
+mutation MergePr($pullRequestId: ID!, $method: PullRequestMergeMethod!) {
+  mergePullRequest(input: {pullRequestId: $pullRequestId, mergeMethod: $method}) {
+    pullRequest { state merged }
+  }
+}
+''';

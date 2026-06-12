@@ -49,6 +49,9 @@ class _Repo implements PrDetailRepository {
 
   @override
   Future<Result<bool>> submitReview(String pullRequestId, String event, String body) async => Result.success(true);
+
+  @override
+  Future<Result<bool>> mergePullRequest(String pullRequestId, String mergeMethod) async => Result.success(true);
 }
 
 Widget _host(PrDetailRepository repo) => ProviderScope(

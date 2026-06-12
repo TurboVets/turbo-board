@@ -21,6 +21,9 @@ abstract interface class PrDetailRepository {
 
   /// Submits a PR review. [event] is APPROVE / REQUEST_CHANGES / COMMENT.
   Future<Result<bool>> submitReview(String pullRequestId, String event, String body);
+
+  /// Merges the PR. [mergeMethod] is MERGE / SQUASH / REBASE.
+  Future<Result<bool>> mergePullRequest(String pullRequestId, String mergeMethod);
 }
 
 class GithubPrDetailRepository implements PrDetailRepository {
@@ -32,9 +35,10 @@ class GithubPrDetailRepository implements PrDetailRepository {
   Future<Result<PrDetail>> fetchDetail(String owner, String name, int number) async {
     try {
       final data = await _client.graphql(prDetailQuery, {'owner': owner, 'name': name, 'number': number});
-      final pr = data['repository']?['pullRequest'] as Map<String, dynamic>?;
+      final repoNode = data['repository'] as Map<String, dynamic>?;
+      final pr = repoNode?['pullRequest'] as Map<String, dynamic>?;
       if (pr == null) return Result.failure('Pull request not found.', StackTrace.current);
-      return Result.success(prDetailFromNode(owner, name, pr));
+      return Result.success(prDetailFromNode(owner, name, repoNode!, pr));
     } catch (e, stackTrace) {
       log('Failed to fetch PR detail', error: e, stackTrace: stackTrace);
       return Result.failure('Could not load the pull request.', stackTrace);
@@ -66,10 +70,23 @@ class GithubPrDetailRepository implements PrDetailRepository {
       return Result.failure('Could not submit your review.', stackTrace);
     }
   }
+
+  @override
+  Future<Result<bool>> mergePullRequest(String pullRequestId, String mergeMethod) async {
+    try {
+      await _client.graphql(mergePrMutation, {'pullRequestId': pullRequestId, 'method': mergeMethod});
+      return Result.success(true);
+    } catch (e, stackTrace) {
+      log('Failed to merge PR', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not merge the pull request.', stackTrace);
+    }
+  }
 }
 
-/// Builds a [PrDetail] from a GraphQL `repository.pullRequest` node.
-PrDetail prDetailFromNode(String owner, String name, Map<String, dynamic> pr) {
+/// Builds a [PrDetail] from a GraphQL `repository` node ([repoNode]) and its
+/// `pullRequest` child ([pr]). Repo-level fields (merge permission, allowed
+/// strategies) live on [repoNode].
+PrDetail prDetailFromNode(String owner, String name, Map<String, dynamic> repoNode, Map<String, dynamic> pr) {
   final commitNode =
       ((pr['commits']?['nodes'] as List<dynamic>?)?.firstOrNull as Map<String, dynamic>?)?['commit']
           as Map<String, dynamic>?;
@@ -91,8 +108,23 @@ PrDetail prDetailFromNode(String owner, String name, Map<String, dynamic> pr) {
     checks: _checksFrom(commitNode),
     reviewers: _reviewersFrom(pr),
     timeline: _timelineFrom(pr),
+    canMerge: _canMerge(repoNode['viewerPermission'] as String?),
+    mergeable: _mergeableFrom(pr['mergeable'] as String?),
+    mergeStateStatus: pr['mergeStateStatus'] as String?,
+    mergeCommitAllowed: (repoNode['mergeCommitAllowed'] as bool?) ?? false,
+    squashMergeAllowed: (repoNode['squashMergeAllowed'] as bool?) ?? false,
+    rebaseMergeAllowed: (repoNode['rebaseMergeAllowed'] as bool?) ?? false,
   );
 }
+
+/// WRITE+ on the repo means the viewer may merge.
+bool _canMerge(String? perm) => perm == 'ADMIN' || perm == 'MAINTAIN' || perm == 'WRITE';
+
+PrMergeable _mergeableFrom(String? m) => switch (m) {
+  'MERGEABLE' => PrMergeable.mergeable,
+  'CONFLICTING' => PrMergeable.conflicting,
+  _ => PrMergeable.unknown,
+};
 
 PrState _stateFrom(String? s) => switch (s) {
   'MERGED' => PrState.merged,
@@ -225,6 +257,12 @@ class MockPrDetailRepository implements PrDetailRepository {
       baseRefName: 'main',
       headRefName: 'feature',
       bodyMarkdown: 'A sample PR body.',
+      canMerge: true,
+      mergeable: PrMergeable.mergeable,
+      mergeStateStatus: 'CLEAN',
+      mergeCommitAllowed: true,
+      squashMergeAllowed: true,
+      rebaseMergeAllowed: true,
       checks: const [PrCheck(name: 'build', state: PrCheckState.success)],
       reviewers: const [PrReviewer(login: 'octocat', state: PrReviewerState.pending)],
       timeline: [
@@ -243,4 +281,7 @@ class MockPrDetailRepository implements PrDetailRepository {
 
   @override
   Future<Result<bool>> submitReview(String pullRequestId, String event, String body) async => Result.success(true);
+
+  @override
+  Future<Result<bool>> mergePullRequest(String pullRequestId, String mergeMethod) async => Result.success(true);
 }

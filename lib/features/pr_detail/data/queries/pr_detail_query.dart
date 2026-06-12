@@ -4,8 +4,12 @@
 const String prDetailQuery = r'''
 query PrDetail($owner: String!, $name: String!, $number: Int!) {
   repository(owner: $owner, name: $name) {
+    viewerPermission
+    mergeCommitAllowed
+    squashMergeAllowed
+    rebaseMergeAllowed
     pullRequest(number: $number) {
-      id number title body isDraft state url
+      id number title body isDraft state url mergeable mergeStateStatus
       baseRefName headRefName
       author { login }
       reviewDecision

@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
 import '../../../pr_inbox/presentation/providers/pr_inbox_provider.dart';
+import '../../data/models/pr_detail.dart';
 import 'pr_detail_provider.dart';
 
 part 'pr_composer_provider.g.dart';
@@ -45,4 +46,9 @@ class PrComposer extends _$PrComposer {
 
   Future<bool> requestChanges(String prId, String body) =>
       _run(() => ref.read(prDetailRepositoryProvider).submitReview(prId, 'REQUEST_CHANGES', body));
+
+  /// Merges the PR with the chosen [method]. On success the detail and inbox
+  /// reload, so the PR flips to merged everywhere.
+  Future<bool> merge(String prId, PrMergeMethod method) =>
+      _run(() => ref.read(prDetailRepositoryProvider).mergePullRequest(prId, method.graphql));
 }

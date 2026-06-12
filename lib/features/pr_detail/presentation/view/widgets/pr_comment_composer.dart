@@ -10,6 +10,7 @@ import '../../../../ai/presentation/helpers/ai_prompts.dart';
 import '../../../../ai/presentation/providers/ai_provider.dart';
 import '../../../../pr_inbox/data/models/pr_data.dart' show PrReviewState;
 import '../../../data/models/pr_detail.dart';
+import '../../providers/merge_method_provider.dart';
 import '../../providers/pr_composer_provider.dart';
 
 /// The PR conversation composer: leave a comment, draft one with AI, or submit a
@@ -167,6 +168,8 @@ class PrCommentComposer extends HookConsumerWidget {
                                 .comment(prId, controller.text.trim())
                           : null,
                     ),
+                    if (detail.canMergeAction && prId != null)
+                      _MergeButton(detail: detail, owner: owner, name: name, prId: prId, busy: busy),
                   ],
                 );
               },
@@ -225,6 +228,151 @@ class _AiDraftRow extends ConsumerWidget {
           _ => const SizedBox.shrink(),
         },
       ],
+    );
+  }
+}
+
+/// Green split merge action. The main button shows the current merge mode's
+/// label and merges with it; it is enabled only when every GitHub requirement
+/// is met ([PrDetail.isMergeReady]). When the repo allows more than one
+/// strategy, a caret button switches the mode. Commit message uses GitHub's
+/// defaults.
+class _MergeButton extends HookConsumerWidget {
+  const _MergeButton({
+    required this.detail,
+    required this.owner,
+    required this.name,
+    required this.prId,
+    required this.busy,
+  });
+
+  final PrDetail detail;
+  final String owner;
+  final String name;
+  final String prId;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final methods = detail.allowedMergeMethods;
+    final pref = ref.watch(mergeMethodPreferenceProvider);
+    // Use the remembered preference when the repo allows it, else the first.
+    final current = methods.contains(pref) ? pref : methods.first;
+    final multi = methods.length > 1;
+    final ready = detail.isMergeReady && !busy;
+    final leftHover = useState(false);
+    final rightHover = useState(false);
+
+    void merge() =>
+        ref.read(prComposerProvider(owner: owner, name: name, number: detail.number).notifier).merge(prId, current);
+
+    Future<void> pickMode(BuildContext ctx) async {
+      final box = ctx.findRenderObject() as RenderBox?;
+      final overlay = Overlay.of(ctx).context.findRenderObject() as RenderBox?;
+      if (box == null || overlay == null) return;
+      final pos = RelativeRect.fromRect(
+        Rect.fromPoints(
+          box.localToGlobal(Offset.zero, ancestor: overlay),
+          box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
+        ),
+        Offset.zero & overlay.size,
+      );
+      final selected = await showMenu<PrMergeMethod>(
+        context: ctx,
+        position: pos,
+        color: TbColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(6),
+          side: const BorderSide(color: TbColors.border),
+        ),
+        items: [
+          for (final m in methods)
+            PopupMenuItem<PrMergeMethod>(
+              value: m,
+              child: Text(
+                m.label,
+                style: TbText.body(size: 13, color: m == current ? TbSignal.ok.text : TbColors.text),
+              ),
+            ),
+        ],
+      );
+      if (selected != null) ref.read(mergeMethodPreferenceProvider.notifier).set(selected);
+    }
+
+    // One green split button: label section (merges) + caret section (switches
+    // mode), divided by a hairline, with only the outer corners rounded.
+    Widget section({
+      required Widget child,
+      required bool enabled,
+      required bool hovered,
+      required ValueChanged<bool> onHover,
+      required VoidCallback onTap,
+      required EdgeInsets padding,
+    }) {
+      return MouseRegion(
+        cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        onEnter: (_) => onHover(true),
+        onExit: (_) => onHover(false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: enabled ? onTap : null,
+          child: Opacity(
+            opacity: enabled ? 1 : 0.5,
+            child: Container(
+              padding: padding,
+              alignment: Alignment.center,
+              color: (hovered && enabled) ? TbColors.surface : const Color(0x00000000),
+              child: child,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: TbSignal.ok.border),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: IntrinsicHeight(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              section(
+                enabled: ready,
+                hovered: leftHover.value,
+                onHover: (v) => leftHover.value = v,
+                onTap: merge,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                child: busy
+                    ? const SizedBox(height: 13, width: 13, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(
+                        current.label.toUpperCase(),
+                        style: TbText.label(size: 11, weight: FontWeight.w600, color: TbSignal.ok.text, tracking: 0.66),
+                      ),
+              ),
+              if (multi) ...[
+                Container(width: 1, color: TbSignal.ok.border),
+                Builder(
+                  builder: (ctx) => section(
+                    enabled: !busy,
+                    hovered: rightHover.value,
+                    onHover: (v) => rightHover.value = v,
+                    onTap: () => pickMode(ctx),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                    child: Text(
+                      '▾',
+                      style: TbText.label(size: 11, weight: FontWeight.w600, color: TbSignal.ok.text, tracking: 0),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
