@@ -55,10 +55,10 @@ static void my_application_activate(GApplication* application) {
 
   gtk_window_set_default_size(window, 1280, 720);
 
-  // Match the app's mobile breakpoint (640px) as the minimum window width so
-  // the layout never gets narrower than the responsive design supports.
+  // Minimum window size at the phone-portrait floor (400px), below the 640px
+  // mobile breakpoint so the window can fold into the phone layout on resize.
   GdkGeometry geometry;
-  geometry.min_width = 640;
+  geometry.min_width = 400;
   geometry.min_height = 600;
   gtk_window_set_geometry_hints(window, nullptr, &geometry, GDK_HINT_MIN_SIZE);
 

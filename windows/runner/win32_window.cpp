@@ -188,12 +188,12 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
 
     case WM_GETMINMAXINFO: {
-      // Enforce a minimum window size matching the app's mobile breakpoint
-      // (640px wide) so the layout never gets narrower than supported.
+      // Minimum window size at the phone-portrait floor (400px wide), below the
+      // 640px mobile breakpoint so the window can fold into the phone layout.
       auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
       UINT dpi = FlutterDesktopGetDpiForHWND(hwnd);
       double scale_factor = dpi / 96.0;
-      info->ptMinTrackSize.x = Scale(640, scale_factor);
+      info->ptMinTrackSize.x = Scale(400, scale_factor);
       info->ptMinTrackSize.y = Scale(600, scale_factor);
       return 0;
     }
