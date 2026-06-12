@@ -1,6 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
+import '../../../repo_setup/presentation/providers/auth_provider.dart';
+import '../../../repo_setup/presentation/providers/watched_repos_provider.dart';
 import '../../data/models/pr_data.dart';
 import '../../data/repositories/pr_inbox_repository.dart';
 
@@ -8,8 +10,9 @@ part 'pr_inbox_provider.g.dart';
 
 @Riverpod(keepAlive: true)
 PrInboxRepository prInboxRepository(Ref ref) {
-  // Swapped for the real GitHub-backed implementation once integration lands.
-  return const MockPrInboxRepository();
+  final client = ref.watch(githubApiClientProvider);
+  final watched = ref.watch(watchedReposProvider);
+  return GithubPrInboxRepository(client, watched);
 }
 
 @riverpod
