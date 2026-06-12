@@ -39,6 +39,7 @@ sealed class PrData with _$PrData {
     required PrCiState ciState,
     required DateTime updatedAt,
     String? htmlUrl,
+    @Default(0) int commentsCount,
   }) = _PrData;
 
   factory PrData.fromJson(Map<String, dynamic> json) => _$PrDataFromJson(json);
