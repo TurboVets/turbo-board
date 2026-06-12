@@ -1,21 +1,19 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
+import '../../../lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
 import '../../data/models/sprint_report.dart';
 import '../../data/repositories/sprint_report_repository.dart';
 
 part 'sprint_report_provider.g.dart';
 
-// The board this report reads — same as the Lead Cockpit. TODO: make
-// configurable in Settings once multi-board support is needed.
-const String _boardOrg = 'TurboVets';
-const int _boardNumber = 8; // "Mobile Space"
-
 @Riverpod(keepAlive: true)
 SprintReportRepository sprintReportRepository(Ref ref) {
   final client = ref.watch(githubApiClientProvider);
-  return GithubSprintReportRepository(client, org: _boardOrg, projectNumber: _boardNumber);
+  // Same board the Lead Cockpit reads — chosen in the cockpit / Settings.
+  final selected = ref.watch(selectedProjectProvider);
+  return GithubSprintReportRepository(client, org: selected?.owner ?? '', projectNumber: selected?.number ?? 0);
 }
 
 /// The sprint iteration the report is showing, by title. Null = the current
@@ -33,11 +31,13 @@ class SelectedSprint extends _$SelectedSprint {
 Future<SprintReport> sprintReport(Ref ref) async {
   final selected = ref.watch(selectedSprintProvider);
   final result = await ref.watch(sprintReportRepositoryProvider).fetchReport(sprintTitle: selected);
-  return result.when(success: (data) {
-    if(ref.mounted) {
-     ref.keepAlive();
-    }
-    return data;
-  }, failure: (message,st) => throw Exception(message));
+  return result.when(
+    success: (data) {
+      if (ref.mounted) {
+        ref.keepAlive();
+      }
+      return data;
+    },
+    failure: (message, st) => throw Exception(message),
+  );
 }
-

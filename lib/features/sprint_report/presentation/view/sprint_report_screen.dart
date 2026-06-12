@@ -6,6 +6,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
+import '../../../lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
+import '../../../lead_cockpit/presentation/view/widgets/project_picker.dart';
 import '../../data/models/sprint_report.dart';
 import '../providers/sprint_report_provider.dart';
 import 'widgets/burndown_chart.dart';
@@ -27,6 +29,19 @@ class SprintReportScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(selectedProjectProvider);
+
+    // No board picked yet → same picker the Lead Cockpit uses.
+    if (selected == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: const [
+          _ReportHeader(),
+          Expanded(child: _ChooseProject()),
+        ],
+      );
+    }
+
     final report = ref.watch(sprintReportProvider);
 
     return Column(
@@ -85,6 +100,65 @@ class SprintReportScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Plain header bar (no refresh/badge) for the no-selection state.
+class _ReportHeader extends StatelessWidget {
+  const _ReportHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 58,
+      decoration: const BoxDecoration(
+        color: Color(0x99141418),
+        border: Border(bottom: BorderSide(color: TbColors.border)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      alignment: Alignment.centerLeft,
+      child: Text('Sprint Report', style: TbText.display(size: 14, tracking: 2.0)),
+    );
+  }
+}
+
+/// Empty state shown until a board is selected: pick one to populate the report.
+class _ChooseProject extends ConsumerWidget {
+  const _ChooseProject();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(22),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('CHOOSE A PROJECT', style: TbText.label(size: 12, tracking: 1.4)),
+              const SizedBox(height: 6),
+              Text(
+                'Pick the GitHub Projects v2 board to report on. Shared with the Lead Cockpit; '
+                'change it any time in Settings.',
+                style: TbText.body(size: 13, color: TbColors.muted, height: 1.5),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                decoration: BoxDecoration(
+                  color: TbColors.surface,
+                  border: Border.all(color: TbColors.border),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ProjectPickerList(onSelected: (p) => ref.read(selectedProjectProvider.notifier).select(p)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
