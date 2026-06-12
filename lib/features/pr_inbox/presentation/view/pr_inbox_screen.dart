@@ -6,6 +6,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../filters/presentation/helpers/pr_filtering.dart';
+import '../../../filters/presentation/providers/filters_provider.dart';
+import '../../../filters/presentation/view/widgets/filter_bar.dart';
 import '../../data/models/pr_data.dart';
 import '../providers/pr_inbox_provider.dart';
 import 'widgets/pr_column.dart';
@@ -27,9 +30,11 @@ class PrInboxScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final query = useState('');
+    final showFilters = useState(false);
     // Watch prInboxProvider directly so error/loading states propagate correctly.
-    // Client-side search is applied in the data branch.
+    // Active filters + client-side search are applied in the data branch.
     final prs = ref.watch(prInboxProvider);
+    final filters = ref.watch(activeFiltersProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -38,7 +43,11 @@ class PrInboxScreen extends HookConsumerWidget {
           query: query.value,
           onQueryChanged: (v) => query.value = v,
           onRefresh: () => ref.invalidate(prInboxProvider),
+          filtersOpen: showFilters.value,
+          filterCount: filters.activeFacetCount,
+          onToggleFilters: () => showFilters.value = !showFilters.value,
         ),
+        if (showFilters.value) const FilterBar(),
         Expanded(
           child: prs.when(
             // skipLoadingOnReload: show error state instead of loading when
@@ -47,18 +56,27 @@ class PrInboxScreen extends HookConsumerWidget {
             loading: () => const _LoadingState(),
             error: (err, _) => _ErrorState(message: '$err', onRetry: () => ref.invalidate(prInboxProvider)),
             data: (items) {
-              // Client-side search over the watched-repo PRs.
+              // Apply active filters, then client-side search.
+              final afterFilters = applyFilters(items, filters);
               final q = query.value.trim().toLowerCase();
               final filtered = q.isEmpty
-                  ? items
-                  : items.where((p) {
+                  ? afterFilters
+                  : afterFilters.where((p) {
                       return p.title.toLowerCase().contains(q) ||
                           p.repo.toLowerCase().contains(q) ||
                           '#${p.number}'.contains(q) ||
                           '${p.number}'.contains(q);
                     }).toList();
               if (filtered.isEmpty) {
-                return _EmptyState(onReset: q.isNotEmpty ? () => query.value = '' : null);
+                final canReset = q.isNotEmpty || !filters.isEmpty;
+                return _EmptyState(
+                  onReset: canReset
+                      ? () {
+                          query.value = '';
+                          ref.read(activeFiltersProvider.notifier).clear();
+                        }
+                      : null,
+                );
               }
               return _Board(items: filtered);
             },
@@ -72,11 +90,21 @@ class PrInboxScreen extends HookConsumerWidget {
 // ─── Topbar ──────────────────────────────────────────────────────────────────
 
 class _Topbar extends StatelessWidget {
-  const _Topbar({required this.query, required this.onQueryChanged, required this.onRefresh});
+  const _Topbar({
+    required this.query,
+    required this.onQueryChanged,
+    required this.onRefresh,
+    required this.filtersOpen,
+    required this.filterCount,
+    required this.onToggleFilters,
+  });
 
   final String query;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onRefresh;
+  final bool filtersOpen;
+  final int filterCount;
+  final VoidCallback onToggleFilters;
 
   @override
   Widget build(BuildContext context) {
@@ -106,8 +134,12 @@ class _Topbar extends StatelessWidget {
           // REFRESH button
           _OutlineButton(label: 'REFRESH', onPressed: onRefresh),
           const SizedBox(width: 8),
-          // FILTERS button (no-op for now)
-          const _OutlineButton(label: 'FILTERS', onPressed: null),
+          // FILTERS toggle — opens the inline filter bar; shows active count.
+          _OutlineButton(
+            label: filterCount > 0 ? 'FILTERS · $filterCount' : 'FILTERS',
+            onPressed: onToggleFilters,
+            active: filtersOpen || filterCount > 0,
+          ),
         ],
       ),
     );
@@ -189,19 +221,25 @@ class _LiveIndicator extends StatelessWidget {
 }
 
 class _OutlineButton extends StatelessWidget {
-  const _OutlineButton({required this.label, required this.onPressed});
+  const _OutlineButton({required this.label, required this.onPressed, this.active = false});
 
   final String label;
   final VoidCallback? onPressed;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
+    final fg = onPressed == null
+        ? TbColors.dim
+        : active
+        ? TbColors.cyan
+        : TbColors.text;
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: onPressed == null ? TbColors.dim : TbColors.text,
-        side: BorderSide(color: onPressed == null ? TbColors.border : TbColors.borderStrong),
-        backgroundColor: Colors.transparent,
+        foregroundColor: fg,
+        side: BorderSide(color: onPressed == null ? TbColors.border : (active ? TbColors.cyan : TbColors.borderStrong)),
+        backgroundColor: active ? TbColors.navy : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
