@@ -16,6 +16,7 @@ import 'package:turbo_board/features/repo_setup/data/services/token_store.dart';
 import 'package:turbo_board/features/repo_setup/presentation/providers/auth_provider.dart';
 import 'package:turbo_board/features/repo_setup/presentation/view/setup_screen.dart';
 import 'package:turbo_board/shared/router/app_router.dart';
+import 'package:turbo_board/shared/ui/shell/app_shell.dart';
 import 'package:turbo_board/shared/ui/theme/app_theme.dart';
 import 'package:turbo_core/core.dart';
 import 'package:turbo_ui/turbo_ui.dart';
@@ -136,5 +137,21 @@ void main() {
     // Board is shown, setup screen is gone
     expect(find.byType(PrInboxScreen), findsOneWidget);
     expect(find.byType(SetupScreen), findsNothing);
+  });
+
+  testWidgets('authenticated board renders inside the AppShell', (tester) async {
+    final c = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(_Repo(const GithubUser(login: 'o', avatarUrl: ''))),
+        tokenStoreProvider.overrideWithValue(InMemoryTokenStore('tok')),
+      ],
+    );
+    addTearDown(c.dispose);
+
+    await tester.pumpWidget(_app(c));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(find.byType(PrInboxScreen), findsOneWidget);
   });
 }

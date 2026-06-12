@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../features/pr_inbox/presentation/view/pr_inbox_screen.dart';
 import '../../features/repo_setup/presentation/providers/auth_provider.dart';
 import '../../features/repo_setup/presentation/view/setup_screen.dart';
+import '../ui/shell/app_shell.dart';
 
 part 'app_router.g.dart';
 
@@ -28,7 +29,10 @@ GoRouter appRouter(Ref ref) {
       };
     },
     routes: [
-      GoRoute(path: '/', name: PrInboxScreen.routeName, builder: (context, state) => const PrInboxScreen()),
+      ShellRoute(
+        builder: (context, state, child) => AppShell(child: child),
+        routes: [GoRoute(path: '/', name: PrInboxScreen.routeName, builder: (context, state) => const PrInboxScreen())],
+      ),
       GoRoute(path: '/setup', name: SetupScreen.routeName, builder: (context, state) => const SetupScreen()),
     ],
   );
