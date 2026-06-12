@@ -73,15 +73,19 @@ class AppNavRail extends ConsumerWidget {
                     onTap: () => context.go('/needs-attention'),
                   ),
                   _NavItem(
+                    icon: LucideIcons.crosshair,
+                    label: 'Lead cockpit',
+                    collapsed: collapsed,
+                    active: location == '/lead-cockpit',
+                    onTap: () => context.go('/lead-cockpit'),
+                  ),
+                  _NavItem(
                     icon: LucideIcons.settings2,
                     label: 'Settings',
                     collapsed: collapsed,
                     active: location == '/settings',
                     onTap: () => context.go('/settings'),
                   ),
-
-                  // Disabled entry matching the design
-                  _NavItem(icon: LucideIcons.circleDashed, label: 'Issues', collapsed: collapsed, enabled: false),
 
                   // WATCHED REPOS section label
                   if (!collapsed) const _SectionLabel('WATCHED REPOS') else const SizedBox(height: 12),
@@ -208,7 +212,6 @@ class _NavItem extends StatefulWidget {
     required this.label,
     required this.collapsed,
     this.active = false,
-    this.enabled = true,
     this.badgeCount = 0,
     this.onTap,
   });
@@ -217,7 +220,6 @@ class _NavItem extends StatefulWidget {
   final String label;
   final bool collapsed;
   final bool active;
-  final bool enabled;
   final int badgeCount;
   final VoidCallback? onTap;
 
@@ -234,11 +236,7 @@ class _NavItemState extends State<_NavItem> {
     final Color bgColor;
     final Color leftBorderColor;
 
-    if (!widget.enabled) {
-      fgColor = TbColors.dim;
-      bgColor = Colors.transparent;
-      leftBorderColor = Colors.transparent;
-    } else if (widget.active) {
+    if (widget.active) {
       fgColor = TbColors.text;
       bgColor = TbColors.surface;
       leftBorderColor = TbColors.blue;
@@ -253,11 +251,11 @@ class _NavItemState extends State<_NavItem> {
     }
 
     return MouseRegion(
-      onEnter: widget.enabled ? (_) => setState(() => _hovered = true) : null,
-      onExit: widget.enabled ? (_) => setState(() => _hovered = false) : null,
-      cursor: widget.enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: widget.enabled ? widget.onTap : null,
+        onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           margin: const EdgeInsets.symmetric(vertical: 1),

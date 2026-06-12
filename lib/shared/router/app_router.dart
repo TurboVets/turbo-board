@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../features/lead_cockpit/presentation/view/lead_cockpit_screen.dart';
 import '../../features/needs_attention/presentation/view/needs_attention_screen.dart';
 import '../../features/pr_detail/presentation/view/pr_detail_screen.dart';
 import '../../features/pr_inbox/presentation/view/pr_inbox_screen.dart';
@@ -40,6 +41,11 @@ GoRouter appRouter(Ref ref) {
             path: '/needs-attention',
             name: NeedsAttentionScreen.routeName,
             builder: (context, state) => const NeedsAttentionScreen(),
+          ),
+          GoRoute(
+            path: '/lead-cockpit',
+            name: LeadCockpitScreen.routeName,
+            builder: (context, state) => const LeadCockpitScreen(),
           ),
           GoRoute(
             path: '/settings',

@@ -18,7 +18,8 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._client);
 
   final GithubApiClient _client;
-  static const _requiredScopes = {'repo', 'read:org'};
+  // `read:project` is needed for the Lead Cockpit's Projects v2 board query.
+  static const _requiredScopes = {'repo', 'read:org', 'read:project'};
 
   @override
   Future<Result<GithubUser>> validateToken(String token) async {

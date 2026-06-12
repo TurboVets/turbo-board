@@ -40,7 +40,7 @@ void main() {
       (_) async => resp<Map<String, dynamic>>(
         {'login': 'octocat', 'avatar_url': 'x', 'name': 'Octo'},
         headers: {
-          'x-oauth-scopes': ['repo, read:org'],
+          'x-oauth-scopes': ['repo, read:org, read:project'],
         },
       ),
     );

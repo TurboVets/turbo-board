@@ -16,7 +16,7 @@ A single command surface to watch **all open pull requests across selected GitHu
 ## Requirements
 
 - Flutter SDK with Dart `>=3.10.0` (this repo was developed on Flutter 3.41.x).
-- A GitHub **personal access token** (fine-grained recommended; scopes: `repo`, `read:org`) to load PRs.
+- A GitHub **classic personal access token** with scopes `repo`, `read:org`, and `read:project` — `repo`/`read:org` load PRs; `read:project` powers the Lead Cockpit (Projects v2 board). *(Fine-grained PAT equivalent: Contents + read-only Projects.)*
 - *(Optional, for AI features)* an Anthropic API key from [console.anthropic.com](https://console.anthropic.com) — note a claude.ai Pro/Max plan does **not** include API access; the API is billed separately, pay-per-use.
 
 ## Local setup
