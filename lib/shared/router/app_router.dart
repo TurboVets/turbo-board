@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -37,26 +37,30 @@ GoRouter appRouter(Ref ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
-          GoRoute(path: '/', name: PrInboxScreen.routeName, builder: (context, state) => const PrInboxScreen()),
+          GoRoute(
+            path: '/',
+            name: PrInboxScreen.routeName,
+            builder: (context, state) => _opaque(const PrInboxScreen()),
+          ),
           GoRoute(
             path: '/needs-attention',
             name: NeedsAttentionScreen.routeName,
-            builder: (context, state) => const NeedsAttentionScreen(),
+            builder: (context, state) => _opaque(const NeedsAttentionScreen()),
           ),
           GoRoute(
             path: '/lead-cockpit',
             name: LeadCockpitScreen.routeName,
-            builder: (context, state) => const LeadCockpitScreen(),
+            builder: (context, state) => _opaque(const LeadCockpitScreen()),
           ),
           GoRoute(
             path: '/sprint-report',
             name: SprintReportScreen.routeName,
-            builder: (context, state) => const SprintReportScreen(),
+            builder: (context, state) => _opaque(const SprintReportScreen()),
           ),
           GoRoute(
             path: '/settings',
             name: SettingsScreen.routeName,
-            builder: (context, state) => const SettingsScreen(),
+            builder: (context, state) => _opaque(const SettingsScreen()),
           ),
           GoRoute(
             path: '/pr/:owner/:repo/:number',
@@ -80,4 +84,19 @@ GoRouter appRouter(Ref ref) {
       GoRoute(path: '/setup', name: SetupScreen.routeName, builder: (context, state) => const SetupScreen()),
     ],
   );
+}
+
+/// Wraps a shell content screen in an opaque [colorScheme.surface] background so
+/// the screen beneath it never bleeds through during route transitions (e.g.
+/// when the PR detail overlay pops). PR detail itself is intentionally left
+/// transparent so it can float over the board as a drawer.
+Widget _opaque(Widget child) => _ShellSurface(child: child);
+
+class _ShellSurface extends StatelessWidget {
+  const _ShellSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(color: Theme.of(context).colorScheme.surface, child: child);
 }

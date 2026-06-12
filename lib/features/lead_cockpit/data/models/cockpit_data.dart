@@ -72,12 +72,32 @@ sealed class SprintHealth with _$SprintHealth {
 /// [url] is the GitHub issue page, opened when the row is tapped.
 @freezed
 sealed class MemberItem with _$MemberItem {
-  const factory MemberItem({required String title, required IssueStatus status, String? url}) = _MemberItem;
+  const MemberItem._();
+
+  const factory MemberItem({
+    required String title,
+    required IssueStatus status,
+    String? url,
+
+    /// Days the item has sat in its current status (only meaningful when [stuck]).
+    @Default(0) int ageDays,
+
+    /// True when the item has aged past the stuck threshold — drives the red dot
+    /// and the `Nd` age tag on the row.
+    @Default(false) bool stuck,
+
+    /// Sub-issue rollup (`subIssuesSummary`); shown as a `subDone/subTotal` chip.
+    int? subDone,
+    int? subTotal,
+  }) = _MemberItem;
 
   factory MemberItem.fromJson(Map<String, dynamic> json) => _$MemberItemFromJson(json);
+
+  /// Whether this item has sub-issues worth showing a progress chip for.
+  bool get hasSubIssues => (subTotal ?? 0) > 0;
 }
 
-/// Per-assignee load card: WIP / in-review / stuck counts and a 0–100 load gauge.
+/// Per-assignee load card: counts, story-point load, and the member's top items.
 @freezed
 sealed class TeamMemberLoad with _$TeamMemberLoad {
   const TeamMemberLoad._();
@@ -87,14 +107,29 @@ sealed class TeamMemberLoad with _$TeamMemberLoad {
     required int wip,
     required int inReview,
     required int stuck,
-    required int loadPercent,
+
+    /// Items this member has closed in the current sprint (throughput).
+    @Default(0) int done,
+
+    /// Sum of `complexity` (story points) over the member's open items — the
+    /// effort-based load measure the gauge is driven by.
+    @Default(0) int points,
+
+    /// Open items carrying no complexity estimate.
+    @Default(0) int unestimated,
+
+    /// Open P0/P1 items this member is carrying.
+    @Default(0) int highPriority,
     @Default(<MemberItem>[]) List<MemberItem> items,
   }) = _TeamMemberLoad;
 
   factory TeamMemberLoad.fromJson(Map<String, dynamic> json) => _$TeamMemberLoadFromJson(json);
 
-  /// Carrying roughly twice the team median — flagged red in the UI.
-  bool get isOverloaded => loadPercent >= 90;
+  /// Carrying heavy load — flagged red with an OVERLOADED badge.
+  bool get isOverloaded => points >= 35 || wip >= 5;
+
+  /// Light load with headroom to take a handoff — gray AVAILABLE badge.
+  bool get isAvailable => !isOverloaded && points <= 12;
 }
 
 /// A board item that has sat too long in its current status.

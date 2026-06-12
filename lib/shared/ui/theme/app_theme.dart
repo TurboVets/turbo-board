@@ -15,7 +15,7 @@ ThemeData getAppTheme({Brightness brightness = Brightness.dark}) {
 
   return base.copyWith(
     scaffoldBackgroundColor: Colors.transparent,
-    canvasColor: Colors.transparent,
+    canvasColor: TbColors.canvas,
     textTheme: GoogleFonts.inclusiveSansTextTheme(
       base.textTheme,
     ).apply(bodyColor: TbColors.text, displayColor: TbColors.text),

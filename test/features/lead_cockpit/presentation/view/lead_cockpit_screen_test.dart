@@ -70,7 +70,12 @@ void main() {
 
     expect(find.text('Sprint 24 · Mobile Space'), findsOneWidget);
     expect(find.text('TEAM LOAD'), findsOneWidget);
+    // Sprint-health status tiles render above the team section.
+    expect(find.text('DONE'), findsWidgets);
+    expect(find.text('AT RISK'), findsOneWidget);
+    // Aging/stuck section renders with its rows (a known stuck ticket title).
     expect(find.text('AGING / STUCK · SITTING TOO LONG IN A STATUS'), findsOneWidget);
+    expect(find.text('Harden deeplink cold-start routes'), findsWidgets);
     expect(find.text('tromero-tv'), findsWidgets);
     expect(find.text('OVERLOADED'), findsOneWidget);
     // No key set → the AI brief button is not offered.

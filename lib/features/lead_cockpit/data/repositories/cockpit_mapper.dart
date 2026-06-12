@@ -66,21 +66,45 @@ CockpitData cockpitFromProjectItems(String boardTitle, List<Map<String, dynamic>
     if (who == null) continue;
     byAssignee.putIfAbsent(who, () => []).add(i);
   }
-  final maxOpen = byAssignee.values.fold(0, (m, l) => l.length > m ? l.length : m);
-  final team = byAssignee.entries.map((e) {
-    final list = e.value;
-    return TeamMemberLoad(
-      handle: e.key,
-      wip: list.where((i) => i.status == IssueStatus.inProgress).length,
-      inReview: list.where((i) => i.status == IssueStatus.inReview).length,
-      stuck: list.where((i) => i.ageDays(now) >= stuckAfterDays).length,
-      loadPercent: maxOpen == 0 ? 0 : ((list.length / maxOpen) * 100).round().clamp(0, 100),
-      items: (list..sort((a, b) => b.ageDays(now).compareTo(a.ageDays(now))))
-          .take(3)
-          .map((i) => MemberItem(title: i.title, status: i.status ?? IssueStatus.notStarted, url: i.url))
-          .toList(),
-    );
-  }).toList()..sort((a, b) => b.loadPercent.compareTo(a.loadPercent));
+  // Items closed this sprint, per assignee — throughput, not open load.
+  final doneByAssignee = <String, int>{};
+  for (final i in current.where((i) => i.status == IssueStatus.done)) {
+    final who = i.assignees.firstOrNull;
+    if (who == null) continue;
+    doneByAssignee.update(who, (n) => n + 1, ifAbsent: () => 1);
+  }
+
+  final team =
+      byAssignee.entries.map((e) {
+        final list = e.value;
+        final points = list.fold<int>(0, (sum, i) => sum + (i.complexity?.round() ?? 0));
+        return TeamMemberLoad(
+          handle: e.key,
+          wip: list.where((i) => i.status == IssueStatus.inProgress).length,
+          inReview: list.where((i) => i.status == IssueStatus.inReview).length,
+          done: doneByAssignee[e.key] ?? 0,
+          stuck: list.where((i) => i.ageDays(now) >= stuckAfterDays).length,
+          points: points,
+          unestimated: list.where((i) => i.complexity == null).length,
+          highPriority: list.where((i) => i.isHighPriority).length,
+          items: (list..sort((a, b) => b.ageDays(now).compareTo(a.ageDays(now)))).take(3).map((i) {
+            final age = i.ageDays(now);
+            final stuck = age >= stuckAfterDays;
+            return MemberItem(
+              title: i.title,
+              status: i.status ?? IssueStatus.notStarted,
+              url: i.url,
+              ageDays: stuck ? age : 0,
+              stuck: stuck,
+              subDone: i.subDone,
+              subTotal: i.subTotal,
+            );
+          }).toList(),
+        );
+      }).toList()..sort((a, b) {
+        final p = b.points.compareTo(a.points);
+        return p != 0 ? p : (b.wip + b.inReview).compareTo(a.wip + a.inReview);
+      });
 
   // ── Aging / stuck ──────────────────────────────────────────────────────────
   final stuck =
@@ -118,6 +142,8 @@ class _BoardItem {
     this.status,
     this.priority,
     this.complexity,
+    this.subTotal,
+    this.subDone,
     this.iterationTitle,
     this.iterationStart,
     this.iterationDuration,
@@ -128,6 +154,8 @@ class _BoardItem {
   final List<String> assignees;
   final DateTime updatedAt;
   final String? url;
+  final int? subTotal;
+  final int? subDone;
   final IssueStatus? status;
   final IssuePriority? priority;
   final num? complexity;
@@ -179,10 +207,16 @@ class _BoardItem {
         .whereType<String>()
         .toList();
 
+    final subSummary = content['subIssuesSummary'];
+    final subTotal = subSummary is Map<String, dynamic> ? (subSummary['total'] as num?)?.toInt() : null;
+    final subDone = subSummary is Map<String, dynamic> ? (subSummary['completed'] as num?)?.toInt() : null;
+
     return _BoardItem(
       title: (content['title'] as String?) ?? '',
       repo: (content['repository']?['name'] as String?) ?? '',
       url: content['url'] as String?,
+      subTotal: subTotal,
+      subDone: subDone,
       assignees: assignees,
       updatedAt: DateTime.tryParse((node['updatedAt'] as String?) ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
       status: status,
@@ -194,21 +228,33 @@ class _BoardItem {
     );
   }
 
-  static IssueStatus? _statusFrom(String? name) => switch (name) {
-    'Not Started' => IssueStatus.notStarted,
-    'In Progress' => IssueStatus.inProgress,
-    'In Review' => IssueStatus.inReview,
-    'Triage' => IssueStatus.triage,
-    'Done' => IssueStatus.done,
-    'Cancelled' => IssueStatus.cancelled,
-    _ => null,
-  };
+  /// Map a board's Status option to our enum. Tolerant of casing/spacing and of
+  /// the common naming variants different boards use ("Backlog", "Doing",
+  /// "Review", "Closed", …) so the sprint counts populate beyond the canonical
+  /// option names. Unknown values stay null (the item is still treated as open).
+  static IssueStatus? _statusFrom(String? name) {
+    final n = name?.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    if (n == null || n.isEmpty) return null;
+    return switch (n) {
+      'not started' || 'backlog' || 'to do' || 'todo' || 'new' || 'open' => IssueStatus.notStarted,
+      'in progress' || 'doing' || 'wip' || 'started' || 'in dev' || 'development' => IssueStatus.inProgress,
+      'in review' || 'review' || 'code review' || 'in qa' || 'qa' || 'testing' => IssueStatus.inReview,
+      'triage' || 'needs triage' || 'blocked' || 'on hold' => IssueStatus.triage,
+      'done' || 'closed' || 'shipped' || 'complete' || 'completed' || 'merged' => IssueStatus.done,
+      'cancelled' || 'canceled' || "won't do" || 'wont do' || 'duplicate' || 'invalid' => IssueStatus.cancelled,
+      _ => null,
+    };
+  }
 
-  static IssuePriority? _priorityFrom(String? name) => switch (name) {
-    'P0' => IssuePriority.p0,
-    'P1' => IssuePriority.p1,
-    'P2' => IssuePriority.p2,
-    'P3' => IssuePriority.p3,
-    _ => null,
-  };
+  static IssuePriority? _priorityFrom(String? name) {
+    final n = name?.trim().toLowerCase();
+    if (n == null || n.isEmpty) return null;
+    return switch (n) {
+      'p0' || 'critical' || 'urgent' || 'highest' => IssuePriority.p0,
+      'p1' || 'high' => IssuePriority.p1,
+      'p2' || 'medium' || 'normal' => IssuePriority.p2,
+      'p3' || 'low' || 'lowest' => IssuePriority.p3,
+      _ => null,
+    };
+  }
 }

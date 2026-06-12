@@ -50,10 +50,14 @@ abstract final class CockpitPalette {
     IssuePriority.p3 => 'P3 — low priority',
   };
 
-  /// Load-gauge fill color: green (healthy) / amber (busy) / red (overloaded).
-  static Color loadColor(int loadPercent) {
-    if (loadPercent >= 90) return const Color(0xFFE94A5F);
-    if (loadPercent >= 60) return const Color(0xFFFFB000);
+  /// Load-gauge fill color by fill percent: green (healthy) / amber (busy) /
+  /// red (overloaded). Thresholds verbatim from `TurboBoard.dc.html`.
+  static Color gaugeColor(int gaugePercent) {
+    if (gaugePercent >= 85) return const Color(0xFFE94A5F);
+    if (gaugePercent >= 60) return const Color(0xFFFFB000);
     return const Color(0xFF54AE39);
   }
+
+  /// Story-point capacity assumed per person per sprint (the `40PT CAP` scale).
+  static const int pointsCapacity = 40;
 }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
 import '../../data/models/cockpit_data.dart';
+import '../../data/repositories/cockpit_mapper.dart';
 import '../providers/lead_cockpit_provider.dart';
 import 'widgets/project_picker.dart';
 import 'widgets/sprint_health_strip.dart';
@@ -102,9 +104,7 @@ class _CockpitBody extends StatelessWidget {
               SprintHealthStrip(data: data),
               const SizedBox(height: 18),
 
-              const _SectionLabel('TEAM LOAD'),
-              const SizedBox(height: 10),
-              _TeamGrid(team: data.team),
+              _TeamSection(team: data.team),
               const SizedBox(height: 20),
 
               const _SectionLabel('AGING / STUCK · SITTING TOO LONG IN A STATUS'),
@@ -137,35 +137,105 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// Responsive team-load grid: equal-width cards, ~192px min, matching the
-/// design's `auto-fit minmax(192px, 1fr)`.
-class _TeamGrid extends StatelessWidget {
-  const _TeamGrid({required this.team});
+/// Team load section: a header with the gauge-scale toggle, then a responsive
+/// grid of member cards (~208px min, matching the design's `auto-fit minmax`).
+/// The scale toggle is local UI state, so it lives in a hook.
+class _TeamSection extends HookWidget {
+  const _TeamSection({required this.team});
 
   final List<TeamMemberLoad> team;
 
-  static const double _minCardWidth = 192;
+  static const double _minCardWidth = 208;
   static const double _gap = 12;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final columns = ((width + _gap) / (_minCardWidth + _gap)).floor().clamp(1, team.length);
-        final cardWidth = (width - _gap * (columns - 1)) / columns;
-        return Wrap(
-          spacing: _gap,
-          runSpacing: _gap,
+    final gaugeMode = useState(GaugeMode.capacity);
+    final maxPoints = team.fold<int>(0, (m, t) => t.points > m ? t.points : m);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
           children: [
-            for (final member in team)
-              SizedBox(
-                width: cardWidth,
-                child: TeamLoadCard(member: member),
-              ),
+            const _SectionLabel('TEAM LOAD'),
+            const Spacer(),
+            Text(
+              'SCALE',
+              style: TbText.label(size: 9, color: TbColors.dim, tracking: 0.8, weight: FontWeight.w400),
+            ),
+            const SizedBox(width: 8),
+            _GaugeScaleToggle(mode: gaugeMode.value, onChanged: (m) => gaugeMode.value = m),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final columns = ((width + _gap) / (_minCardWidth + _gap)).floor().clamp(1, team.length);
+            final cardWidth = (width - _gap * (columns - 1)) / columns;
+            return Wrap(
+              spacing: _gap,
+              runSpacing: _gap,
+              children: [
+                for (final member in team)
+                  SizedBox(
+                    width: cardWidth,
+                    child: TeamLoadCard(member: member, gaugeMode: gaugeMode.value, maxPoints: maxPoints),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Two-segment control switching the load gauge between a fixed point capacity
+/// and a relative-to-busiest scale.
+class _GaugeScaleToggle extends StatelessWidget {
+  const _GaugeScaleToggle({required this.mode, required this.onChanged});
+
+  final GaugeMode mode;
+  final ValueChanged<GaugeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: TbColors.surface2,
+        border: Border.all(color: TbColors.border),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [_segment('40PT CAP', GaugeMode.capacity), _segment('RELATIVE', GaugeMode.relative)],
+      ),
+    );
+  }
+
+  Widget _segment(String label, GaugeMode value) {
+    final selected = mode == value;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => onChanged(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          color: selected ? TbColors.blue : Colors.transparent,
+          child: Text(
+            label,
+            style: TbText.label(
+              size: 9,
+              color: selected ? Colors.white : TbColors.muted,
+              tracking: 0.6,
+              weight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -184,12 +254,27 @@ class _StuckList extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < stuck.length; i++) StuckIssueRow(issue: stuck[i], showDivider: i < stuck.length - 1),
-        ],
-      ),
+      child: stuck.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+              child: Row(
+                children: [
+                  const SizedBox(width: 7, height: 7, child: ColoredBox(color: Color(0xFF54AE39))),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Nothing aging — every open item has moved within the last $stuckAfterDays days.',
+                    style: TbText.body(size: 12, color: TbColors.muted),
+                  ),
+                ],
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < stuck.length; i++)
+                  StuckIssueRow(issue: stuck[i], showDivider: i < stuck.length - 1),
+              ],
+            ),
     );
   }
 }

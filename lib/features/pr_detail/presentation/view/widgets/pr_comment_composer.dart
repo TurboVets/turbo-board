@@ -8,6 +8,7 @@ import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../ai/presentation/helpers/ai_prompts.dart';
 import '../../../../ai/presentation/providers/ai_provider.dart';
+import '../../../../pr_inbox/data/models/pr_data.dart' show PrReviewState;
 import '../../../data/models/pr_detail.dart';
 import '../../providers/pr_composer_provider.dart';
 
@@ -30,6 +31,8 @@ class PrCommentComposer extends HookConsumerWidget {
     final submitting = composer is AsyncLoading;
     final prId = detail.id;
     final canWrite = prId != null;
+    final isApproved = detail.reviewDecision == PrReviewState.approved;
+    final isChangesRequested = detail.reviewDecision == PrReviewState.changesRequested;
 
     // AI draft plumbing (shared with the Draft-a-reply card).
     final aiReady = ref.watch(aiKeyReadyProvider);
@@ -118,26 +121,42 @@ class PrCommentComposer extends HookConsumerWidget {
                               }
                             },
                     ),
-                    _ComposerBtn(
-                      label: 'REQUEST CHANGES',
-                      hoverBorder: TbSignal.bad.border,
-                      hoverText: TbSignal.bad.text,
-                      onPressed: (canWrite && hasText && !busy)
-                          ? () => ref
-                                .read(prComposerProvider(owner: owner, name: name, number: detail.number).notifier)
-                                .requestChanges(prId, controller.text.trim())
-                          : null,
-                    ),
-                    _ComposerBtn(
-                      label: 'APPROVE',
-                      hoverBorder: TbSignal.ok.border,
-                      hoverText: TbSignal.ok.text,
-                      onPressed: (canWrite && !busy)
-                          ? () => ref
-                                .read(prComposerProvider(owner: owner, name: name, number: detail.number).notifier)
-                                .approve(prId, controller.text.trim())
-                          : null,
-                    ),
+                    if (isChangesRequested)
+                      _ComposerBtn(
+                        label: 'CHANGES REQUESTED',
+                        readOnly: true,
+                        baseBorder: TbSignal.bad.border,
+                        baseText: TbSignal.bad.text,
+                      )
+                    else
+                      _ComposerBtn(
+                        label: 'REQUEST CHANGES',
+                        hoverBorder: TbSignal.bad.border,
+                        hoverText: TbSignal.bad.text,
+                        onPressed: (canWrite && hasText && !busy)
+                            ? () => ref
+                                  .read(prComposerProvider(owner: owner, name: name, number: detail.number).notifier)
+                                  .requestChanges(prId, controller.text.trim())
+                            : null,
+                      ),
+                    if (isApproved)
+                      _ComposerBtn(
+                        label: '✓ APPROVED',
+                        readOnly: true,
+                        baseBorder: TbSignal.ok.border,
+                        baseText: TbSignal.ok.text,
+                      )
+                    else
+                      _ComposerBtn(
+                        label: 'APPROVE',
+                        hoverBorder: TbSignal.ok.border,
+                        hoverText: TbSignal.ok.text,
+                        onPressed: (canWrite && !busy)
+                            ? () => ref
+                                  .read(prComposerProvider(owner: owner, name: name, number: detail.number).notifier)
+                                  .approve(prId, controller.text.trim())
+                            : null,
+                      ),
                     _ComposerBtn(
                       label: 'COMMENT',
                       filled: true,
@@ -213,9 +232,10 @@ class _AiDraftRow extends ConsumerWidget {
 class _ComposerBtn extends StatefulWidget {
   const _ComposerBtn({
     required this.label,
-    required this.onPressed,
+    this.onPressed,
     this.filled = false,
     this.busy = false,
+    this.readOnly = false,
     this.baseBorder = TbColors.borderStrong,
     this.baseText = TbColors.text,
     this.hoverBorder = TbColors.blue,
@@ -227,6 +247,8 @@ class _ComposerBtn extends StatefulWidget {
   final VoidCallback? onPressed;
   final bool filled;
   final bool busy;
+  // A non-interactive status chip (e.g. "✓ APPROVED") — full opacity, no hover.
+  final bool readOnly;
   final Color baseBorder;
   final Color baseText;
   final Color hoverBorder;
@@ -242,7 +264,7 @@ class _ComposerBtnState extends State<_ComposerBtn> {
 
   @override
   Widget build(BuildContext context) {
-    final enabled = widget.onPressed != null && !widget.busy;
+    final enabled = widget.onPressed != null && !widget.busy && !widget.readOnly;
     final hovered = _hover && enabled;
 
     final Color bg;
@@ -259,7 +281,7 @@ class _ComposerBtnState extends State<_ComposerBtn> {
     }
 
     return Opacity(
-      opacity: enabled ? 1 : 0.5,
+      opacity: (enabled || widget.readOnly) ? 1 : 0.5,
       child: MouseRegion(
         cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
         onEnter: (_) => setState(() => _hover = true),

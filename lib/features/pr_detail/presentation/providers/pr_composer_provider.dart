@@ -2,6 +2,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
+import '../../../pr_inbox/presentation/providers/pr_inbox_provider.dart';
 import 'pr_detail_provider.dart';
 
 part 'pr_composer_provider.g.dart';
@@ -23,7 +24,11 @@ class PrComposer extends _$PrComposer {
     switch (res) {
       case ResultSuccess():
         state = const AsyncData(null);
+        // Reload the detail (new comment / updated review state) and the board /
+        // needs-attention views, which derive from the inbox, so the PR's status
+        // and column placement refresh everywhere.
         ref.invalidate(prDetailProvider(owner: owner, name: name, number: number));
+        ref.invalidate(prInboxProvider);
         return true;
       case ResultFailure(:final message):
         state = AsyncError(message, StackTrace.current);

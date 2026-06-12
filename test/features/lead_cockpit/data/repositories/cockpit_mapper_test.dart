@@ -1,6 +1,7 @@
 // Test summary:
 // - cockpitFromProjectItems picks the current sprint and counts statuses within it.
-// - Per-assignee load buckets open items; busiest member reaches loadPercent 100.
+// - Per-assignee load sums story points, counts WIP/review/done/stuck/unsized/high-priority; sorted by points desc.
+// - Member items carry per-item age (when stuck), sub-issue rollup, and the GitHub url.
 // - Stuck list includes items aged past the threshold, P0/old items flagged critical and sorted first.
 // - At-risk counts open P0/P1 that are aging; unestimated counts open items lacking complexity.
 // - Non-Issue content and items outside the current sprint are excluded.
@@ -16,6 +17,8 @@ Map<String, dynamic> _item({
   String status = 'In Progress',
   String? priority,
   num? complexity,
+  int? subTotal,
+  int? subDone,
   String sprint = 'Sprint 24',
   String sprintStart = '2026-06-08',
   int sprintDuration = 14,
@@ -36,6 +39,7 @@ Map<String, dynamic> _item({
           for (final a in assignees) {'login': a},
         ],
       },
+      if (subTotal != null) 'subIssuesSummary': {'total': subTotal, 'completed': subDone ?? 0},
     },
     'fieldValues': {
       'nodes': [
@@ -86,20 +90,55 @@ void main() {
       expect(data.sprint.endLabel, 'ends Jun 22');
     });
 
-    test('buckets load by assignee with the busiest at 100%', () {
+    test('buckets load by assignee, summing points, with the heaviest first', () {
       final data = cockpitFromProjectItems('B', [
-        _item(title: '1', assignees: ['ann'], ageDays: 1),
-        _item(title: '2', assignees: ['ann'], status: 'In Review', ageDays: 1),
-        _item(title: '3', assignees: ['bob'], ageDays: 1),
+        _item(title: '1', assignees: ['ann'], complexity: 5, ageDays: 1),
+        _item(title: '2', assignees: ['ann'], status: 'In Review', complexity: 3, ageDays: 1),
+        _item(title: '3', assignees: ['bob'], complexity: 2, ageDays: 1),
+        _item(title: 'no-est', assignees: ['bob'], status: 'Not Started', ageDays: 1), // unestimated
       ], now: _now);
 
       final ann = data.team.firstWhere((m) => m.handle == 'ann');
       final bob = data.team.firstWhere((m) => m.handle == 'bob');
-      expect(ann.loadPercent, 100);
+      expect(ann.points, 8); // 5 + 3
       expect(ann.wip, 1);
       expect(ann.inReview, 1);
-      expect(bob.loadPercent, 50);
-      expect(data.team.first.handle, 'ann'); // sorted by load desc
+      expect(bob.points, 2);
+      expect(bob.unestimated, 1);
+      expect(data.team.first.handle, 'ann'); // sorted by points desc
+    });
+
+    test('counts done-this-sprint, stuck, and high-priority per assignee', () {
+      final data = cockpitFromProjectItems('B', [
+        _item(title: 'shipped', assignees: ['ann'], status: 'Done', ageDays: 2),
+        _item(title: 'rotting', assignees: ['ann'], priority: 'P0', complexity: 3, ageDays: 9),
+        _item(title: 'fresh', assignees: ['ann'], priority: 'P2', complexity: 1, ageDays: 1),
+      ], now: _now);
+
+      final ann = data.team.firstWhere((m) => m.handle == 'ann');
+      expect(ann.done, 1); // the Done item — counted but not part of open load
+      expect(ann.stuck, 1); // rotting, aged past threshold
+      expect(ann.highPriority, 1); // the P0
+      expect(ann.points, 4); // only open items: 3 + 1
+    });
+
+    test('member items carry url, per-item age (when stuck) and sub-issue rollup', () {
+      final data = cockpitFromProjectItems('B', [
+        _item(title: 'rotting', assignees: ['ann'], ageDays: 9, subTotal: 8, subDone: 5),
+        _item(title: 'fresh', assignees: ['ann'], status: 'Not Started', ageDays: 1),
+      ], now: _now);
+
+      final ann = data.team.firstWhere((m) => m.handle == 'ann');
+      final rotting = ann.items.firstWhere((i) => i.title == 'rotting');
+      final fresh = ann.items.firstWhere((i) => i.title == 'fresh');
+      expect(rotting.url, 'https://x');
+      expect(rotting.stuck, isTrue);
+      expect(rotting.ageDays, 9);
+      expect(rotting.subTotal, 8);
+      expect(rotting.subDone, 5);
+      expect(rotting.hasSubIssues, isTrue);
+      expect(fresh.stuck, isFalse);
+      expect(fresh.ageDays, 0); // age only surfaced when stuck
     });
 
     test('flags critical stuck items and sorts them first', () {
@@ -126,6 +165,22 @@ void main() {
 
       expect(data.sprint.atRisk, 1);
       expect(data.sprint.unestimated, 1);
+    });
+
+    test('maps common Status/Priority naming variants (case- and alias-tolerant)', () {
+      final data = cockpitFromProjectItems('B', [
+        _item(title: 'a', status: 'Backlog', ageDays: 1),
+        _item(title: 'b', status: 'doing', ageDays: 1),
+        _item(title: 'c', status: 'Code Review', ageDays: 1),
+        _item(title: 'd', status: 'Closed', ageDays: 1),
+        _item(title: 'risk', status: 'Doing', priority: 'High', complexity: 2, ageDays: 6),
+      ], now: _now);
+
+      expect(data.sprint.notStarted, 1); // Backlog
+      expect(data.sprint.inProgress, 2); // doing + Doing
+      expect(data.sprint.inReview, 1); // Code Review
+      expect(data.sprint.done, 1); // Closed
+      expect(data.sprint.atRisk, 1); // High priority, aging
     });
 
     test('ignores non-Issue content', () {

@@ -278,14 +278,19 @@ class _StatusBar extends StatelessWidget {
       borderRadius: BorderRadius.circular(4),
       child: SizedBox(
         height: 8,
-        child: Row(
-          children: [
-            for (final (count, color) in segments)
-              Expanded(
-                flex: count,
-                child: ColoredBox(color: color),
-              ),
-          ],
+        // The track background keeps the bar visible even when every segment is
+        // zero (sparse board), matching the mockup's #27272A track.
+        child: ColoredBox(
+          color: TbColors.surface2,
+          child: Row(
+            children: [
+              for (final (count, color) in segments)
+                Expanded(
+                  flex: count,
+                  child: ColoredBox(color: color),
+                ),
+            ],
+          ),
         ),
       ),
     );
