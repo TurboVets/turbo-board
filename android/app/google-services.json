@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "556680712056",
+    "project_id": "turboboard-59499",
+    "storage_bucket": "turboboard-59499.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:556680712056:android:887c2ff6de42f3ef44c28d",
+        "android_client_info": {
+          "package_name": "com.example.turbo_board"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXPLSjgh-4lFaPk2re3CiesGN6NwfvmXw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
