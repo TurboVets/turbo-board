@@ -389,6 +389,50 @@ class _RailFooterState extends State<_RailFooter> {
     return l.substring(0, l.length >= 2 ? 2 : 1).toUpperCase();
   }
 
+  /// Confirm before signing out — prevents accidental clicks on EXIT.
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => Dialog(
+        backgroundColor: TbColors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: TbColors.border),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Sign out?', style: TbText.label(size: 13, weight: FontWeight.w600, tracking: 1.0)),
+                const SizedBox(height: 10),
+                Text(
+                  "You'll need to re-enter your GitHub token to sign back in.",
+                  style: TbText.body(size: 13, color: TbColors.muted, height: 1.5),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _DialogButton(label: 'Cancel', danger: false, onTap: () => Navigator.pop(ctx, false)),
+                    const SizedBox(width: 10),
+                    _DialogButton(label: 'Sign out', danger: true, onTap: () => Navigator.pop(ctx, true)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (confirmed == true) widget.onSignOut();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -411,7 +455,7 @@ class _RailFooterState extends State<_RailFooter> {
           onExit: (_) => setState(() => _exitHovered = false),
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
-            onTap: widget.onSignOut,
+            onTap: () => _confirmSignOut(context),
             child: Tooltip(
               message: 'Sign out',
               child: Icon(LucideIcons.logOut, size: 16, color: _exitHovered ? const Color(0xFFE94A5F) : TbColors.dim),
@@ -448,7 +492,7 @@ class _RailFooterState extends State<_RailFooter> {
           onExit: (_) => setState(() => _exitHovered = false),
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
-            onTap: widget.onSignOut,
+            onTap: () => _confirmSignOut(context),
             child: Text(
               'EXIT',
               style: TbText.label(
@@ -485,6 +529,52 @@ class _AvatarTile extends StatelessWidget {
       child: Text(
         initials,
         style: TbText.label(size: 11, weight: FontWeight.w700, color: const Color(0xFFCFE3FF), tracking: 0),
+      ),
+    );
+  }
+}
+
+/// A confirm-dialog button: danger (shiraz) or neutral (outline), with hover.
+class _DialogButton extends StatefulWidget {
+  const _DialogButton({required this.label, required this.danger, required this.onTap});
+
+  final String label;
+  final bool danger;
+  final VoidCallback onTap;
+
+  @override
+  State<_DialogButton> createState() => _DialogButtonState();
+}
+
+class _DialogButtonState extends State<_DialogButton> {
+  bool _h = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color border = widget.danger ? TbColors.shiraz : TbColors.borderStrong;
+    final Color bg = _h ? (widget.danger ? TbColors.shiraz : TbColors.surface2) : Colors.transparent;
+    final Color fg = widget.danger
+        ? (_h ? Colors.white : const Color(0xFFFBD0D3))
+        : (_h ? const Color(0xFF0073FF) : TbColors.text);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _h = true),
+      onExit: (_) => setState(() => _h = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
+          decoration: BoxDecoration(
+            color: bg,
+            border: Border.all(color: _h && !widget.danger ? const Color(0xFF0073FF) : border),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            widget.label,
+            style: TbText.label(size: 12, weight: FontWeight.w600, color: fg, tracking: 0.8),
+          ),
+        ),
       ),
     );
   }
