@@ -40,7 +40,15 @@ class TeamLoadCard extends StatelessWidget {
                   style: TbText.label(size: 12, weight: FontWeight.w700, tracking: 0.48),
                 ),
               ),
-              if (over) ...[const SizedBox(width: 6), const TbBadge('OVERLOADED', TbSignal.bad, small: true)],
+              if (over) ...[
+                const SizedBox(width: 6),
+                const TbBadge(
+                  'OVERLOADED',
+                  TbSignal.bad,
+                  small: true,
+                  tooltip: 'Carrying ~2× the team median open work',
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 11),

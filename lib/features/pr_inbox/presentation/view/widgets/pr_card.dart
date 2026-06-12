@@ -89,8 +89,12 @@ class PrCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: [
-                TbBadge(_ciLabel(pr.ciState), _ciSignal(pr.ciState)),
-                TbBadge(_reviewLabel(pr.reviewState), _reviewSignal(pr.reviewState)),
+                TbBadge(_ciLabel(pr.ciState), _ciSignal(pr.ciState), tooltip: _ciTooltip(pr.ciState)),
+                TbBadge(
+                  _reviewLabel(pr.reviewState),
+                  _reviewSignal(pr.reviewState),
+                  tooltip: _reviewTooltip(pr.reviewState),
+                ),
               ],
             ),
             const SizedBox(height: 11),
@@ -128,6 +132,12 @@ TbSignal _ciSignal(PrCiState s) => switch (s) {
   PrCiState.failing => TbSignal.bad,
 };
 
+String _ciTooltip(PrCiState s) => switch (s) {
+  PrCiState.passing => 'CI checks passed',
+  PrCiState.pending => 'CI checks are still running',
+  PrCiState.failing => 'One or more CI checks failed',
+};
+
 String _reviewLabel(PrReviewState s) => switch (s) {
   PrReviewState.needsReview => 'NEEDS REVIEW',
   PrReviewState.changesRequested => 'CHANGES REQ',
@@ -140,4 +150,11 @@ TbSignal _reviewSignal(PrReviewState s) => switch (s) {
   PrReviewState.changesRequested => TbSignal.bad,
   PrReviewState.approved => TbSignal.ok,
   PrReviewState.waitingOnAuthor => TbSignal.gray,
+};
+
+String _reviewTooltip(PrReviewState s) => switch (s) {
+  PrReviewState.needsReview => 'Waiting for a review',
+  PrReviewState.changesRequested => 'A reviewer requested changes — back to the author',
+  PrReviewState.approved => 'Approved and ready to merge',
+  PrReviewState.waitingOnAuthor => 'Waiting on the author to respond',
 };

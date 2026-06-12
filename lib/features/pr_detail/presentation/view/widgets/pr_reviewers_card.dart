@@ -65,7 +65,12 @@ class _ReviewerRow extends StatelessWidget {
             TbAvatarTile(login: reviewer.login),
             const SizedBox(width: 8),
             Expanded(child: Text(reviewer.login, style: TbText.body(size: 13))),
-            TbBadge(_reviewerLabel(reviewer.state), _reviewerSignal(reviewer.state), small: true),
+            TbBadge(
+              _reviewerLabel(reviewer.state),
+              _reviewerSignal(reviewer.state),
+              small: true,
+              tooltip: _reviewerTooltip(reviewer.state),
+            ),
           ],
         ),
       ),
@@ -85,4 +90,11 @@ TbSignal _reviewerSignal(PrReviewerState s) => switch (s) {
   PrReviewerState.changesRequested => TbSignal.bad,
   PrReviewerState.commented => TbSignal.info,
   PrReviewerState.pending => TbSignal.gray,
+};
+
+String _reviewerTooltip(PrReviewerState s) => switch (s) {
+  PrReviewerState.approved => 'This reviewer approved the PR',
+  PrReviewerState.changesRequested => 'This reviewer requested changes',
+  PrReviewerState.commented => 'This reviewer commented without a verdict',
+  PrReviewerState.pending => 'Review requested — not yet started',
 };

@@ -42,6 +42,14 @@ abstract final class CockpitPalette {
     IssuePriority.p3 => 'P3',
   };
 
+  /// Hover explanation for a priority chip.
+  static String priorityTooltip(IssuePriority priority) => switch (priority) {
+    IssuePriority.p0 => 'P0 — critical, drop everything',
+    IssuePriority.p1 => 'P1 — high priority',
+    IssuePriority.p2 => 'P2 — normal priority',
+    IssuePriority.p3 => 'P3 — low priority',
+  };
+
   /// Load-gauge fill color: green (healthy) / amber (busy) / red (overloaded).
   static Color loadColor(int loadPercent) {
     if (loadPercent >= 90) return const Color(0xFFE94A5F);

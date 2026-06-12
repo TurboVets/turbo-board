@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../theme/tb_text.dart';
 import '../theme/tb_tokens.dart';
@@ -6,7 +6,7 @@ import '../theme/tb_tokens.dart';
 /// A Tether signal chip: deep background, bright border, pale uppercase text.
 /// Matches the design's badge recipe exactly.
 class TbBadge extends StatelessWidget {
-  const TbBadge(this.label, this.signal, {super.key, this.small = false});
+  const TbBadge(this.label, this.signal, {super.key, this.small = false, this.tooltip});
 
   final String label;
   final TbSignal signal;
@@ -14,9 +14,12 @@ class TbBadge extends StatelessWidget {
   /// `small` = the 10px metadata variant; default is the 11px card variant.
   final bool small;
 
+  /// Optional hover/long-press explanation of what the badge means.
+  final String? tooltip;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: signal.bg,
@@ -27,6 +30,18 @@ class TbBadge extends StatelessWidget {
         label.toUpperCase(),
         style: TbText.label(size: small ? 10 : 11, weight: FontWeight.w500, color: signal.text, tracking: 0.4),
       ),
+    );
+    if (tooltip == null) return chip;
+    return Tooltip(
+      message: tooltip!,
+      waitDuration: const Duration(milliseconds: 400),
+      decoration: BoxDecoration(
+        color: TbColors.surface2,
+        border: Border.all(color: TbColors.border),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      textStyle: TbText.body(size: 12, color: TbColors.text),
+      child: chip,
     );
   }
 }

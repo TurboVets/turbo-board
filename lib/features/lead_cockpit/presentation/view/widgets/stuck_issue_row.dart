@@ -51,6 +51,7 @@ class StuckIssueRow extends StatelessWidget {
             CockpitPalette.priorityLabel(issue.priority),
             CockpitPalette.prioritySignal(issue.priority),
             small: true,
+            tooltip: CockpitPalette.priorityTooltip(issue.priority),
           ),
           const SizedBox(width: 12),
           SizedBox(
