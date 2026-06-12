@@ -8,6 +8,7 @@ import '../../features/pr_detail/presentation/view/pr_detail_screen.dart';
 import '../../features/pr_inbox/presentation/view/pr_inbox_screen.dart';
 import '../../features/repo_setup/presentation/providers/auth_provider.dart';
 import '../../features/settings/presentation/view/settings_screen.dart';
+import '../../features/sprint_report/presentation/view/sprint_report_screen.dart';
 import '../../features/repo_setup/presentation/view/setup_screen.dart';
 import '../ui/shell/app_shell.dart';
 
@@ -46,6 +47,11 @@ GoRouter appRouter(Ref ref) {
             path: '/lead-cockpit',
             name: LeadCockpitScreen.routeName,
             builder: (context, state) => const LeadCockpitScreen(),
+          ),
+          GoRoute(
+            path: '/sprint-report',
+            name: SprintReportScreen.routeName,
+            builder: (context, state) => const SprintReportScreen(),
           ),
           GoRoute(
             path: '/settings',

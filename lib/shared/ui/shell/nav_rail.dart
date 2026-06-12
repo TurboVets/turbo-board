@@ -10,6 +10,7 @@ import '../../../features/repo_setup/presentation/providers/watched_repos_provid
 import '../theme/tb_text.dart';
 import '../theme/tb_tokens.dart';
 import '../widgets/tb_badge.dart';
+import '../widgets/turbo_mark.dart';
 
 /// Left navigation rail of the app shell. [collapsed] hides labels (tablet).
 class AppNavRail extends ConsumerWidget {
@@ -72,12 +73,21 @@ class AppNavRail extends ConsumerWidget {
                     badgeCount: attentionCount,
                     onTap: () => context.go('/needs-attention'),
                   ),
+                  // ISSUES section
+                  if (!collapsed) const _SectionLabel('ISSUES') else const SizedBox(height: 12),
                   _NavItem(
                     icon: LucideIcons.crosshair,
                     label: 'Lead cockpit',
                     collapsed: collapsed,
                     active: location == '/lead-cockpit',
                     onTap: () => context.go('/lead-cockpit'),
+                  ),
+                  _NavItem(
+                    icon: LucideIcons.chartNoAxesColumn,
+                    label: 'Sprint report',
+                    collapsed: collapsed,
+                    active: location == '/sprint-report',
+                    onTap: () => context.go('/sprint-report'),
                   ),
                   _NavItem(
                     icon: LucideIcons.settings2,
@@ -128,7 +138,7 @@ class _RailHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const _TurboMark(),
+          const TurboMark(size: 30),
           if (!collapsed) ...[
             const SizedBox(width: 11),
             Expanded(
@@ -151,38 +161,6 @@ class _RailHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The blue crosshair "T" glyph from the design (SVG viewBox 0 0 32 32),
-/// rebuilt as a [CustomPaint] using the exact rect coordinates.
-class _TurboMark extends StatelessWidget {
-  const _TurboMark();
-
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _TurboMarkPainter(), size: const Size(30, 30));
-}
-
-class _TurboMarkPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final sx = size.width / 32;
-    final sy = size.height / 32;
-    final paint = Paint()..color = TbColors.blue;
-
-    void r(double x, double y, double w, double h) =>
-        canvas.drawRect(Rect.fromLTWH(x * sx, y * sy, w * sx, h * sy), paint);
-
-    r(14.5, 6, 3, 20); // vertical stem
-    r(8, 9, 16, 2.4); // horizontal crossbar
-    r(6, 6, 4, 4); // top-left corner
-    r(22, 6, 4, 4); // top-right corner
-    r(10.5, 22, 3, 3); // bottom-left serif
-    r(18.5, 22, 3, 3); // bottom-right serif
-    r(13, 2, 6, 3); // top cap
-  }
-
-  @override
-  bool shouldRepaint(covariant _TurboMarkPainter oldDelegate) => false;
 }
 
 // ─── Section label ────────────────────────────────────────────────────────────
