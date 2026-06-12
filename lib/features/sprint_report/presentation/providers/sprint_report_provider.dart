@@ -33,8 +33,11 @@ class SelectedSprint extends _$SelectedSprint {
 Future<SprintReport> sprintReport(Ref ref) async {
   final selected = ref.watch(selectedSprintProvider);
   final result = await ref.watch(sprintReportRepositoryProvider).fetchReport(sprintTitle: selected);
-  return switch (result) {
-    ResultSuccess(:final data) => data,
-    ResultFailure(:final message) => throw Exception(message),
-  };
+  return result.when(success: (data) {
+    if(ref.mounted) {
+     ref.keepAlive();
+    }
+    return data;
+  }, failure: (message,st) => throw Exception(message));
 }
+
