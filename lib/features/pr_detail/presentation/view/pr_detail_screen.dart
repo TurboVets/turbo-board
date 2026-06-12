@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
@@ -89,7 +90,12 @@ class PrDetailScreen extends ConsumerWidget {
                   begin: const Offset(1, 0),
                   end: Offset.zero,
                 ).animate(CurvedAnimation(parent: routeAnim, curve: Curves.easeOutCubic)),
-                child: _DrawerPanel(width: drawerW, onClose: () => _close(context), child: body),
+                child: _DrawerPanel(
+                  width: drawerW,
+                  onClose: () => _close(context),
+                  onRefresh: () => ref.invalidate(prDetailProvider(owner: owner, name: repo, number: number)),
+                  child: body,
+                ),
               ),
             ),
           ],
@@ -102,10 +108,11 @@ class PrDetailScreen extends ConsumerWidget {
 /// The right-aligned drawer chrome: a 58px header bar with title + close, and a
 /// scrollable body that holds the detail (or its loading/error state).
 class _DrawerPanel extends StatelessWidget {
-  const _DrawerPanel({required this.width, required this.onClose, required this.child});
+  const _DrawerPanel({required this.width, required this.onClose, required this.onRefresh, required this.child});
 
   final double width;
   final VoidCallback onClose;
+  final VoidCallback onRefresh;
   final Widget child;
 
   @override
@@ -130,6 +137,8 @@ class _DrawerPanel extends StatelessWidget {
               children: [
                 Text('PR DETAIL', style: TbText.label(size: 12, weight: FontWeight.w600, tracking: 1.7)),
                 const Spacer(),
+                _HeaderIconButton(icon: LucideIcons.refreshCw, tooltip: 'Refresh', onTap: onRefresh),
+                const SizedBox(width: 4),
                 _CloseButton(onTap: onClose),
               ],
             ),
@@ -169,6 +178,45 @@ class _CloseButtonState extends State<_CloseButton> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text('✕', style: TbText.body(size: 15, color: _hover ? TbColors.text : TbColors.muted)),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderIconButton extends StatefulWidget {
+  const _HeaderIconButton({required this.icon, required this.tooltip, required this.onTap});
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  State<_HeaderIconButton> createState() => _HeaderIconButtonState();
+}
+
+class _HeaderIconButtonState extends State<_HeaderIconButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: Tooltip(
+          message: widget.tooltip,
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              border: Border.all(color: _hover ? TbColors.borderStrong : Colors.transparent),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(widget.icon, size: 14, color: _hover ? TbColors.text : TbColors.muted),
+          ),
         ),
       ),
     );
