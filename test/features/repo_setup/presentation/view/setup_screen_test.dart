@@ -52,7 +52,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Validate & continue'), findsOneWidget);
-    expect(find.text('Watched repos'), findsNothing);
+    expect(find.text('WATCHED REPOS'), findsNothing);
   });
 
   testWidgets('invalid token surfaces an error', (tester) async {
@@ -74,8 +74,8 @@ void main() {
     await tester.tap(find.text('Validate & continue'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Watched repos'), findsOneWidget);
-    expect(find.text('platform'), findsOneWidget);
+    expect(find.text('WATCHED REPOS'), findsOneWidget);
+    expect(find.text('TurboVets/platform'), findsOneWidget);
 
     // Button should be DISABLED initially (no repo watched).
     final buttonBefore = tester.widget<TetherActionButton>(find.widgetWithText(TetherActionButton, 'Open PR Board →'));

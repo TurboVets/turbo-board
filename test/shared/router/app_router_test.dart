@@ -128,8 +128,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Step 2: watched repos section is now visible (regression guard for Bug 1)
-    expect(find.text('Watched repos'), findsOneWidget);
-    expect(find.text('platform'), findsOneWidget);
+    expect(find.text('WATCHED REPOS'), findsOneWidget);
+    expect(find.text('TurboVets/platform'), findsOneWidget);
 
     // 'Open PR Board →' button is initially disabled (no repos selected yet)
     final buttonFinder = find.widgetWithText(TetherActionButton, 'Open PR Board →');

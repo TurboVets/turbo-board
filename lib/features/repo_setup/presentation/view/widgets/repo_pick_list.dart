@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:turbo_ui/turbo_ui.dart';
 
+import '../../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../data/models/github_repo.dart';
 
 class RepoPickList extends StatelessWidget {
@@ -24,42 +26,95 @@ class RepoPickList extends StatelessWidget {
     final filtered = q.isEmpty ? repos : repos.where((r) => r.nameWithOwner.toLowerCase().contains(q)).toList();
 
     if (filtered.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(child: Text('No matching repositories.')),
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Text('No matching repositories.', style: TbText.body(color: TbColors.muted)),
+        ),
       );
     }
 
-    // Group by owner, owners alphabetical, repos by name within owner.
-    final byOwner = <String, List<GithubRepo>>{};
-    for (final r in filtered) {
-      byOwner.putIfAbsent(r.owner, () => []).add(r);
-    }
-    final owners = byOwner.keys.toList()..sort();
+    // Sort alphabetically by nameWithOwner.
+    final sorted = filtered.toList()..sort((a, b) => a.nameWithOwner.compareTo(b.nameWithOwner));
 
-    final colors = context.appColors;
-    return ListView(
+    return ListView.builder(
       shrinkWrap: true,
-      children: [
-        for (final owner in owners) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
-            child: Text(owner, style: TextStyle(color: colors.foreground.primaryMuted, fontSize: 12)),
+      itemCount: sorted.length,
+      itemBuilder: (context, i) {
+        final repo = sorted[i];
+        final isWatched = watched.contains(repo.nameWithOwner);
+        final isLast = i == sorted.length - 1;
+        return _RepoRow(repo: repo, isWatched: isWatched, isLast: isLast, onToggle: () => onToggle(repo));
+      },
+    );
+  }
+}
+
+/// A single repo row: "owner/name" (Akshar) + description (muted) + square toggle.
+class _RepoRow extends StatefulWidget {
+  const _RepoRow({required this.repo, required this.isWatched, required this.isLast, required this.onToggle});
+
+  final GithubRepo repo;
+  final bool isWatched;
+  final bool isLast;
+  final VoidCallback onToggle;
+
+  @override
+  State<_RepoRow> createState() => _RepoRowState();
+}
+
+class _RepoRowState extends State<_RepoRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onToggle,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: _hovered ? TbColors.surface2 : Colors.transparent,
+            border: widget.isLast ? null : Border(bottom: BorderSide(color: TbColors.border)),
           ),
-          for (final repo in byOwner[owner]!..sort((a, b) => a.name.compareTo(b.name)))
-            TetherListItem(
-              title: repo.name,
-              subtitle: repo.description,
-              showTrailing: true,
-              trailing: TetherSwitch(
-                value: watched.contains(repo.nameWithOwner),
-                semanticsLabel: 'Watch ${repo.nameWithOwner}',
-                onChanged: (_) => onToggle(repo),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.repo.nameWithOwner,
+                      style: TbText.label(size: 13, color: TbColors.text, tracking: 0.39),
+                    ),
+                    if (widget.repo.description != null && widget.repo.description!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.repo.description!,
+                        style: TbText.body(size: 11, color: TbColors.muted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              onTap: () => onToggle(repo),
-            ),
-        ],
-      ],
+              const SizedBox(width: 11),
+              // Square toggle (38×21, rounded 4) — kept as TetherSwitch so
+              // test finders (find.byType(TetherSwitch)) keep working.
+              TetherSwitch(
+                value: widget.isWatched,
+                semanticsLabel: 'Watch ${widget.repo.nameWithOwner}',
+                onChanged: (_) => widget.onToggle(),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

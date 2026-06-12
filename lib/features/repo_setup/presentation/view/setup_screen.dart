@@ -4,9 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:turbo_ui/turbo_ui.dart';
 
+import '../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../shared/ui/theme/tb_text.dart';
 import '../providers/auth_provider.dart';
 import '../providers/watched_repos_provider.dart';
-import 'widgets/auth_step_indicator.dart';
 import 'widgets/repo_pick_list.dart';
 
 /// First-run wizard: paste a PAT (step 1), pick watched repos (step 2).
@@ -17,7 +18,6 @@ class SetupScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = context.appColors;
     final authState = ref.watch(authStateProvider);
     final tokenController = useTextEditingController();
     final query = useState('');
@@ -25,29 +25,166 @@ class SetupScreen extends HookConsumerWidget {
     final onStep2 = authState is AuthAuthenticated;
 
     return Scaffold(
-      backgroundColor: colors.background.primary,
-      body: Center(
-        child: SizedBox(
-          width: 452,
-          child: TetherCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AuthStepIndicator(currentStep: onStep2 ? 1 : 0),
-                const SizedBox(height: 24),
-                if (!onStep2)
-                  _ConnectStep(authState: authState, controller: tokenController)
-                else
-                  _ReposStep(query: query),
-              ],
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // Radial blue-glow background
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0, -0.9),
+                  radius: 1.1,
+                  colors: [Color(0x29007300), Colors.transparent],
+                  stops: [0.0, 0.7],
+                ),
+              ),
             ),
           ),
-        ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0, -0.85),
+                  radius: 0.85,
+                  colors: [TbColors.blue.withValues(alpha: 0.16), Colors.transparent],
+                  stops: const [0.0, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // Tagline above card
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.13,
+            left: 0,
+            right: 0,
+            child: Text(
+              'Beside you. Behind you. After you.',
+              textAlign: TextAlign.center,
+              style: TbText.label(size: 12, color: TbColors.dim, tracking: 3.52),
+            ),
+          ),
+
+          // Centered card
+          Center(
+            child: SizedBox(
+              width: 452,
+              child: _SetupCard(
+                step: onStep2 ? 1 : 0,
+                child: onStep2
+                    ? _ReposStep(query: query)
+                    : _ConnectStep(authState: authState, controller: tokenController),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
+/// The 452px card with blue top accent, crosshair mark, and step bar.
+class _SetupCard extends StatelessWidget {
+  const _SetupCard({required this.step, required this.child});
+
+  final int step;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: TbColors.surface,
+        border: Border.all(color: TbColors.border),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 70, offset: Offset(0, 24))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // 2px blue top accent strip
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 2,
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(colors: [TbColors.navy, TbColors.blueBright, TbColors.navy]),
+              ),
+            ),
+          ),
+
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(36, 38, 36, 36),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Crosshair "T" mark
+                CustomPaint(painter: _TurboMarkPainter(), size: const Size(46, 46)),
+                const SizedBox(height: 20),
+
+                // 2-segment step bar
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 3,
+                        margin: const EdgeInsets.only(right: 4),
+                        decoration: BoxDecoration(color: TbColors.blue, borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        height: 3,
+                        margin: const EdgeInsets.only(left: 4),
+                        decoration: BoxDecoration(
+                          color: step >= 1 ? TbColors.blue : TbColors.borderStrong,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 26),
+
+                child,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The blue "T" crosshair glyph (SVG viewBox 0 0 32 32), painted at 46×46.
+class _TurboMarkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sx = size.width / 32;
+    final sy = size.height / 32;
+    final paint = Paint()..color = TbColors.blue;
+
+    void r(double x, double y, double w, double h) =>
+        canvas.drawRect(Rect.fromLTWH(x * sx, y * sy, w * sx, h * sy), paint);
+
+    r(14.5, 6, 3, 20); // vertical stem
+    r(8, 9, 16, 2.4); // horizontal crossbar
+    r(6, 6, 4, 4); // top-left corner
+    r(22, 6, 4, 4); // top-right corner
+    r(10.5, 22, 3, 3); // bottom-left serif
+    r(18.5, 22, 3, 3); // bottom-right serif
+    r(13, 2, 6, 3); // top cap
+  }
+
+  @override
+  bool shouldRepaint(covariant _TurboMarkPainter oldDelegate) => false;
+}
+
+// ─── Step 1: connect a PAT ────────────────────────────────────────────────────
 
 class _ConnectStep extends ConsumerWidget {
   const _ConnectStep({required this.authState, required this.controller});
@@ -57,7 +194,6 @@ class _ConnectStep extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Use local variable to enable smart-cast on the field type.
     final s = authState;
     final isValidating = s is AuthValidating;
     final errorText = s is AuthError ? s.message : null;
@@ -66,10 +202,15 @@ class _ConnectStep extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('TurboBoard', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 8),
-        const Text('Paste a GitHub personal access token to watch every open PR across your repos.'),
-        const SizedBox(height: 20),
+        Text('TURBOBOARD', style: TbText.display(size: 21, tracking: 1.26)),
+        const SizedBox(height: 7),
+        Text(
+          'Connect GitHub to watch every open PR across your repos in one command surface.',
+          style: TbText.body(size: 14, color: TbColors.muted, height: 1.55),
+        ),
+        const SizedBox(height: 26),
+
+        // Token field (keep TetherTextField for test-finder compat)
         TetherTextField(
           label: 'GitHub token',
           hintText: 'ghp_…',
@@ -80,22 +221,27 @@ class _ConnectStep extends ConsumerWidget {
           onSubmitted: (_) => ref.read(authStateProvider.notifier).submitToken(controller.text.trim()),
         ),
         const SizedBox(height: 8),
-        const Text('Needs the `repo` and `read:org` scopes. Create one at github.com/settings/tokens.'),
+        Text(
+          'Needs the `repo` and `read:org` scopes. Create one at github.com/settings/tokens.',
+          style: TbText.label(size: 10, color: TbColors.dim, tracking: 0.3),
+        ),
         const SizedBox(height: 16),
+
         if (isValidating)
           const Center(
             child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator()),
           )
         else
-          TetherActionButton(
+          _PrimaryButton(
             label: 'Validate & continue',
-            isExpanded: true,
             onPressed: () => ref.read(authStateProvider.notifier).submitToken(controller.text.trim()),
           ),
       ],
     );
   }
 }
+
+// ─── Step 2: pick watched repos ───────────────────────────────────────────────
 
 class _ReposStep extends ConsumerWidget {
   const _ReposStep({required this.query});
@@ -111,12 +257,22 @@ class _ReposStep extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('Watched repos', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 12),
-        TetherSearchField(hintText: 'Filter repositories', onChanged: (v) => query.value = v),
-        const SizedBox(height: 8),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 280),
+        Text('WATCHED REPOS', style: TbText.display(size: 21, tracking: 1.26)),
+        const SizedBox(height: 7),
+        Text(
+          'Select the repositories you want to track in your PR board.',
+          style: TbText.body(size: 14, color: TbColors.muted, height: 1.55),
+        ),
+        const SizedBox(height: 18),
+
+        // Scrollable bordered repo list
+        Container(
+          constraints: const BoxConstraints(maxHeight: 240),
+          decoration: BoxDecoration(
+            border: Border.all(color: TbColors.border),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          clipBehavior: Clip.antiAlias,
           child: reposAsync.when(
             data: (repos) => RepoPickList(
               repos: repos,
@@ -124,17 +280,65 @@ class _ReposStep extends ConsumerWidget {
               query: query.value,
               onToggle: (r) => ref.read(watchedReposProvider.notifier).toggle(r.nameWithOwner),
             ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Could not load repos: $e')),
+            loading: () => const Center(
+              child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: Text('Could not load repos: $e', style: TbText.body(color: TbColors.muted)),
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 16),
-        TetherActionButton(
-          label: 'Open PR Board →',
-          isExpanded: true,
-          onPressed: watched.isEmpty ? null : () => context.go('/'),
+        const SizedBox(height: 20),
+
+        _PrimaryButton(label: 'Open PR Board →', onPressed: watched.isEmpty ? null : () => context.go('/')),
+
+        const SizedBox(height: 20),
+        Text(
+          'Change watched repos anytime from settings.',
+          textAlign: TextAlign.center,
+          style: TbText.label(size: 10, color: TbColors.dim, tracking: 0.3),
         ),
       ],
+    );
+  }
+}
+
+// ─── Shared primary button ────────────────────────────────────────────────────
+
+/// Full-width blue Akshar button — wraps [TetherActionButton] so tests can
+/// still locate it by [TetherActionButton] type + label text.
+///
+/// Uses [MouseRegion] to drive cyan hover color on desktop while keeping the
+/// [TetherActionButton] widget in the tree (required by test finders).
+class _PrimaryButton extends StatefulWidget {
+  const _PrimaryButton({required this.label, this.onPressed});
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  State<_PrimaryButton> createState() => _PrimaryButtonState();
+}
+
+class _PrimaryButtonState extends State<_PrimaryButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final hoverBg = _hovered && widget.onPressed != null ? TbColors.cyan : null;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: TetherActionButton(
+        label: widget.label,
+        isExpanded: true,
+        onPressed: widget.onPressed,
+        backgroundColor: hoverBg,
+      ),
     );
   }
 }
