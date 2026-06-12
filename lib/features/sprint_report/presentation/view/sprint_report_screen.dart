@@ -42,6 +42,12 @@ class SprintReportScreen extends ConsumerWidget {
           child: Row(
             children: [
               Text('Sprint Report', style: TbText.display(size: 14, tracking: 2.0)),
+              // Reload indicator — shown while switching sprints / refreshing
+              // (the body keeps the previous sprint via skipLoadingOnReload).
+              if (report.isLoading && report.hasValue) ...[
+                const SizedBox(width: 12),
+                const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2)),
+              ],
               const Spacer(),
               TbBadge('Issues', TbSignal.info, small: true),
               const SizedBox(width: 8),
