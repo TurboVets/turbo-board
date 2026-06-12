@@ -33,6 +33,19 @@ enum IssuePriority {
   p3,
 }
 
+/// A pickable GitHub Projects v2 board (`owner` is a user or org login).
+@freezed
+sealed class ProjectRef with _$ProjectRef {
+  const ProjectRef._();
+
+  const factory ProjectRef({required String owner, required int number, required String title}) = _ProjectRef;
+
+  factory ProjectRef.fromJson(Map<String, dynamic> json) => _$ProjectRefFromJson(json);
+
+  /// Stable identity for de-duping / selection comparison.
+  String get key => '$owner#$number';
+}
+
 /// Sprint-wide health snapshot for the cockpit header strip.
 @freezed
 sealed class SprintHealth with _$SprintHealth {

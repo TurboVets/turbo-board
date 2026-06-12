@@ -6,6 +6,7 @@ import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
 import '../../data/models/cockpit_data.dart';
 import '../providers/lead_cockpit_provider.dart';
+import 'widgets/project_picker.dart';
 import 'widgets/sprint_health_strip.dart';
 import 'widgets/stuck_issue_row.dart';
 import 'widgets/team_load_card.dart';
@@ -20,6 +21,19 @@ class LeadCockpitScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(selectedProjectProvider);
+
+    // No board picked yet → let the user choose one right here.
+    if (selected == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: const [
+          _Topbar(onRefresh: null),
+          Expanded(child: _ChooseProject()),
+        ],
+      );
+    }
+
     final cockpit = ref.watch(leadCockpitProvider);
 
     return Column(
@@ -170,7 +184,7 @@ class _StuckList extends StatelessWidget {
 class _Topbar extends StatefulWidget {
   const _Topbar({required this.onRefresh});
 
-  final VoidCallback onRefresh;
+  final VoidCallback? onRefresh;
 
   @override
   State<_Topbar> createState() => _TopbarState();
@@ -192,31 +206,72 @@ class _TopbarState extends State<_Topbar> {
         children: [
           Text('Lead Cockpit · Issues', style: TbText.display(size: 14, tracking: 2.0)),
           const Spacer(),
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            onEnter: (_) => setState(() => _hovered = true),
-            onExit: (_) => setState(() => _hovered = false),
-            child: GestureDetector(
-              onTap: widget.onRefresh,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: _hovered ? TbColors.blue : TbColors.borderStrong),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'REFRESH',
-                  style: TbText.label(
-                    size: 12,
-                    weight: FontWeight.w600,
-                    color: _hovered ? TbColors.blue : TbColors.text,
-                    tracking: 0.96,
+          if (widget.onRefresh != null)
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (_) => setState(() => _hovered = true),
+              onExit: (_) => setState(() => _hovered = false),
+              child: GestureDetector(
+                onTap: widget.onRefresh,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: _hovered ? TbColors.blue : TbColors.borderStrong),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'REFRESH',
+                    style: TbText.label(
+                      size: 12,
+                      weight: FontWeight.w600,
+                      color: _hovered ? TbColors.blue : TbColors.text,
+                      tracking: 0.96,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+/// Empty state shown until a board is selected: pick one to populate the cockpit.
+class _ChooseProject extends ConsumerWidget {
+  const _ChooseProject();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(22),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('CHOOSE A PROJECT', style: TbText.label(size: 12, tracking: 1.4)),
+              const SizedBox(height: 6),
+              Text(
+                'Pick the GitHub Projects v2 board this cockpit should track. '
+                'You can change it any time in Settings.',
+                style: TbText.body(size: 13, color: TbColors.muted, height: 1.5),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                decoration: BoxDecoration(
+                  color: TbColors.surface,
+                  border: Border.all(color: TbColors.border),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ProjectPickerList(onSelected: (p) => ref.read(selectedProjectProvider.notifier).select(p)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

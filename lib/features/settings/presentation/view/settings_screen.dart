@@ -8,6 +8,9 @@ import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
 import '../../../ai/presentation/providers/ai_provider.dart';
+import '../../../lead_cockpit/data/models/cockpit_data.dart';
+import '../../../lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
+import '../../../lead_cockpit/presentation/view/widgets/project_picker.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
 import '../../../repo_setup/presentation/providers/watched_repos_provider.dart';
 
@@ -45,6 +48,8 @@ class SettingsScreen extends StatelessWidget {
                     _GithubSection(),
                     SizedBox(height: 14),
                     _WatchedReposSection(),
+                    SizedBox(height: 14),
+                    _ProjectSection(),
                     SizedBox(height: 14),
                     _AnthropicKeySection(),
                     SizedBox(height: 14),
@@ -453,6 +458,74 @@ class _Toggle extends StatelessWidget {
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2)),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─── Lead Cockpit project ───────────────────────────────────────────────────
+
+class _ProjectSection extends HookConsumerWidget {
+  const _ProjectSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(selectedProjectProvider);
+    final picking = useState(selected == null);
+
+    void select(ProjectRef project) {
+      ref.read(selectedProjectProvider.notifier).select(project);
+      picking.value = false;
+    }
+
+    return _Card(
+      title: 'Lead Cockpit project',
+      headerTrailing: selected == null
+          ? const TbBadge('None selected', TbSignal.gray, small: true)
+          : const TbBadge('✓ Selected', TbSignal.ok, small: true),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: selected == null
+                          ? Text('No project selected.', style: TbText.body(size: 13, color: TbColors.muted))
+                          : _maskedCode('${selected.title}  ·  ${selected.owner} #${selected.number}'),
+                    ),
+                    const SizedBox(width: 12),
+                    _Btn(
+                      picking.value ? 'Cancel' : 'Change',
+                      kind: _BtnKind.outline,
+                      onTap: () => picking.value = !picking.value,
+                    ),
+                    if (selected != null) ...[
+                      const SizedBox(width: 10),
+                      _Btn(
+                        'Clear',
+                        kind: _BtnKind.danger,
+                        onTap: () {
+                          ref.read(selectedProjectProvider.notifier).clear();
+                          picking.value = true;
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+                _hint('The board the Lead Cockpit reads · stored on this device'),
+              ],
+            ),
+          ),
+          if (picking.value) ...[
+            const Divider(height: 1, color: TbColors.border),
+            ProjectPickerList(onSelected: select, selectedKey: selected?.key),
+          ],
+        ],
       ),
     );
   }

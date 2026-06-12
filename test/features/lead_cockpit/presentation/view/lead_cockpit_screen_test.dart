@@ -1,7 +1,8 @@
 // Test summary:
-// - LeadCockpitScreen renders the sprint header, team load section and stuck list once data loads.
+// - With a project selected, renders the sprint header, team load section and stuck list once data loads.
 // - The AI Sprint Brief button is hidden when no Anthropic key is set.
 // - With a key + stubbed AI repo, tapping Sprint Brief generates and reveals the narrative, then hides it.
+// - With no project selected, shows the project picker listing available boards.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -31,9 +32,20 @@ class _StubAi implements AiRepository {
   Future<Result<String>> draftReply(PrDetail detail, ReplyIntent intent) => throw UnimplementedError();
 }
 
-Widget _host({bool keyReady = false, AiRepository? ai}) => ProviderScope(
+/// Selection notifier with a fixed value (no shared_preferences plugin in tests).
+class _FixedProject extends SelectedProjectNotifier {
+  _FixedProject(this._value);
+  final ProjectRef? _value;
+  @override
+  ProjectRef? build() => _value;
+}
+
+const _selected = ProjectRef(owner: 'TurboVets', number: 8, title: 'Mobile Space');
+
+Widget _host({ProjectRef? selected = _selected, bool keyReady = false, AiRepository? ai}) => ProviderScope(
   overrides: [
     leadCockpitRepositoryProvider.overrideWithValue(const MockLeadCockpitRepository()),
+    selectedProjectProvider.overrideWith(() => _FixedProject(selected)),
     aiKeyReadyProvider.overrideWithValue(keyReady),
     if (ai != null) aiRepositoryProvider.overrideWithValue(ai),
   ],
@@ -83,5 +95,17 @@ void main() {
     await tester.pump();
     expect(find.textContaining('tromero-tv is overloaded'), findsNothing);
     expect(find.text('Sprint Brief'), findsOneWidget);
+  });
+
+  testWidgets('shows the project picker when no board is selected', (tester) async {
+    await _desktopSurface(tester);
+    await tester.pumpWidget(_host(selected: null));
+    await tester.pump(const Duration(milliseconds: 300)); // listProjects mock latency
+
+    expect(find.text('CHOOSE A PROJECT'), findsOneWidget);
+    expect(find.text('Mobile Space'), findsOneWidget);
+    expect(find.text('Platform Roadmap'), findsOneWidget);
+    // The board itself is not shown until a project is picked.
+    expect(find.text('TEAM LOAD'), findsNothing);
   });
 }

@@ -12,6 +12,9 @@ import 'package:turbo_core/core.dart';
 class _FailingRepo implements LeadCockpitRepository {
   @override
   Future<Result<CockpitData>> fetchCockpit() async => Result.failure('boom', StackTrace.current);
+
+  @override
+  Future<Result<List<ProjectRef>>> listProjects() async => Result.failure('boom', StackTrace.current);
 }
 
 void main() {

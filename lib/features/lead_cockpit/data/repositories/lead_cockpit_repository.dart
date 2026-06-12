@@ -4,6 +4,7 @@ import 'package:turbo_core/core.dart';
 
 import '../../../repo_setup/data/services/github_api_client.dart';
 import '../models/cockpit_data.dart';
+import '../queries/list_projects.dart';
 import '../queries/project_board.dart';
 import 'cockpit_mapper.dart';
 
@@ -16,6 +17,9 @@ import 'cockpit_mapper.dart';
 /// interface.
 abstract class LeadCockpitRepository {
   Future<Result<CockpitData>> fetchCockpit();
+
+  /// Lists the Projects v2 boards the user can pick from (own + org boards).
+  Future<Result<List<ProjectRef>>> listProjects();
 }
 
 /// Reads a live GitHub Projects v2 board and maps it to [CockpitData].
@@ -70,13 +74,47 @@ class GithubLeadCockpitRepository implements LeadCockpitRepository {
       return Result.success(cockpitFromProjectItems(boardTitle ?? 'Project board', nodes, now: _clock()));
     } catch (e, stackTrace) {
       log('Failed to fetch cockpit data', error: e, stackTrace: stackTrace);
-      final message = e.toString().contains('read:project')
-          ? 'Your GitHub token is missing the `read:project` scope. Add it at '
-                'github.com/settings/tokens, then re-enter the token in Settings.'
-          : 'Failed to load the sprint cockpit';
-      return Result.failure(message, stackTrace);
+      return Result.failure(_scopeAwareMessage(e, 'Failed to load the sprint cockpit'), stackTrace);
     }
   }
+
+  @override
+  Future<Result<List<ProjectRef>>> listProjects() async {
+    try {
+      final data = await _client.graphql(listProjectsQuery, const {});
+      final viewer = data['viewer'] as Map<String, dynamic>?;
+      final projects = <ProjectRef>[];
+
+      void addNodes(String owner, dynamic projectsV2) {
+        final nodes = (projectsV2?['nodes'] as List<dynamic>?) ?? const [];
+        for (final raw in nodes.whereType<Map<String, dynamic>>()) {
+          if (raw['closed'] == true) continue;
+          final number = raw['number'];
+          if (number is! int) continue;
+          projects.add(ProjectRef(owner: owner, number: number, title: (raw['title'] as String?) ?? 'Untitled'));
+        }
+      }
+
+      final viewerLogin = (viewer?['login'] as String?) ?? '';
+      if (viewerLogin.isNotEmpty) addNodes(viewerLogin, viewer?['projectsV2']);
+      for (final org
+          in ((viewer?['organizations']?['nodes'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>()) {
+        addNodes((org['login'] as String?) ?? '', org['projectsV2']);
+      }
+
+      projects.sort((a, b) => a.key.compareTo(b.key));
+      return Result.success(projects);
+    } catch (e, stackTrace) {
+      log('Failed to list projects', error: e, stackTrace: stackTrace);
+      return Result.failure(_scopeAwareMessage(e, 'Could not list your GitHub projects'), stackTrace);
+    }
+  }
+
+  /// Surfaces the missing-scope case with an actionable hint; otherwise [fallback].
+  String _scopeAwareMessage(Object e, String fallback) => e.toString().contains('read:project')
+      ? 'Your GitHub token is missing the `read:project` scope. Add it at '
+            'github.com/settings/tokens, then re-enter the token in Settings.'
+      : fallback;
 }
 
 class MockLeadCockpitRepository implements LeadCockpitRepository {
@@ -92,6 +130,15 @@ class MockLeadCockpitRepository implements LeadCockpitRepository {
       log('Failed to fetch cockpit data', error: e, stackTrace: stackTrace);
       return Result.failure('Failed to load the sprint cockpit', stackTrace);
     }
+  }
+
+  @override
+  Future<Result<List<ProjectRef>>> listProjects() async {
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    return Result.success(const [
+      ProjectRef(owner: 'TurboVets', number: 8, title: 'Mobile Space'),
+      ProjectRef(owner: 'TurboVets', number: 3, title: 'Platform Roadmap'),
+    ]);
   }
 }
 
