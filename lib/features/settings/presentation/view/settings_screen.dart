@@ -355,13 +355,24 @@ class _WatchedReposSection extends HookConsumerWidget {
               child: Text('No repositories yet — add one below.', style: TbText.body(size: 13, color: TbColors.muted)),
             )
           else
-            for (final slug in slugs)
-              _RepoRow(
-                slug: slug,
-                desc: descBySlug[slug],
-                watched: watched.contains(slug),
-                onToggle: () => ref.read(watchedReposProvider.notifier).toggle(slug),
+            // Cap the list height so a long repo list scrolls instead of pushing
+            // the Add field off-screen.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 280),
+              child: ListView(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                children: [
+                  for (final slug in slugs)
+                    _RepoRow(
+                      slug: slug,
+                      desc: descBySlug[slug],
+                      watched: watched.contains(slug),
+                      onToggle: () => ref.read(watchedReposProvider.notifier).toggle(slug),
+                    ),
+                ],
               ),
+            ),
           Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
