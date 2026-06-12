@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turbo_board/features/pr_detail/presentation/view/pr_detail_screen.dart';
 import 'package:turbo_board/features/pr_inbox/presentation/view/pr_inbox_screen.dart';
 import 'package:turbo_board/features/repo_setup/data/models/github_repo.dart';
 import 'package:turbo_board/features/repo_setup/data/models/github_user.dart';
@@ -153,5 +154,22 @@ void main() {
 
     expect(find.byType(AppShell), findsOneWidget);
     expect(find.byType(PrInboxScreen), findsOneWidget);
+  });
+
+  testWidgets('/pr/:owner/:repo/:number resolves to PrDetailScreen', (tester) async {
+    final c = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(_Repo(const GithubUser(login: 'o', avatarUrl: ''))),
+        tokenStoreProvider.overrideWithValue(InMemoryTokenStore('tok')),
+      ],
+    );
+    addTearDown(c.dispose);
+    await tester.pumpWidget(_app(c));
+    await tester.pumpAndSettle();
+
+    c.read(appRouterProvider).goNamed('prDetail', pathParameters: {'owner': 'o', 'repo': 'r', 'number': '5'});
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PrDetailScreen), findsOneWidget);
   });
 }

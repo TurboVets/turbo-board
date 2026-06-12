@@ -1,5 +1,6 @@
 // lib/features/pr_inbox/presentation/view/pr_inbox_screen.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:turbo_ui/turbo_ui.dart';
@@ -79,7 +80,18 @@ class _Board extends StatelessWidget {
                 SizedBox(
                   width: 320,
                   height: columnHeight > 0 ? columnHeight : null,
-                  child: PrColumn(title: title, prs: items.where((p) => p.reviewState == state).toList()),
+                  child: PrColumn(
+                    title: title,
+                    prs: items.where((p) => p.reviewState == state).toList(),
+                    onCardTap: (pr) {
+                      final parts = pr.repo.split('/');
+                      if (parts.length != 2) return;
+                      context.goNamed(
+                        'prDetail',
+                        pathParameters: {'owner': parts[0], 'repo': parts[1], 'number': '${pr.number}'},
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(width: 8),
               ],

@@ -11,10 +11,11 @@ import 'pr_card.dart';
 /// MUST constrain its height — the board wraps each column in a height-bounded
 /// `SizedBox` (see [_Board]). In tests, a `Scaffold` body provides that bound.
 class PrColumn extends StatelessWidget {
-  const PrColumn({super.key, required this.title, required this.prs});
+  const PrColumn({super.key, required this.title, required this.prs, this.onCardTap});
 
   final String title;
   final List<PrData> prs;
+  final void Function(PrData pr)? onCardTap;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +45,8 @@ class PrColumn extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   itemCount: prs.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) => PrCard(pr: prs[i]),
+                  itemBuilder: (context, i) =>
+                      PrCard(pr: prs[i], onTap: onCardTap == null ? null : () => onCardTap!(prs[i])),
                 ),
         ),
       ],

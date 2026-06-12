@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../features/pr_detail/presentation/view/pr_detail_screen.dart';
 import '../../features/pr_inbox/presentation/view/pr_inbox_screen.dart';
 import '../../features/repo_setup/presentation/providers/auth_provider.dart';
 import '../../features/repo_setup/presentation/view/setup_screen.dart';
@@ -31,7 +32,18 @@ GoRouter appRouter(Ref ref) {
     routes: [
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
-        routes: [GoRoute(path: '/', name: PrInboxScreen.routeName, builder: (context, state) => const PrInboxScreen())],
+        routes: [
+          GoRoute(path: '/', name: PrInboxScreen.routeName, builder: (context, state) => const PrInboxScreen()),
+          GoRoute(
+            path: '/pr/:owner/:repo/:number',
+            name: PrDetailScreen.routeName,
+            builder: (context, state) => PrDetailScreen(
+              owner: state.pathParameters['owner']!,
+              repo: state.pathParameters['repo']!,
+              number: int.tryParse(state.pathParameters['number'] ?? '') ?? 0,
+            ),
+          ),
+        ],
       ),
       GoRoute(path: '/setup', name: SetupScreen.routeName, builder: (context, state) => const SetupScreen()),
     ],

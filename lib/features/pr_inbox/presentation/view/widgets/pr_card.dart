@@ -6,12 +6,12 @@ import 'package:turbo_ui/turbo_ui.dart';
 
 import '../../../data/models/pr_data.dart';
 
-/// A single PR row on the board. Display-only in sub-project B (tap is a no-op;
-/// PR Detail arrives in sub-project D).
+/// A single PR row on the board.
 class PrCard extends StatelessWidget {
-  const PrCard({super.key, required this.pr});
+  const PrCard({super.key, required this.pr, this.onTap});
 
   final PrData pr;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +19,7 @@ class PrCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
 
     return TetherCard(
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
