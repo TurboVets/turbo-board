@@ -1,12 +1,14 @@
 // lib/shared/ui/shell/app_shell.dart
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:turbo_ui/turbo_ui.dart';
 
+import '../theme/tb_tokens.dart';
 import 'nav_rail.dart';
 
-/// Responsive three-region shell: a left nav rail beside the routed [child].
-/// The right detail/filter region arrives in later sub-projects.
+/// Responsive two-region shell: a left nav rail beside the routed [child].
+/// The rail collapses to icon-only at tablet widths (<1100 px).
+/// The outer [BrandFrame] (rails + grid canvas) already wraps this widget, so
+/// the scaffold background is transparent and the canvas shows through.
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.child});
 
@@ -17,18 +19,17 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = context.appColors;
-
     return Scaffold(
-      backgroundColor: colors.background.primary,
+      backgroundColor: Colors.transparent,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final collapsed = constraints.maxWidth < _collapseBelow;
           return Row(
             children: [
               AppNavRail(collapsed: collapsed),
-              const VerticalDivider(width: 1),
-              Expanded(child: child),
+              Expanded(
+                child: ColoredBox(color: TbColors.canvas, child: child),
+              ),
             ],
           );
         },
