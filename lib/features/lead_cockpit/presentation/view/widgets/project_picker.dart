@@ -45,17 +45,23 @@ class ProjectPickerList extends ConsumerWidget {
             ),
           );
         }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < projects.length; i++)
-              _ProjectRow(
-                project: projects[i],
-                selected: projects[i].key == selectedKey,
-                showDivider: i < projects.length - 1,
-                onTap: () => onSelected(projects[i]),
-              ),
-          ],
+        // Cap the list height so a long board list scrolls in place rather than
+        // growing unbounded in the cockpit empty-state and Settings.
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 280),
+          child: ListView(
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            children: [
+              for (var i = 0; i < projects.length; i++)
+                _ProjectRow(
+                  project: projects[i],
+                  selected: projects[i].key == selectedKey,
+                  showDivider: i < projects.length - 1,
+                  onTap: () => onSelected(projects[i]),
+                ),
+            ],
+          ),
         );
       },
     );
