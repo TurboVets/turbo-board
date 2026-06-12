@@ -38,6 +38,25 @@ sealed class AssigneePoints with _$AssigneePoints {
   int get open => inProgress + remaining;
 }
 
+/// Per-assignee ticket-count split: done / in-progress / remaining.
+/// Mirrors [AssigneePoints] but counts tickets rather than summing points.
+@freezed
+sealed class AssigneeTickets with _$AssigneeTickets {
+  const AssigneeTickets._();
+
+  const factory AssigneeTickets({
+    required String handle,
+    required int done,
+    required int inProgress,
+    required int remaining,
+  }) = _AssigneeTickets;
+
+  factory AssigneeTickets.fromJson(Map<String, dynamic> json) => _$AssigneeTicketsFromJson(json);
+
+  int get total => done + inProgress + remaining;
+  int get open => inProgress + remaining;
+}
+
 /// Epic rollup: sub-issue progress + point progress.
 @freezed
 sealed class EpicProgress with _$EpicProgress {
@@ -106,6 +125,7 @@ sealed class SprintReport with _$SprintReport {
     required int unestimatedTickets,
 
     @Default(<AssigneePoints>[]) List<AssigneePoints> people,
+    @Default(<AssigneeTickets>[]) List<AssigneeTickets> peopleTickets,
     @Default(<EpicProgress>[]) List<EpicProgress> epics,
     required Burndown burndown,
 

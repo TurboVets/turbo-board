@@ -85,6 +85,21 @@ SprintReport sprintReportFromProjectItems(
           .toList()
         ..sort((a, b) => b.total.compareTo(a.total));
 
+  // ── Per-assignee ticket-count split ──
+  final peopleTickets =
+      byAssignee.entries
+          .map((e) {
+            final done = e.value.where((i) => i.kind == ReportStatusKind.done).length;
+            final inProgress = e.value.where((i) => i.kind == ReportStatusKind.inProgress).length;
+            final remaining = e.value
+                .where((i) => i.kind == ReportStatusKind.inReview || i.kind == ReportStatusKind.notStarted)
+                .length;
+            return AssigneeTickets(handle: e.key, done: done, inProgress: inProgress, remaining: remaining);
+          })
+          .where((t) => t.total > 0)
+          .toList()
+        ..sort((a, b) => b.total.compareTo(a.total));
+
   // ── Epics (B2): in-sprint issues that have sub-issues. ──
   final epics = current.where((i) => i.subsTotal > 0).map((i) {
     final pointsTotal = (i.complexity ?? 0).round();
@@ -151,6 +166,7 @@ SprintReport sprintReportFromProjectItems(
     estimatedPoints: pts(estimated),
     unestimatedTickets: unestimated,
     people: people.take(8).toList(),
+    peopleTickets: peopleTickets.take(8).toList(),
     epics: epics.take(6).toList(),
     burndown: Burndown(
       committedPoints: committed,

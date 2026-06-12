@@ -197,6 +197,8 @@ class _Body extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 14),
+              _TicketsPerAssignee(report: report),
+              const SizedBox(height: 14),
               _PointsPerAssignee(report: report),
               const SizedBox(height: 14),
               _EpicProgressCard(report: report),
@@ -572,7 +574,24 @@ class _CoverageRow extends StatelessWidget {
   }
 }
 
-// ─── Points per assignee ────────────────────────────────────────────────────
+// ─── Tickets / Points per assignee ──────────────────────────────────────────
+
+class _TicketsPerAssignee extends StatelessWidget {
+  const _TicketsPerAssignee({required this.report});
+
+  final SprintReport report;
+
+  @override
+  Widget build(BuildContext context) => _AssigneeBars(
+    title: 'Tickets per assignee',
+    unit: 'TIX',
+    totalWidth: 46,
+    rows: [
+      for (final t in report.peopleTickets)
+        _AssigneeRow(handle: t.handle, done: t.done, inProgress: t.inProgress, remaining: t.remaining),
+    ],
+  );
+}
 
 class _PointsPerAssignee extends StatelessWidget {
   const _PointsPerAssignee({required this.report});
@@ -580,10 +599,45 @@ class _PointsPerAssignee extends StatelessWidget {
   final SprintReport report;
 
   @override
+  Widget build(BuildContext context) => _AssigneeBars(
+    title: 'Points per assignee',
+    unit: 'PTS',
+    totalWidth: 52,
+    rows: [
+      for (final p in report.people)
+        _AssigneeRow(handle: p.handle, done: p.done, inProgress: p.inProgress, remaining: p.remaining),
+    ],
+  );
+}
+
+class _AssigneeRow {
+  const _AssigneeRow({required this.handle, required this.done, required this.inProgress, required this.remaining});
+
+  final String handle;
+  final int done;
+  final int inProgress;
+  final int remaining;
+
+  int get total => done + inProgress + remaining;
+  int get open => inProgress + remaining;
+}
+
+/// Shared horizontal stacked-bar chart (done / in-progress / remaining) used by
+/// both the tickets-per-assignee and points-per-assignee sections. Bars scale
+/// to the busiest assignee so the two charts read consistently.
+class _AssigneeBars extends StatelessWidget {
+  const _AssigneeBars({required this.title, required this.unit, required this.totalWidth, required this.rows});
+
+  final String title;
+  final String unit;
+  final double totalWidth;
+  final List<_AssigneeRow> rows;
+
+  @override
   Widget build(BuildContext context) {
-    final maxTotal = report.people.fold<int>(1, (m, p) => p.total > m ? p.total : m);
+    final maxTotal = rows.fold<int>(1, (m, r) => r.total > m ? r.total : m);
     return _Card(
-      title: 'Points per assignee',
+      title: title,
       headerTrailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: const [
@@ -599,17 +653,17 @@ class _PointsPerAssignee extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Column(
           children: [
-            for (final p in report.people)
+            for (final r in rows)
               Padding(
                 padding: const EdgeInsets.only(bottom: 11),
                 child: Row(
                   children: [
-                    TbAvatarTile(login: p.handle, size: 18),
+                    TbAvatarTile(login: r.handle, size: 18),
                     const SizedBox(width: 12),
                     SizedBox(
                       width: 104,
                       child: Text(
-                        p.handle,
+                        r.handle,
                         style: TbText.label(size: 11, weight: FontWeight.w500, tracking: 0.4),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -624,19 +678,19 @@ class _PointsPerAssignee extends StatelessWidget {
                           child: Row(
                             children: [
                               Expanded(
-                                flex: p.done,
+                                flex: r.done,
                                 child: Container(color: const Color(0xFF54AE39)),
                               ),
                               Expanded(
-                                flex: p.inProgress,
+                                flex: r.inProgress,
                                 child: Container(color: TbColors.cyan),
                               ),
                               Expanded(
-                                flex: p.remaining,
+                                flex: r.remaining,
                                 child: Container(color: TbColors.borderStrong),
                               ),
                               // pad to the common scale so bars are comparable
-                              Expanded(flex: (maxTotal - p.total).clamp(0, maxTotal), child: const SizedBox()),
+                              Expanded(flex: (maxTotal - r.total).clamp(0, maxTotal), child: const SizedBox()),
                             ],
                           ),
                         ),
@@ -646,15 +700,15 @@ class _PointsPerAssignee extends StatelessWidget {
                     SizedBox(
                       width: 62,
                       child: Text(
-                        '${p.open} OPEN',
+                        '${r.open} OPEN',
                         textAlign: TextAlign.right,
                         style: TbText.label(size: 10, weight: FontWeight.w400, color: TbColors.muted, tracking: 0.4),
                       ),
                     ),
                     SizedBox(
-                      width: 52,
+                      width: totalWidth,
                       child: Text(
-                        '${p.total} PTS',
+                        '${r.total} $unit',
                         textAlign: TextAlign.right,
                         style: TbText.label(size: 10, weight: FontWeight.w600, tracking: 0.4),
                       ),

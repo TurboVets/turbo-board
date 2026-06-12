@@ -4,6 +4,7 @@
 // - counts estimated vs unestimated tickets
 // - builds epic rollups from subIssuesSummary (B2)
 // - groups points per assignee (done / in-progress / remaining)
+// - groups ticket counts per assignee (done / in-progress / remaining)
 // - honours an explicit selectedSprint
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turbo_board/features/sprint_report/data/models/sprint_report.dart';
@@ -128,6 +129,15 @@ void main() {
     expect(alice.done, 8);
     expect(alice.inProgress, 8);
     expect(alice.remaining, 12); // in-review 2 + not-started 10
+  });
+
+  test('tickets per assignee', () {
+    final r = sprintReportFromProjectItems('Mobile Space', nodes, now: now);
+    final alice = r.peopleTickets.firstWhere((t) => t.handle == 'alice');
+    expect(alice.done, 2); // 2 Done tickets
+    expect(alice.inProgress, 1); // 1 In Progress
+    expect(alice.remaining, 3); // in-review 1 + not-started 2 (Cancelled excluded)
+    expect(alice.total, 6);
   });
 
   test('explicit selectedSprint picks the older sprint', () {

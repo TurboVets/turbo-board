@@ -122,6 +122,13 @@ const _sample = SprintReport(
     AssigneePoints(handle: 'mkim-tv', done: 21, inProgress: 5, remaining: 4),
     AssigneePoints(handle: 'lbarros-tv', done: 8, inProgress: 3, remaining: 1),
   ],
+  peopleTickets: [
+    AssigneeTickets(handle: 'tromero-tv', done: 12, inProgress: 6, remaining: 4),
+    AssigneeTickets(handle: 'mkim-tv', done: 21, inProgress: 2, remaining: 2),
+    AssigneeTickets(handle: 'apatel-tv', done: 16, inProgress: 4, remaining: 5),
+    AssigneeTickets(handle: 'snguyen-tv', done: 14, inProgress: 3, remaining: 3),
+    AssigneeTickets(handle: 'lbarros-tv', done: 8, inProgress: 1, remaining: 2),
+  ],
   epics: [
     EpicProgress(title: 'Recruit application flow v2', subsDone: 8, subsTotal: 12, pointsDone: 34, pointsTotal: 52),
     EpicProgress(
