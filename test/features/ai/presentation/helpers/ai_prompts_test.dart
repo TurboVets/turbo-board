@@ -10,8 +10,45 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turbo_board/features/ai/data/models/triage_item.dart';
 import 'package:turbo_board/features/ai/presentation/helpers/ai_prompts.dart';
+import 'package:turbo_board/features/lead_cockpit/data/models/cockpit_data.dart';
 import 'package:turbo_board/features/pr_detail/data/models/pr_detail.dart';
 import 'package:turbo_board/features/pr_inbox/data/models/pr_data.dart';
+import 'package:turbo_board/features/sprint_report/data/models/sprint_report.dart';
+
+SprintReport _report() => const SprintReport(
+  sprintName: 'Sprint 24',
+  dateRange: 'Jun 2 – Jun 16',
+  daysRemaining: 6,
+  totalTickets: 60,
+  pointsCommitted: 168,
+  repoCount: 4,
+  forecastLabel: 'Trending ~2D behind',
+  forecastDetail: '58 of 133 done',
+  pointsDone: 84,
+  estimatedTickets: 48,
+  estimatedPoints: 168,
+  unestimatedTickets: 12,
+  burndown: Burndown(committedPoints: 168, totalDays: 14, todayDay: 8, snapshotsCaptured: 8, snapshotsTotal: 14),
+  status: [StatusSlice(kind: ReportStatusKind.done, label: 'Done', tickets: 30, points: 84)],
+);
+
+CockpitData _cockpit() => const CockpitData(
+  sprint: SprintHealth(
+    name: 'Sprint 24',
+    daysRemaining: 6,
+    endLabel: 'Jun 16',
+    totalIssues: 60,
+    repoCount: 4,
+    done: 30,
+    inProgress: 12,
+    inReview: 8,
+    notStarted: 7,
+    atRisk: 3,
+    unestimated: 12,
+  ),
+  team: [TeamMemberLoad(handle: 'sam', wip: 6, inReview: 1, stuck: 0, done: 9, points: 38)],
+  stuck: [],
+);
 
 PrDetail _detail({String body = 'Adds a thing.'}) => PrDetail(
   repo: 'org/app',
@@ -152,6 +189,27 @@ void main() {
     test('unknown category falls back to watch', () {
       const raw = '[{"repo":"org/api","number":7,"category":"explode","reason":"?"}]';
       expect(parseTriage(raw, prs).single.category, TriageCategory.watch);
+    });
+  });
+
+  group('sprint narratives', () {
+    test('summary prompt embeds sprint name + progress', () {
+      final p = buildSprintSummaryPrompt(_report());
+      expect(p, contains('Sprint 24'));
+      expect(p, contains('50%')); // percentDone = 84/168
+      expect(p, contains('6 days'));
+    });
+
+    test('digest prompt asks for bullets + embeds counts', () {
+      final p = buildSprintDigestPrompt(_report());
+      expect(p.toLowerCase(), contains('bullet'));
+      expect(p, contains('84')); // points done
+    });
+
+    test('weekly digest prompt frames the week + names the sprint', () {
+      final p = buildWeeklyDigestPrompt(_cockpit());
+      expect(p.toLowerCase(), contains('week'));
+      expect(p, contains('Sprint 24'));
     });
   });
 }

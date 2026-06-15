@@ -5,6 +5,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
+import '../../../ai/presentation/providers/ai_provider.dart';
+import '../../../ai/presentation/view/widgets/ai_narrative_card.dart';
 import '../../../lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import '../../../lead_cockpit/presentation/view/widgets/project_picker.dart';
 import '../../data/models/sprint_report.dart';
@@ -162,13 +164,14 @@ class _ChooseProject extends ConsumerWidget {
   }
 }
 
-class _Body extends StatelessWidget {
+class _Body extends ConsumerWidget {
   const _Body({required this.report});
 
   final SprintReport report;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final keyReady = ref.watch(aiKeyReadyProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(22),
       child: Center(
@@ -179,6 +182,25 @@ class _Body extends StatelessWidget {
             children: [
               _HeaderStrip(report: report),
               const SizedBox(height: 14),
+              // AI sprint summary + digest (BYOK — only when a key is set).
+              if (keyReady) ...[
+                AiNarrativeCard(
+                  title: 'AI Sprint Summary',
+                  idleLabel: 'Summarize sprint',
+                  state: ref.watch(sprintSummaryControllerProvider),
+                  onGenerate: () => ref.read(sprintSummaryControllerProvider.notifier).generate(report),
+                  onHide: () => ref.read(sprintSummaryControllerProvider.notifier).clear(),
+                ),
+                const SizedBox(height: 12),
+                AiNarrativeCard(
+                  title: 'AI Sprint Digest',
+                  idleLabel: 'Sprint digest',
+                  state: ref.watch(sprintDigestControllerProvider),
+                  onGenerate: () => ref.read(sprintDigestControllerProvider.notifier).generate(report),
+                  onHide: () => ref.read(sprintDigestControllerProvider.notifier).clear(),
+                ),
+                const SizedBox(height: 14),
+              ],
               LayoutBuilder(
                 builder: (context, c) {
                   final twoCol = c.maxWidth >= 680;

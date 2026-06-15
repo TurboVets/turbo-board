@@ -5,6 +5,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
+import '../../../ai/presentation/providers/ai_provider.dart';
+import '../../../ai/presentation/view/widgets/ai_narrative_card.dart';
 import '../../data/models/cockpit_data.dart';
 import '../../data/repositories/cockpit_mapper.dart';
 import '../providers/lead_cockpit_provider.dart';
@@ -86,13 +88,14 @@ class LeadCockpitScreen extends ConsumerWidget {
   }
 }
 
-class _CockpitBody extends StatelessWidget {
+class _CockpitBody extends ConsumerWidget {
   const _CockpitBody({required this.data});
 
   final CockpitData data;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final keyReady = ref.watch(aiKeyReadyProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(22),
       child: Center(
@@ -103,6 +106,26 @@ class _CockpitBody extends StatelessWidget {
             children: [
               SprintHealthStrip(data: data),
               const SizedBox(height: 18),
+
+              // AI sprint brief + weekly digest (BYOK — only when a key is set).
+              if (keyReady) ...[
+                AiNarrativeCard(
+                  title: 'AI Sprint Brief',
+                  idleLabel: 'Sprint brief',
+                  state: ref.watch(cockpitBriefControllerProvider),
+                  onGenerate: () => ref.read(cockpitBriefControllerProvider.notifier).generate(data),
+                  onHide: () => ref.read(cockpitBriefControllerProvider.notifier).clear(),
+                ),
+                const SizedBox(height: 12),
+                AiNarrativeCard(
+                  title: 'AI Weekly Digest',
+                  idleLabel: 'Weekly digest',
+                  state: ref.watch(weeklyDigestControllerProvider),
+                  onGenerate: () => ref.read(weeklyDigestControllerProvider.notifier).generate(data),
+                  onHide: () => ref.read(weeklyDigestControllerProvider.notifier).clear(),
+                ),
+                const SizedBox(height: 18),
+              ],
 
               _TeamSection(team: data.team),
               const SizedBox(height: 20),

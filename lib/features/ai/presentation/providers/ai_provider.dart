@@ -2,9 +2,11 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
+import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
+import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../data/models/triage_item.dart';
 import '../../data/repositories/ai_repository.dart';
 import '../../data/services/anthropic_api_client.dart';
@@ -163,4 +165,58 @@ class TriageController extends _$TriageController {
   }
 
   void dismiss() => state = null;
+}
+
+/// On-demand full sprint summary (Sprint Report). `null` = not requested yet.
+@riverpod
+class SprintSummaryController extends _$SprintSummaryController {
+  @override
+  AsyncValue<String>? build() => null;
+
+  Future<void> generate(SprintReport report) async {
+    state = const AsyncValue.loading();
+    final result = await ref.read(aiRepositoryProvider).summarizeSprint(report);
+    state = switch (result) {
+      ResultSuccess(:final data) => AsyncValue.data(data),
+      ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+    };
+  }
+
+  void clear() => state = null;
+}
+
+/// On-demand scannable sprint digest (Sprint Report). `null` = not requested.
+@riverpod
+class SprintDigestController extends _$SprintDigestController {
+  @override
+  AsyncValue<String>? build() => null;
+
+  Future<void> generate(SprintReport report) async {
+    state = const AsyncValue.loading();
+    final result = await ref.read(aiRepositoryProvider).digestSprint(report);
+    state = switch (result) {
+      ResultSuccess(:final data) => AsyncValue.data(data),
+      ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+    };
+  }
+
+  void clear() => state = null;
+}
+
+/// On-demand weekly digest (Lead Cockpit). `null` = not requested yet.
+@riverpod
+class WeeklyDigestController extends _$WeeklyDigestController {
+  @override
+  AsyncValue<String>? build() => null;
+
+  Future<void> generate(CockpitData cockpit) async {
+    state = const AsyncValue.loading();
+    final result = await ref.read(aiRepositoryProvider).weeklyDigest(cockpit);
+    state = switch (result) {
+      ResultSuccess(:final data) => AsyncValue.data(data),
+      ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+    };
+  }
+
+  void clear() => state = null;
 }

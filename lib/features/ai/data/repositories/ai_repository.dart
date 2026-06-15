@@ -7,6 +7,7 @@ import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../repo_setup/data/services/github_api_client.dart';
+import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../presentation/helpers/ai_prompts.dart';
 import '../models/triage_item.dart';
 import '../services/anthropic_api_client.dart';
@@ -25,6 +26,15 @@ abstract class AiRepository {
 
   /// A short sprint-risk narrative for the Lead Cockpit, from the board state.
   Future<Result<String>> sprintBrief(CockpitData cockpit);
+
+  /// Full prose summary of the current sprint (Sprint Report screen).
+  Future<Result<String>> summarizeSprint(SprintReport report);
+
+  /// Scannable bullet digest of the current sprint (Sprint Report screen).
+  Future<Result<String>> digestSprint(SprintReport report);
+
+  /// Weekly team pulse for the Lead Cockpit, from the current board snapshot.
+  Future<Result<String>> weeklyDigest(CockpitData cockpit);
 
   /// Ranks the most action-worthy open PRs (review first / unblock / merge /
   /// nudge) from the current board.
@@ -85,6 +95,31 @@ class AnthropicAiRepository implements AiRepository {
       return Result.failure('Could not generate the sprint brief.', stackTrace);
     }
   }
+
+  /// Runs a single prompt and returns its trimmed text, or a [failure] message
+  /// on an empty response / any error. Shared by the sprint narratives.
+  Future<Result<String>> _narrative(String prompt, {int maxTokens = 400, required String failure}) async {
+    try {
+      final text = (await _anthropic.complete(prompt: prompt, maxTokens: maxTokens)).trim();
+      if (text.isEmpty) return Result.failure('The model returned an empty response.', StackTrace.current);
+      return Result.success(text);
+    } catch (e, stackTrace) {
+      log(failure, error: e, stackTrace: stackTrace);
+      return Result.failure(failure, stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<String>> summarizeSprint(SprintReport report) =>
+      _narrative(buildSprintSummaryPrompt(report), maxTokens: 500, failure: 'Could not summarize the sprint.');
+
+  @override
+  Future<Result<String>> digestSprint(SprintReport report) =>
+      _narrative(buildSprintDigestPrompt(report), maxTokens: 450, failure: 'Could not generate the sprint digest.');
+
+  @override
+  Future<Result<String>> weeklyDigest(CockpitData cockpit) =>
+      _narrative(buildWeeklyDigestPrompt(cockpit), maxTokens: 450, failure: 'Could not generate the weekly digest.');
 
   @override
   Future<Result<List<TriageItem>>> triage(List<PrData> prs) async {

@@ -11,13 +11,15 @@ import 'package:mockito/mockito.dart';
 import 'package:turbo_board/features/ai/data/repositories/ai_repository.dart';
 import 'package:turbo_board/features/ai/data/services/anthropic_api_client.dart';
 import 'package:turbo_board/features/ai/presentation/helpers/ai_prompts.dart';
+import 'package:turbo_board/features/lead_cockpit/data/models/cockpit_data.dart';
 import 'package:turbo_board/features/pr_detail/data/models/pr_detail.dart';
+import 'package:turbo_board/features/sprint_report/data/models/sprint_report.dart';
 import 'package:turbo_board/features/repo_setup/data/services/github_api_client.dart';
 import 'package:turbo_core/core.dart';
 
 import 'ai_repository_test.mocks.dart';
 
-@GenerateMocks([Dio])
+@GenerateMocks([Dio, AiRepository])
 void main() {
   late MockDio anthropicDio;
   late MockDio githubDio;
@@ -123,6 +125,70 @@ void main() {
       stubAnthropic(msg(textContent('  Please take a look when you can.  ')));
       final r = await repo.draftReply(detail(), ReplyIntent.nudgeReviewer);
       expect((r as ResultSuccess<String>).data, 'Please take a look when you can.');
+    });
+  });
+
+  SprintReport report() => const SprintReport(
+    sprintName: 'Sprint 24',
+    dateRange: 'Jun 2 – Jun 16',
+    daysRemaining: 6,
+    totalTickets: 60,
+    pointsCommitted: 168,
+    repoCount: 4,
+    forecastLabel: 'Trending ~2D behind',
+    forecastDetail: '58 of 133 done',
+    pointsDone: 84,
+    estimatedTickets: 48,
+    estimatedPoints: 168,
+    unestimatedTickets: 12,
+    burndown: Burndown(committedPoints: 168, totalDays: 14, todayDay: 8, snapshotsCaptured: 8, snapshotsTotal: 14),
+  );
+
+  CockpitData cockpit() => const CockpitData(
+    sprint: SprintHealth(
+      name: 'Sprint 24',
+      daysRemaining: 6,
+      endLabel: 'Jun 16',
+      totalIssues: 60,
+      repoCount: 4,
+      done: 30,
+      inProgress: 12,
+      inReview: 8,
+      notStarted: 7,
+      atRisk: 3,
+      unestimated: 12,
+    ),
+    team: [],
+    stuck: [],
+  );
+
+  group('sprint narratives', () {
+    test('summarizeSprint returns trimmed prose', () async {
+      stubAnthropic(msg(textContent('  Sprint 24 is on track.  ')));
+      final r = await repo.summarizeSprint(report());
+      expect((r as ResultSuccess<String>).data, 'Sprint 24 is on track.');
+    });
+
+    test('summarizeSprint fails on empty model output', () async {
+      stubAnthropic(msg(textContent('   ')));
+      expect(await repo.summarizeSprint(report()), isA<ResultFailure<String>>());
+    });
+
+    test('digestSprint returns trimmed bullets', () async {
+      stubAnthropic(msg(textContent('- Shipped 12\n- 3 at risk')));
+      final r = await repo.digestSprint(report());
+      expect((r as ResultSuccess<String>).data, contains('Shipped 12'));
+    });
+
+    test('weeklyDigest returns trimmed bullets', () async {
+      stubAnthropic(msg(textContent('- Shipped 9 items this week')));
+      final r = await repo.weeklyDigest(cockpit());
+      expect((r as ResultSuccess<String>).data, contains('this week'));
+    });
+
+    test('weeklyDigest surfaces a failure on a 500', () async {
+      stubAnthropic(msg(null, status: 500));
+      expect(await repo.weeklyDigest(cockpit()), isA<ResultFailure<String>>());
     });
   });
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
+import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../data/models/triage_item.dart';
 
 /// Canned reply intents for the Reply Drafter.
@@ -97,6 +98,61 @@ Status counts (of ${s.totalIssues}): ${s.done} done, ${s.inProgress} in progress
 ${s.notStarted} not started, ${s.atRisk} at risk, ${s.unestimated} unestimated.
 Overloaded members: ${overloaded.isEmpty ? 'none' : overloaded}.
 Aging / stuck items: ${stuck.isEmpty ? 'none' : stuck}.''';
+}
+
+// ─── Sprint narratives (Sprint Report + weekly digest) ──────────────────────
+
+String _statusLines(SprintReport r) =>
+    r.status.map((s) => '${s.label}: ${s.tickets} tickets / ${s.points} pts').join(', ');
+
+/// Full prose summary of the current sprint for the Sprint Report screen.
+String buildSprintSummaryPrompt(SprintReport r) {
+  final epics = r.epics.take(5).map((e) => '"${e.title}" ${e.percent}%').join(', ');
+  final people = r.people.take(8).map((p) => '${p.handle}: ${p.done}d/${p.open}open').join(', ');
+  return '''
+You are summarizing an engineering sprint for the whole team. Write 4-6 sentences of plain prose —
+no bullets, no heading, no preamble. Cover: overall progress vs commitment, the biggest risk to
+finishing on time, where work is concentrated or stuck, and end with one concrete recommendation.
+Be specific and cite the numbers.
+
+Sprint: ${r.sprintName} (${r.dateRange}), ${r.daysRemaining} days remaining.
+Progress: ${r.pointsDone} of ${r.pointsCommitted} points done (${r.percentDone}%), ${r.totalTickets} tickets across ${r.repoCount} repos.
+Forecast: ${r.forecastLabel}${r.behind ? ' (behind)' : ' (on track)'}.
+Estimation: ${r.estimatedTickets} estimated, ${r.unestimatedTickets} unestimated.
+Status: ${_statusLines(r)}.
+Epics: ${epics.isEmpty ? 'none' : epics}.
+Per-assignee (done/open): ${people.isEmpty ? 'n/a' : people}.''';
+}
+
+/// Scannable bullet digest (standup-style highlights) for the Sprint Report.
+String buildSprintDigestPrompt(SprintReport r) {
+  return '''
+Produce a scannable sprint digest for a team standup. Return ONLY markdown bullets, each starting
+with "- ", grouped logically (shipped, in progress / review, at risk, recommendation). 4-7 bullets
+total. No heading, no preamble. Be specific and cite numbers.
+
+Sprint: ${r.sprintName}, ${r.daysRemaining} days remaining.
+Progress: ${r.pointsDone}/${r.pointsCommitted} points (${r.percentDone}%).
+Status: ${_statusLines(r)}.
+Forecast: ${r.forecastLabel}.''';
+}
+
+/// Weekly team pulse for the Lead Cockpit, framed as the past week from the
+/// current board snapshot (throughput = done, risks = overloaded + stuck).
+String buildWeeklyDigestPrompt(CockpitData c) {
+  final s = c.sprint;
+  final shipped = c.team.fold<int>(0, (sum, m) => sum + m.done);
+  final overloaded = c.team.where((m) => m.isOverloaded).map((m) => '${m.handle} (${m.wip} WIP)').join(', ');
+  final stuck = c.stuck.take(5).map((i) => '"${i.title}" (${i.ageDays}d)').join('; ');
+  return '''
+Write a weekly digest for an engineering team lead reviewing the past week. Return ONLY markdown
+bullets, each starting with "- ". 4-6 bullets: what the team shipped, what is in flight, who is
+overloaded, what is stuck, and what to focus on next week. No heading, no preamble. Cite numbers.
+
+Sprint context: ${s.name}, ${s.daysRemaining} days remaining.
+Closed this sprint (throughput): $shipped items; currently ${s.inProgress} in progress, ${s.inReview} in review, ${s.atRisk} at risk.
+Overloaded: ${overloaded.isEmpty ? 'none' : overloaded}.
+Stuck items: ${stuck.isEmpty ? 'none' : stuck}.''';
 }
 
 // ─── Board triage ──────────────────────────────────────────────────────────

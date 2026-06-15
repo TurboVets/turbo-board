@@ -16,6 +16,7 @@ import 'package:turbo_board/features/lead_cockpit/data/repositories/lead_cockpit
 import 'package:turbo_board/features/lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import 'package:turbo_board/features/lead_cockpit/presentation/view/lead_cockpit_screen.dart';
 import 'package:turbo_board/features/pr_detail/data/models/pr_detail.dart';
+import 'package:turbo_board/features/sprint_report/data/models/sprint_report.dart';
 import 'package:turbo_board/shared/ui/theme/app_theme.dart';
 import 'package:turbo_core/core.dart';
 
@@ -32,6 +33,12 @@ class _StubAi implements AiRepository {
   Future<Result<List<String>>> summarize(PrDetail detail) => throw UnimplementedError();
   @override
   Future<Result<String>> draftReply(PrDetail detail, ReplyIntent intent) => throw UnimplementedError();
+  @override
+  Future<Result<String>> summarizeSprint(SprintReport report) => throw UnimplementedError();
+  @override
+  Future<Result<String>> digestSprint(SprintReport report) => throw UnimplementedError();
+  @override
+  Future<Result<String>> weeklyDigest(CockpitData cockpit) async => Result.success(_briefText);
   @override
   Future<Result<List<TriageItem>>> triage(List<PrData> prs) => throw UnimplementedError();
 }
@@ -82,8 +89,8 @@ void main() {
     expect(find.text('Harden deeplink cold-start routes'), findsWidgets);
     expect(find.text('tromero-tv'), findsWidgets);
     expect(find.text('OVERLOADED'), findsOneWidget);
-    // No key set → the AI brief button is not offered.
-    expect(find.text('Sprint Brief'), findsNothing);
+    // No key set → the AI cards (and their pills) are not offered.
+    expect(find.text('SPRINT BRIEF'), findsNothing);
   });
 
   testWidgets('generates and reveals the AI brief when a key is set', (tester) async {
@@ -91,19 +98,19 @@ void main() {
     await tester.pumpWidget(_host(keyReady: true, ai: _StubAi()));
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('Sprint Brief'), findsOneWidget);
-    await tester.tap(find.text('Sprint Brief'));
+    expect(find.text('SPRINT BRIEF'), findsOneWidget);
+    await tester.tap(find.text('SPRINT BRIEF'));
     await tester.pump(); // -> loading
     await tester.pump(); // -> data (stub resolves immediately)
 
     expect(find.textContaining('tromero-tv is overloaded'), findsOneWidget);
-    expect(find.text('Hide brief'), findsOneWidget);
+    expect(find.text('HIDE'), findsOneWidget);
 
     // Toggling hides the panel again.
-    await tester.tap(find.text('Hide brief'));
+    await tester.tap(find.text('HIDE'));
     await tester.pump();
     expect(find.textContaining('tromero-tv is overloaded'), findsNothing);
-    expect(find.text('Sprint Brief'), findsOneWidget);
+    expect(find.text('SPRINT BRIEF'), findsOneWidget);
   });
 
   testWidgets('shows the project picker when no board is selected', (tester) async {
