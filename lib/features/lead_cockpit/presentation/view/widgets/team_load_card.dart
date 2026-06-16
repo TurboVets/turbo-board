@@ -25,11 +25,11 @@ class TeamLoadCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final over = member.isOverloaded;
     return Container(
       decoration: BoxDecoration(
         color: TbColors.surface,
-        border: Border.all(color: over ? const Color(0xFFE94A5F) : TbColors.border),
+        // Overload red border hidden for now — see OVERLOADED badge note below.
+        border: Border.all(color: TbColors.border),
         borderRadius: BorderRadius.circular(8),
       ),
       clipBehavior: Clip.antiAlias,
@@ -63,14 +63,16 @@ class _Header extends StatelessWidget {
           small: true,
           tooltip: 'Carrying ${member.highPriority} high-priority (P0/P1) item(s)',
         ),
-      if (member.isOverloaded)
-        const TbBadge(
-          'OVERLOADED',
-          TbSignal.bad,
-          small: true,
-          tooltip: 'Heavy load — needs work pulled off their plate',
-        )
-      else if (member.isAvailable)
+      // OVERLOADED badge hidden for now — thresholds (points >= 35 || wip >= 5)
+      // aren't calibrated for this team's velocity. Re-enable once configurable.
+      // if (member.isOverloaded)
+      //   const TbBadge(
+      //     'OVERLOADED',
+      //     TbSignal.bad,
+      //     small: true,
+      //     tooltip: 'Heavy load — needs work pulled off their plate',
+      //   ),
+      if (member.isAvailable)
         const TbBadge('AVAILABLE', TbSignal.gray, small: true, tooltip: 'Has headroom to take a handoff'),
     ];
 

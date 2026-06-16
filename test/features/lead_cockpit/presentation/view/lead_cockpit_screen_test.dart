@@ -88,7 +88,8 @@ void main() {
     expect(find.text('AGING / STUCK · SITTING TOO LONG IN A STATUS'), findsOneWidget);
     expect(find.text('Harden deeplink cold-start routes'), findsWidgets);
     expect(find.text('tromero-tv'), findsWidgets);
-    expect(find.text('OVERLOADED'), findsOneWidget);
+    // OVERLOADED badge is disabled for now (thresholds not calibrated).
+    expect(find.text('OVERLOADED'), findsNothing);
     // No key set → the AI cards (and their pills) are not offered.
     expect(find.text('SPRINT BRIEF'), findsNothing);
   });

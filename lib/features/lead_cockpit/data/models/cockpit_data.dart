@@ -125,11 +125,8 @@ sealed class TeamMemberLoad with _$TeamMemberLoad {
 
   factory TeamMemberLoad.fromJson(Map<String, dynamic> json) => _$TeamMemberLoadFromJson(json);
 
-  /// Carrying heavy load — flagged red with an OVERLOADED badge.
-  bool get isOverloaded => points >= 35 || wip >= 5;
-
   /// Light load with headroom to take a handoff — gray AVAILABLE badge.
-  bool get isAvailable => !isOverloaded && points <= 12;
+  bool get isAvailable => points <= 12 && wip < 5;
 }
 
 /// A board item that has sat too long in its current status.

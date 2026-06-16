@@ -49,17 +49,14 @@ void main() {
   });
 
   group('MockLeadCockpitRepository', () {
-    test('should flag the overloaded member and order stuck items by severity', () async {
+    test('should order stuck items by severity', () async {
       final result = await const MockLeadCockpitRepository().fetchCockpit();
 
       final data = result.when(success: (d) => d, failure: (_, _) => null);
       expect(data, isNotNull);
 
-      final overloaded = data!.team.where((m) => m.isOverloaded).map((m) => m.handle);
-      expect(overloaded, contains('tromero-tv'));
-
       // The first stuck item is the critical P0 deeplink issue.
-      expect(data.stuck.first.priority, IssuePriority.p0);
+      expect(data!.stuck.first.priority, IssuePriority.p0);
       expect(data.stuck.first.critical, isTrue);
     });
   });

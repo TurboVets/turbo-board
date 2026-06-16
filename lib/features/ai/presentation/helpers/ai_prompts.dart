@@ -77,7 +77,6 @@ String _priorityName(IssuePriority p) => switch (p) {
 /// for a team lead, grounded in the current board state.
 String buildSprintBriefPrompt(CockpitData c) {
   final s = c.sprint;
-  final overloaded = c.team.where((m) => m.isOverloaded).map((m) => '${m.handle} (${m.wip} WIP)').join(', ');
   final stuck = c.stuck
       .take(6)
       .map(
@@ -90,13 +89,12 @@ String buildSprintBriefPrompt(CockpitData c) {
   return '''
 You are briefing an engineering team lead on the health of their current sprint.
 Write 3-4 sentences of plain prose — no bullets, no heading, no preamble. Lead with the single
-biggest schedule risk, then call out who is overloaded and where work is backing up, and end with one
+biggest schedule risk, then call out where work is backing up, and end with one
 concrete suggestion. Be specific and reference the numbers.
 
 Sprint: ${s.name}, ${s.daysRemaining} days remaining.
 Status counts (of ${s.totalIssues}): ${s.done} done, ${s.inProgress} in progress, ${s.inReview} in review,
 ${s.notStarted} not started, ${s.atRisk} at risk, ${s.unestimated} unestimated.
-Overloaded members: ${overloaded.isEmpty ? 'none' : overloaded}.
 Aging / stuck items: ${stuck.isEmpty ? 'none' : stuck}.''';
 }
 
@@ -142,16 +140,14 @@ Forecast: ${r.forecastLabel}.''';
 String buildWeeklyDigestPrompt(CockpitData c) {
   final s = c.sprint;
   final shipped = c.team.fold<int>(0, (sum, m) => sum + m.done);
-  final overloaded = c.team.where((m) => m.isOverloaded).map((m) => '${m.handle} (${m.wip} WIP)').join(', ');
   final stuck = c.stuck.take(5).map((i) => '"${i.title}" (${i.ageDays}d)').join('; ');
   return '''
 Write a weekly digest for an engineering team lead reviewing the past week. Return ONLY markdown
-bullets, each starting with "- ". 4-6 bullets: what the team shipped, what is in flight, who is
-overloaded, what is stuck, and what to focus on next week. No heading, no preamble. Cite numbers.
+bullets, each starting with "- ". 4-6 bullets: what the team shipped, what is in flight,
+what is stuck, and what to focus on next week. No heading, no preamble. Cite numbers.
 
 Sprint context: ${s.name}, ${s.daysRemaining} days remaining.
 Closed this sprint (throughput): $shipped items; currently ${s.inProgress} in progress, ${s.inReview} in review, ${s.atRisk} at risk.
-Overloaded: ${overloaded.isEmpty ? 'none' : overloaded}.
 Stuck items: ${stuck.isEmpty ? 'none' : stuck}.''';
 }
 
