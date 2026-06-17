@@ -9,6 +9,7 @@ import '../../../features/needs_attention/presentation/providers/needs_attention
 import '../../../features/pr_inbox/presentation/providers/pr_inbox_provider.dart';
 import '../../../features/repo_setup/presentation/providers/auth_provider.dart';
 import '../../../features/repo_setup/presentation/providers/watched_repos_provider.dart';
+import '../providers/app_version_provider.dart';
 import '../theme/tb_text.dart';
 import '../theme/tb_tokens.dart';
 import '../widgets/tb_badge.dart';
@@ -28,6 +29,7 @@ class AppNavRail extends ConsumerWidget {
     final watched = ref.watch(watchedReposProvider);
     final auth = ref.watch(authStateProvider);
     final attentionCount = ref.watch(needsAttentionBadgeProvider);
+    final version = ref.watch(appVersionProvider).asData?.value;
     // maybeOf so the rail still renders in isolation (widget tests) without a router.
     final location = GoRouter.maybeOf(context)?.state.matchedLocation ?? '/';
 
@@ -112,6 +114,7 @@ class AppNavRail extends ConsumerWidget {
           // ── Footer ───────────────────────────────────────────────────────
           _RailFooter(
             login: login,
+            version: version,
             collapsed: collapsed,
             onSignOut: () => ref.read(authStateProvider.notifier).signOut(),
           ),
@@ -377,9 +380,10 @@ class _RepoItemState extends ConsumerState<_RepoItem> {
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 class _RailFooter extends StatefulWidget {
-  const _RailFooter({required this.login, required this.collapsed, required this.onSignOut});
+  const _RailFooter({required this.login, required this.version, required this.collapsed, required this.onSignOut});
 
   final String? login;
+  final String? version;
   final bool collapsed;
   final VoidCallback onSignOut;
 
@@ -455,6 +459,7 @@ class _RailFooterState extends State<_RailFooter> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        _versionLabel(center: true),
         _AvatarTile(initials: _initials),
         const SizedBox(height: 8),
         MouseRegion(
@@ -473,43 +478,65 @@ class _RailFooterState extends State<_RailFooter> {
     );
   }
 
+  /// Small `v0.1.1` label shown at the bottom of the rail, above the user row.
+  /// Hidden until [PackageInfo] resolves (instant in practice).
+  Widget _versionLabel({required bool center}) {
+    final v = widget.version;
+    if (v == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        'v$v',
+        textAlign: center ? TextAlign.center : TextAlign.start,
+        style: TbText.label(size: 9, color: TbColors.dim, tracking: 0.6, weight: FontWeight.w400),
+      ),
+    );
+  }
+
   Widget _buildExpanded() {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _AvatarTile(initials: _initials),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Sang Nguyen', style: TbText.body(size: 12, height: 1.2), overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 1),
-              Text(
-                widget.login ?? '—',
-                style: TbText.body(size: 11, color: TbColors.muted, height: 1.2),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 4),
-        MouseRegion(
-          onEnter: (_) => setState(() => _exitHovered = true),
-          onExit: (_) => setState(() => _exitHovered = false),
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () => _confirmSignOut(context),
-            child: Text(
-              'EXIT',
-              style: TbText.label(
-                size: 10,
-                color: _exitHovered ? const Color(0xFFE94A5F) : TbColors.dim,
-                tracking: 0.8,
-                weight: FontWeight.w400,
+        _versionLabel(center: false),
+        Row(
+          children: [
+            _AvatarTile(initials: _initials),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Sang Nguyen', style: TbText.body(size: 12, height: 1.2), overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 1),
+                  Text(
+                    widget.login ?? '—',
+                    style: TbText.body(size: 11, color: TbColors.muted, height: 1.2),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
-          ),
+            const SizedBox(width: 4),
+            MouseRegion(
+              onEnter: (_) => setState(() => _exitHovered = true),
+              onExit: (_) => setState(() => _exitHovered = false),
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => _confirmSignOut(context),
+                child: Text(
+                  'EXIT',
+                  style: TbText.label(
+                    size: 10,
+                    color: _exitHovered ? const Color(0xFFE94A5F) : TbColors.dim,
+                    tracking: 0.8,
+                    weight: FontWeight.w400,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
