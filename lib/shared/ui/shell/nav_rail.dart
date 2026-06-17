@@ -110,15 +110,29 @@ class AppNavRail extends ConsumerWidget {
               ),
             ),
           ),
+        _versionLabel(version, center: false),
 
           // ── Footer ───────────────────────────────────────────────────────
           _RailFooter(
             login: login,
-            version: version,
             collapsed: collapsed,
             onSignOut: () => ref.read(authStateProvider.notifier).signOut(),
           ),
         ],
+      ),
+    );
+  }
+      /// Small `v0.1.1` label shown at the bottom of the rail, above the user row.
+  /// Hidden until [PackageInfo] resolves (instant in practice).
+  Widget _versionLabel(String? version, {required bool center}) {
+
+    if (version == null) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.only(left: center ? 0 : 16, bottom: 8),
+      child: Text(
+        'v$version',
+        textAlign: center ? TextAlign.center : TextAlign.start,
+        style: TbText.label(size: 9, color: TbColors.dim, tracking: 0.6, weight: FontWeight.w400),
       ),
     );
   }
@@ -166,6 +180,8 @@ class _RailHeader extends StatelessWidget {
       ),
     );
   }
+
+
 }
 
 // ─── Section label ────────────────────────────────────────────────────────────
@@ -380,10 +396,9 @@ class _RepoItemState extends ConsumerState<_RepoItem> {
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 class _RailFooter extends StatefulWidget {
-  const _RailFooter({required this.login, required this.version, required this.collapsed, required this.onSignOut});
+  const _RailFooter({required this.login, required this.collapsed, required this.onSignOut});
 
   final String? login;
-  final String? version;
   final bool collapsed;
   final VoidCallback onSignOut;
 
@@ -459,7 +474,6 @@ class _RailFooterState extends State<_RailFooter> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _versionLabel(center: true),
         _AvatarTile(initials: _initials),
         const SizedBox(height: 8),
         MouseRegion(
@@ -478,27 +492,13 @@ class _RailFooterState extends State<_RailFooter> {
     );
   }
 
-  /// Small `v0.1.1` label shown at the bottom of the rail, above the user row.
-  /// Hidden until [PackageInfo] resolves (instant in practice).
-  Widget _versionLabel({required bool center}) {
-    final v = widget.version;
-    if (v == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        'v$v',
-        textAlign: center ? TextAlign.center : TextAlign.start,
-        style: TbText.label(size: 9, color: TbColors.dim, tracking: 0.6, weight: FontWeight.w400),
-      ),
-    );
-  }
+
 
   Widget _buildExpanded() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _versionLabel(center: false),
         Row(
           children: [
             _AvatarTile(initials: _initials),
@@ -613,3 +613,4 @@ class _DialogButtonState extends State<_DialogButton> {
     );
   }
 }
+

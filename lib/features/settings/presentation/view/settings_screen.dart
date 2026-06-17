@@ -330,13 +330,21 @@ class _WatchedReposSection extends HookConsumerWidget {
     final watched = ref.watch(watchedReposProvider);
     final accessibleAsync = ref.watch(accessibleReposProvider);
     final addController = useTextEditingController();
+    // Rebuild on each keystroke so the input doubles as a live filter.
+    useListenable(addController);
+    final query = addController.text.trim().toLowerCase();
 
     // Union of accessible repos and currently-watched slugs, with descriptions.
     final descBySlug = <String, String?>{};
     for (final r in accessibleAsync.asData?.value ?? const []) {
       descBySlug[r.nameWithOwner] = r.description;
     }
-    final slugs = {...descBySlug.keys, ...watched}.toList()..sort();
+    final allSlugs = {...descBySlug.keys, ...watched}.toList()..sort();
+    final slugs = query.isEmpty
+        ? allSlugs
+        : allSlugs
+              .where((s) => s.toLowerCase().contains(query) || (descBySlug[s]?.toLowerCase().contains(query) ?? false))
+              .toList();
 
     void add() {
       final value = addController.text.trim();
@@ -348,7 +356,7 @@ class _WatchedReposSection extends HookConsumerWidget {
     return _Card(
       title: 'Watched repositories',
       headerTrailing: Text(
-        '${watched.length} of ${slugs.length} watched',
+        '${watched.length} of ${allSlugs.length} watched',
         style: TbText.label(size: 10, weight: FontWeight.w400, color: TbColors.dim, tracking: 0.6),
       ),
       body: Column(
@@ -366,6 +374,11 @@ class _WatchedReposSection extends HookConsumerWidget {
                 'Could not load repositories. Add one manually below.',
                 style: TbText.body(size: 13, color: TbColors.muted),
               ),
+            )
+          else if (slugs.isEmpty && query.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Text('No repositories match “$query”.', style: TbText.body(size: 13, color: TbColors.muted)),
             )
           else if (slugs.isEmpty)
             Padding(
@@ -399,7 +412,7 @@ class _WatchedReposSection extends HookConsumerWidget {
                   child: TextField(
                     controller: addController,
                     style: TbText.body(size: 13),
-                    decoration: _fieldDecoration('owner/repo'),
+                    decoration: _fieldDecoration('Filter list, or type owner/repo to add'),
                     onSubmitted: (_) => add(),
                   ),
                 ),
