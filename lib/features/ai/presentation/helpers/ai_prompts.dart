@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../../issue_detail/data/models/issue_detail.dart';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
@@ -255,4 +256,40 @@ List<String> parseBullets(String response) {
       .map((l) => l.replaceFirst(RegExp(r'^[-*•]\s*'), ''))
       .where((l) => l.isNotEmpty)
       .toList();
+}
+
+/// 3-bullet TL;DR of an issue, grounded in title + body + key project fields.
+String buildIssueSummaryPrompt(IssueDetail i) {
+  final fields = [
+    if (i.status != null) 'Status: ${i.status!.name}',
+    if (i.priority != null) 'Priority: ${i.priority!.name.toUpperCase()}',
+    if (i.points != null) 'Estimate: ${i.points} pts',
+    if (i.hasSubIssues) 'Sub-issues: ${i.subDone}/${i.subTotal} done',
+    if (i.linkedPrs.isNotEmpty) 'Linked PRs: ${i.linkedPrs.length}',
+  ].join(' · ');
+  return '''
+Summarize this GitHub issue as exactly 3 short bullet points a busy engineer can skim. Each bullet on its own line starting with "- ". No preamble.
+
+Title: ${i.title}
+$fields
+
+Body:
+${i.bodyMarkdown}
+''';
+}
+
+/// One terse recommended next action, grounded in state + sub-issues + linked PRs.
+String buildNextActionPrompt(IssueDetail i) {
+  final signals = <String>[
+    'State: ${i.state.name}',
+    if (i.hasSubIssues) '${i.subTotal - i.subDone} sub-issues still open',
+    for (final pr in i.linkedPrs)
+      'PR #${pr.number} (${pr.title}): CI ${pr.ciState.name}, review ${pr.reviewState.name}, ${pr.mergeState.name}',
+  ].join('\n');
+  return '''
+Given this issue's state, recommend the single most useful NEXT action for the assignee, in one short sentence (max ~15 words). No preamble, no bullet — just the sentence.
+
+Issue: ${i.title}
+$signals
+''';
 }
