@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../features/issue_detail/presentation/view/issue_detail_screen.dart';
 import '../../features/lead_cockpit/presentation/view/lead_cockpit_screen.dart';
+import '../../features/projects_board/presentation/view/projects_board_screen.dart';
 import '../../features/needs_attention/presentation/view/needs_attention_screen.dart';
 import '../../features/pr_detail/presentation/view/pr_detail_screen.dart';
 import '../../features/pr_inbox/presentation/view/pr_inbox_screen.dart';
@@ -52,6 +53,11 @@ GoRouter appRouter(Ref ref) {
             path: '/lead-cockpit',
             name: LeadCockpitScreen.routeName,
             builder: (context, state) => _opaque(const LeadCockpitScreen()),
+          ),
+          GoRoute(
+            path: '/projects',
+            name: ProjectsBoardScreen.routeName,
+            builder: (context, state) => _opaque(const ProjectsBoardScreen()),
           ),
           GoRoute(
             path: '/sprint-report',

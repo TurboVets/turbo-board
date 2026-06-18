@@ -21,7 +21,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder: (_, __) => const IssueDetailScreen(owner: 'turbovets', repo: 'web-portal', number: 155),
+          builder: (_, _) => const IssueDetailScreen(owner: 'turbovets', repo: 'web-portal', number: 155),
         ),
       ],
     );

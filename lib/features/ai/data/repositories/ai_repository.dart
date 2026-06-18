@@ -7,6 +7,7 @@ import '../../../issue_detail/data/models/issue_detail.dart';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
+import '../../../projects_board/data/models/board_data.dart';
 import '../../../repo_setup/data/services/github_api_client.dart';
 import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../presentation/helpers/ai_prompts.dart';
@@ -46,6 +47,9 @@ abstract class AiRepository {
 
   /// One short recommended next action for an issue.
   Future<Result<String>> suggestNextAction(IssueDetail issue);
+
+  /// Per-column one-line board insights, keyed by status. Empty map if nothing notable.
+  Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board);
 }
 
 class AnthropicAiRepository implements AiRepository {
@@ -164,6 +168,17 @@ class AnthropicAiRepository implements AiRepository {
     } catch (e, stackTrace) {
       log('Failed to suggest next action', error: e, stackTrace: stackTrace);
       return Result.failure('Could not suggest a next action.', stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board) async {
+    try {
+      final text = await _anthropic.complete(prompt: buildBoardInsightsPrompt(board), maxTokens: 400);
+      return Result.success(parseBoardInsights(text));
+    } catch (e, stackTrace) {
+      log('Failed to generate board insights', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not generate board insights.', stackTrace);
     }
   }
 

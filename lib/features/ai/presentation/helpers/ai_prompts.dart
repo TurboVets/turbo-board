@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import '../../../issue_detail/data/models/issue_detail.dart';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
+import '../../../lead_cockpit/presentation/helpers/cockpit_palette.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
+import '../../../projects_board/data/models/board_data.dart' show ProjectBoardData;
 import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../data/models/triage_item.dart';
 
@@ -292,4 +294,55 @@ Given this issue's state, recommend the single most useful NEXT action for the a
 Issue: ${i.title}
 $signals
 ''';
+}
+
+// ─── Board column insights ───────────────────────────────────────────────────
+
+/// One-line-per-column board insight prompt. Grounded in derived facts (not raw
+/// cards) so it stays cheap and deterministic. Asks for a JSON object keyed by
+/// the column's display label.
+String buildBoardInsightsPrompt(ProjectBoardData board) {
+  final lines = <String>[];
+  for (final col in board.columns) {
+    if (col.facts.isEmpty) continue;
+    final f = col.facts;
+    final parts = <String>[
+      if (f.p0Unowned > 0) '${f.p0Unowned} P0 unowned',
+      if (f.missingEstimate > 0) '${f.missingEstimate} missing estimate',
+      if (f.stuckCount > 0) '${f.stuckCount} stuck',
+      if (f.ciRedNumbers.isNotEmpty) 'CI failing on #${f.ciRedNumbers.join(", #")}',
+    ];
+    lines.add('${col.label} (${col.count} items): ${parts.join("; ")}');
+  }
+  final facts = lines.isEmpty ? '(no notable signals)' : lines.join('\n');
+  return '''
+You are triaging a GitHub project board. For each column below, write ONE terse insight line (max ~8 words) a tech lead would care about — what is stuck, unowned, unestimated, or failing CI. Use the exact "·"-separated style, e.g. "2 stuck >4d · 1 P0 blocking · CI red on #155".
+
+Return ONLY a JSON object mapping the column name to its line. Omit columns with nothing notable.
+
+Columns and signals:
+$facts
+''';
+}
+
+/// Parses the model's JSON object (possibly wrapped in prose) into a status map.
+/// Keys are matched to [IssueStatus] by display label; empty values are dropped.
+Map<IssueStatus, String> parseBoardInsights(String text) {
+  final start = text.indexOf('{');
+  final end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) return const {};
+  Map<String, dynamic> raw;
+  try {
+    raw = jsonDecode(text.substring(start, end + 1)) as Map<String, dynamic>;
+  } catch (_) {
+    return const {};
+  }
+  final byLabel = {for (final s in IssueStatus.values) CockpitPalette.statusLabel(s).toLowerCase(): s};
+  final out = <IssueStatus, String>{};
+  raw.forEach((key, value) {
+    final status = byLabel[key.trim().toLowerCase()];
+    final line = value?.toString().trim() ?? '';
+    if (status != null && line.isNotEmpty) out[status] = line;
+  });
+  return out;
 }

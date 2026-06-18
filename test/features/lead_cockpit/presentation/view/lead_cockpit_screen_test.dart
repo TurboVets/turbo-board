@@ -13,6 +13,7 @@ import 'package:turbo_board/features/ai/presentation/providers/ai_provider.dart'
 import 'package:turbo_board/features/issue_detail/data/models/issue_detail.dart';
 import 'package:turbo_board/features/pr_inbox/data/models/pr_data.dart';
 import 'package:turbo_board/features/lead_cockpit/data/models/cockpit_data.dart';
+import 'package:turbo_board/features/projects_board/data/models/board_data.dart';
 import 'package:turbo_board/features/lead_cockpit/data/repositories/lead_cockpit_repository.dart';
 import 'package:turbo_board/features/lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import 'package:turbo_board/features/lead_cockpit/presentation/view/lead_cockpit_screen.dart';
@@ -46,6 +47,8 @@ class _StubAi implements AiRepository {
   Future<Result<List<String>>> summarizeIssue(IssueDetail issue) => throw UnimplementedError();
   @override
   Future<Result<String>> suggestNextAction(IssueDetail issue) => throw UnimplementedError();
+  @override
+  Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board) => throw UnimplementedError();
 }
 
 /// Selection notifier with a fixed value (no shared_preferences plugin in tests).
