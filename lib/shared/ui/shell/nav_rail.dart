@@ -14,6 +14,7 @@ import '../theme/tb_text.dart';
 import '../theme/tb_tokens.dart';
 import '../widgets/tb_badge.dart';
 import '../widgets/turbo_mark.dart';
+import '../widgets/whats_new_dialog.dart';
 
 /// Left navigation rail of the app shell. [collapsed] hides labels (tablet).
 class AppNavRail extends ConsumerWidget {
@@ -110,7 +111,7 @@ class AppNavRail extends ConsumerWidget {
               ),
             ),
           ),
-          _versionLabel(version, center: false),
+          _versionRow(context, version, collapsed),
 
           // ── Footer ───────────────────────────────────────────────────────
           _RailFooter(
@@ -123,16 +124,68 @@ class AppNavRail extends ConsumerWidget {
     );
   }
 
-  /// Small `v0.1.1` label shown at the bottom of the rail, above the user row.
-  /// Hidden until [PackageInfo] resolves (instant in practice).
-  Widget _versionLabel(String? version, {required bool center}) {
+  /// `v0.1.2` label at the bottom of the rail (above the user row) with a
+  /// "What's new" button at the end of the row. Hidden until [PackageInfo]
+  /// resolves (instant in practice). Collapsed: just the icon button.
+  Widget _versionRow(BuildContext context, String? version, bool collapsed) {
     if (version == null) return const SizedBox.shrink();
+    if (collapsed) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Center(child: _WhatsNewButton(version: version)),
+      );
+    }
     return Padding(
-      padding: EdgeInsets.only(left: center ? 0 : 16, bottom: 8),
-      child: Text(
-        'v$version',
-        textAlign: center ? TextAlign.center : TextAlign.start,
-        style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.8, weight: FontWeight.w600),
+      padding: const EdgeInsets.only(left: 16, right: 10, bottom: 8),
+      child: Row(
+        children: [
+          Text(
+            'v$version',
+            style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.8, weight: FontWeight.w600),
+          ),
+          const Spacer(),
+          _WhatsNewButton(version: version),
+        ],
+      ),
+    );
+  }
+}
+
+/// 24×24 icon button opening the "What's new" dialog for the running version.
+class _WhatsNewButton extends StatefulWidget {
+  const _WhatsNewButton({required this.version});
+
+  final String version;
+
+  @override
+  State<_WhatsNewButton> createState() => _WhatsNewButtonState();
+}
+
+class _WhatsNewButtonState extends State<_WhatsNewButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hover ? TbColors.cyan : TbColors.muted;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: () => showWhatsNewDialog(context, widget.version),
+        child: Tooltip(
+          message: "What's new",
+          child: Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border.all(color: _hover ? TbColors.blue : TbColors.border),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(LucideIcons.sparkles, size: 13, color: color),
+          ),
+        ),
       ),
     );
   }
