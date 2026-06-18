@@ -69,18 +69,25 @@ class BoardCardTile extends StatelessWidget {
     ],
   );
 
-  Widget _title() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      if (card.isDraft)
-        Padding(padding: const EdgeInsets.only(bottom: 4), child: TbBadge('Draft', TbSignal.gray, small: true)),
-      Text(
-        card.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: TbText.body(size: 13, weight: FontWeight.w600, color: TbColors.text, height: 1.4),
-      ),
-    ],
+  Widget _title() => Text.rich(
+    TextSpan(
+      children: [
+        if (card.isDraft)
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: TbBadge('Draft', TbSignal.gray, small: true),
+            ),
+          ),
+        TextSpan(
+          text: card.title,
+          style: TbText.body(size: 13, weight: FontWeight.w600, color: TbColors.text, height: 1.4),
+        ),
+      ],
+    ),
+    maxLines: 2,
+    overflow: TextOverflow.ellipsis,
   );
 
   Widget _metaRow() => Wrap(
@@ -155,12 +162,9 @@ class BoardCardTile extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < card.assignees.length; i++)
-          Padding(
-            padding: EdgeInsets.only(left: i == 0 ? 0 : 0),
-            child: Transform.translate(
-              offset: Offset(i == 0 ? 0 : -6.0 * i, 0),
-              child: TbAvatarTile(login: card.assignees[i], size: 21),
-            ),
+          Transform.translate(
+            offset: Offset(i == 0 ? 0 : -6.0 * i, 0),
+            child: TbAvatarTile(login: card.assignees[i], size: 21),
           ),
       ],
     );
