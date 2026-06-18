@@ -61,4 +61,15 @@ void main() {
     c.read(boardInsightsControllerProvider.notifier).clear();
     expect(c.read(boardInsightsControllerProvider), isNull);
   });
+
+  test('insights controller: error on generate failure', () async {
+    final ai = MockAiRepository();
+    when(ai.boardInsights(any)).thenAnswer((_) async => Result.failure('nope', StackTrace.current));
+    final c = ProviderContainer(overrides: [aiRepositoryProvider.overrideWithValue(ai)]);
+    addTearDown(c.dispose);
+
+    expect(c.read(boardInsightsControllerProvider), isNull);
+    await c.read(boardInsightsControllerProvider.notifier).generate(const ProjectBoardData(title: 'B'));
+    expect(c.read(boardInsightsControllerProvider)!.hasError, isTrue);
+  });
 }
