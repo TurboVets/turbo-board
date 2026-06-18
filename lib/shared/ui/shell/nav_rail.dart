@@ -110,7 +110,7 @@ class AppNavRail extends ConsumerWidget {
               ),
             ),
           ),
-        _versionLabel(version, center: false),
+          _versionLabel(version, center: false),
 
           // ── Footer ───────────────────────────────────────────────────────
           _RailFooter(
@@ -122,17 +122,17 @@ class AppNavRail extends ConsumerWidget {
       ),
     );
   }
-      /// Small `v0.1.1` label shown at the bottom of the rail, above the user row.
+
+  /// Small `v0.1.1` label shown at the bottom of the rail, above the user row.
   /// Hidden until [PackageInfo] resolves (instant in practice).
   Widget _versionLabel(String? version, {required bool center}) {
-
     if (version == null) return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.only(left: center ? 0 : 16, bottom: 8),
       child: Text(
         'v$version',
         textAlign: center ? TextAlign.center : TextAlign.start,
-        style: TbText.label(size: 9, color: TbColors.dim, tracking: 0.6, weight: FontWeight.w400),
+        style: TbText.label(size: 10, color: TbColors.muted, tracking: 0.8, weight: FontWeight.w600),
       ),
     );
   }
@@ -180,8 +180,6 @@ class _RailHeader extends StatelessWidget {
       ),
     );
   }
-
-
 }
 
 // ─── Section label ────────────────────────────────────────────────────────────
@@ -492,8 +490,6 @@ class _RailFooterState extends State<_RailFooter> {
     );
   }
 
-
-
   Widget _buildExpanded() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -613,4 +609,3 @@ class _DialogButtonState extends State<_DialogButton> {
     );
   }
 }
-
