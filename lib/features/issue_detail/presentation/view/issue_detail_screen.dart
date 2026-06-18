@@ -88,6 +88,15 @@ class IssueDetailScreen extends ConsumerWidget {
               'prDetail',
               pathParameters: {'owner': pr.owner, 'repo': pr.repo, 'number': pr.number.toString()},
             ),
+            onTapSub: (s) {
+              final parts = d.repo.split('/');
+              if (parts.length == 2) {
+                context.pushNamed(
+                  routeName,
+                  pathParameters: {'owner': parts[0], 'repo': parts[1], 'number': s.number.toString()},
+                );
+              }
+            },
           ),
         );
 
@@ -253,11 +262,12 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
 }
 
 class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.detail, required this.onTapRef, required this.onTapPr});
+  const _DetailBody({required this.detail, required this.onTapRef, required this.onTapPr, required this.onTapSub});
 
   final IssueDetail detail;
   final void Function(IssueRef) onTapRef;
   final void Function(LinkedPr) onTapPr;
+  final void Function(SubIssue) onTapSub;
 
   @override
   Widget build(BuildContext context) {
@@ -266,7 +276,7 @@ class _DetailBody extends StatelessWidget {
       children: [
         IssueDescriptionCard(issue: detail),
         const SizedBox(height: 16),
-        IssueSubIssuesCard(issue: detail, onTapSub: (_) {}),
+        IssueSubIssuesCard(issue: detail, onTapSub: onTapSub),
         if (detail.linkedPrs.isNotEmpty) ...[
           const SizedBox(height: 16),
           IssueLinkedPrsCard(prs: detail.linkedPrs, onTapPr: onTapPr),
