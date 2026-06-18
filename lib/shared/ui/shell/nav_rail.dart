@@ -88,6 +88,13 @@ class AppNavRail extends ConsumerWidget {
                     onTap: () => context.go('/lead-cockpit'),
                   ),
                   _NavItem(
+                    icon: LucideIcons.columns3,
+                    label: 'Projects board',
+                    collapsed: collapsed,
+                    active: location == '/projects',
+                    onTap: () => context.go('/projects'),
+                  ),
+                  _NavItem(
                     icon: LucideIcons.chartNoAxesColumn,
                     label: 'Sprint report',
                     collapsed: collapsed,
