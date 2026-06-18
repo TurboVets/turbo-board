@@ -12,8 +12,10 @@ import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import '../../../lead_cockpit/presentation/view/widgets/project_picker.dart';
 import '../../data/models/board_data.dart';
+import '../../data/repositories/board_mapper.dart';
 import '../providers/projects_board_provider.dart';
 import 'widgets/board_column.dart';
+import 'widgets/board_sprint_tabs.dart';
 import 'widgets/board_topbar.dart';
 import 'widgets/phone_column_selector.dart';
 
@@ -39,36 +41,42 @@ class ProjectsBoardScreen extends HookConsumerWidget {
   }
 }
 
-class _BoardBody extends HookWidget {
+class _BoardBody extends HookConsumerWidget {
   const _BoardBody({required this.board});
   final ProjectBoardData board;
 
   @override
-  Widget build(BuildContext context) {
-    final phoneIndex = useState(_defaultIndex(board));
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Filter the board to the selected sprint tab (default: current sprint).
+    // `view` keeps the full sprint catalog, so the tabs still render below.
+    final tab = ref.watch(selectedSprintTabProvider);
+    final view = boardForSprint(board, sprintTitleForTab(board.sprints, tab));
+    final phoneIndex = useState(_defaultIndex(view));
 
-    if (board.columns.isEmpty) {
+    if (view.columns.isEmpty) {
       return const Center(child: Text('No columns'));
     }
 
     return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        BoardTopbar(board: board),
+        BoardTopbar(board: view),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 0, 22, 0),
+          child: BoardSprintTabs(board: view),
+        ),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth < TbBreakpoints.mobile) {
-                final i = phoneIndex.value.clamp(0, board.columns.length - 1);
+                final i = phoneIndex.value.clamp(0, view.columns.length - 1);
                 return Column(
                   children: [
-                    PhoneColumnSelector(
-                      columns: board.columns,
-                      selectedIndex: i,
-                      onSelect: (n) => phoneIndex.value = n,
-                    ),
+                    PhoneColumnSelector(columns: view.columns, selectedIndex: i, onSelect: (n) => phoneIndex.value = n),
                     Expanded(
                       child: BoardColumnView(
-                        column: board.columns[i],
+                        column: view.columns[i],
                         width: double.infinity,
                         onCardTap: (c) => _openCard(context, c),
                       ),
@@ -78,17 +86,17 @@ class _BoardBody extends HookWidget {
               }
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.all(22),
+                padding: const EdgeInsets.only(left: 22, right: 22),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (var i = 0; i < board.columns.length; i++) ...[
+                    for (var i = 0; i < view.columns.length; i++) ...[
                       if (i > 0) const SizedBox(width: 14),
                       SizedBox(
                         height: (constraints.maxHeight - 44).clamp(0, double.infinity),
                         child: BoardColumnView(
-                          column: board.columns[i],
-                          width: board.columns[i].status == IssueStatus.inProgress ? 272 : 236,
+                          column: view.columns[i],
+                          width: view.columns[i].status == IssueStatus.inProgress ? 272 : 236,
                           onCardTap: (c) => _openCard(context, c),
                         ),
                       ),

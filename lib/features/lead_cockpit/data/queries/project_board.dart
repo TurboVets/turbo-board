@@ -5,11 +5,26 @@
 /// Selects both Issues and Pull Requests. `$org` + `$number` address the board;
 /// `$first`/`$after` paginate `items`. Custom fields (Status / Priority / Complexity / Sprint)
 /// are read from each item's `fieldValues` — the plain Issues REST/Search API cannot see them.
+///
+/// `fields` carries the Sprint iteration field's full configuration so the sprint
+/// catalog includes iterations with no items yet (e.g. the upcoming "next" sprint),
+/// which the per-item `fieldValues` alone cannot reveal.
 const String projectBoardQuery = r'''
 query ProjectBoard($org: String!, $number: Int!, $first: Int!, $after: String) {
   organization(login: $org) {
     projectV2(number: $number) {
       title
+      fields(first: 50) {
+        nodes {
+          ... on ProjectV2IterationField {
+            name
+            configuration {
+              iterations { title startDate duration }
+              completedIterations { title startDate duration }
+            }
+          }
+        }
+      }
       items(first: $first, after: $after) {
         pageInfo { hasNextPage endCursor }
         nodes {

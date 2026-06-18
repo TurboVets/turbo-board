@@ -6,8 +6,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../lead_cockpit/data/models/cockpit_data.dart';
-import '../../../../lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
-import '../../../../lead_cockpit/presentation/view/widgets/project_picker.dart';
 import '../../../data/models/board_data.dart';
 import '../../providers/projects_board_provider.dart';
 
@@ -40,8 +38,6 @@ class BoardTopbar extends ConsumerWidget {
               style: TbText.label(size: 14, weight: FontWeight.w600, tracking: 0.5),
             ),
           ),
-          const SizedBox(width: 14),
-          _pickerButton(context, ref),
           const Spacer(),
           _aiCta(ref, insights),
           const SizedBox(width: 10),
@@ -60,30 +56,6 @@ class BoardTopbar extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _pickerButton(BuildContext context, WidgetRef ref) => OutlinedButton.icon(
-    icon: const Icon(LucideIcons.chevronDown, size: 13, color: TbColors.dim),
-    label: Text('Switch board', style: TbText.label(size: 11, color: TbColors.muted, tracking: 0.3)),
-    style: OutlinedButton.styleFrom(side: const BorderSide(color: TbColors.border)),
-    onPressed: () => showDialog<void>(
-      context: context,
-      builder: (_) => Dialog(
-        backgroundColor: TbColors.surface,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: ProjectPickerList(
-            selectedKey: ref.read(selectedProjectProvider)?.key,
-            onSelected: (p) {
-              ref.read(selectedProjectProvider.notifier).select(p);
-              ref.invalidate(projectsBoardProvider);
-              ref.read(boardInsightsControllerProvider.notifier).clear();
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
-      ),
-    ),
-  );
 
   Widget _aiCta(WidgetRef ref, AsyncValue<Map<IssueStatus, String>>? insights) {
     final loading = insights?.isLoading ?? false;

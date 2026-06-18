@@ -36,6 +36,7 @@ class GithubProjectsBoardRepository implements ProjectsBoardRepository {
     try {
       final nodes = <Map<String, dynamic>>[];
       String? boardTitle;
+      var iterations = const <Map<String, dynamic>>[];
       String? after;
       for (var page = 0; page < _maxPages; page++) {
         final data = await _client.graphql(projectBoardQuery, {
@@ -49,6 +50,8 @@ class GithubProjectsBoardRepository implements ProjectsBoardRepository {
           return Result.failure('No access to project #$projectNumber in $org.', StackTrace.current);
         }
         boardTitle ??= project['title'] as String?;
+        // The field config repeats on every page; capture it once from page 1.
+        if (page == 0) iterations = _iterationConfig(project);
         final items = project['items'] as Map<String, dynamic>?;
         nodes.addAll(((items?['nodes'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>());
         final pageInfo = items?['pageInfo'] as Map<String, dynamic>?;
@@ -56,11 +59,31 @@ class GithubProjectsBoardRepository implements ProjectsBoardRepository {
         after = pageInfo?['endCursor'] as String?;
         if (after == null) break;
       }
-      return Result.success(boardFromProjectItems(boardTitle ?? 'Project board', nodes, now: _clock()));
+      return Result.success(
+        boardFromProjectItems(boardTitle ?? 'Project board', nodes, now: _clock(), iterations: iterations),
+      );
     } catch (e, stackTrace) {
       log('Failed to fetch board', error: e, stackTrace: stackTrace);
       return Result.failure(_scopeAwareMessage(e, 'Failed to load the project board'), stackTrace);
     }
+  }
+
+  /// Pulls the Sprint iteration field's full iteration list (completed + active,
+  /// oldest → newest) from the project `fields`. This includes iterations that
+  /// no item is assigned to yet — e.g. the upcoming "next" sprint.
+  List<Map<String, dynamic>> _iterationConfig(Map<String, dynamic> project) {
+    final fields = (project['fields']?['nodes'] as List<dynamic>?) ?? const [];
+    for (final f in fields) {
+      if (f is! Map<String, dynamic>) continue;
+      final config = f['configuration'];
+      if (config is! Map<String, dynamic>) continue;
+      if ((f['name'] as String?)?.toLowerCase() != 'sprint') continue;
+      return [
+        ...((config['completedIterations'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>(),
+        ...((config['iterations'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>(),
+      ];
+    }
+    return const [];
   }
 
   String _scopeAwareMessage(Object e, String fallback) => e.toString().contains('read:project')

@@ -5,6 +5,11 @@
 // - Drops cancelled items entirely.
 // - Flags staleDays once past stuckAfterDays.
 // - Computes ColumnFacts: p0Unowned, missingEstimate, stuckCount, ciRedNumbers.
+// - Parses the Sprint iteration value onto each card.
+// - Builds the sprint catalog oldest->newest and flags the current iteration.
+// - boardForSprint filters columns to one iteration and recomputes facts; null = unchanged.
+// - sprintTitleForTab resolves current/previous/next/all against the catalog.
+// - The iteration field config drives the catalog so empty future sprints appear.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turbo_board/features/lead_cockpit/data/models/cockpit_data.dart';
 import 'package:turbo_board/features/lead_cockpit/data/repositories/cockpit_mapper.dart' show stuckAfterDays;
@@ -20,6 +25,9 @@ Map<String, dynamic> issueNode({
   List<int>? sub,
   List<String> assignees = const [],
   String updatedAt = '2026-06-18T00:00:00Z',
+  String? sprintTitle,
+  String? sprintStart,
+  int sprintDuration = 14,
 }) => {
   'updatedAt': updatedAt,
   'content': {
@@ -56,6 +64,14 @@ Map<String, dynamic> issueNode({
           '__typename': 'ProjectV2ItemFieldNumberValue',
           'number': complexity,
           'field': {'name': 'Complexity'},
+        },
+      if (sprintTitle != null)
+        {
+          '__typename': 'ProjectV2ItemFieldIterationValue',
+          'title': sprintTitle,
+          'startDate': sprintStart,
+          'duration': sprintDuration,
+          'field': {'name': 'Sprint'},
         },
     ],
   },
@@ -173,5 +189,68 @@ void main() {
     expect(facts.missingEstimate, 3);
     expect(facts.ciRedNumbers, [6]);
     expect(facts.stuckCount, 1);
+  });
+
+  // ── Sprint (iteration) handling ───────────────────────────────────────────
+
+  // Three back-to-back 14-day sprints; sprintNow (Jun 10) sits inside Sprint 24
+  // (Jun 3 → Jun 17). Sprint 23: May 20 → Jun 3. Sprint 25: Jun 17 → Jul 1.
+  final sprintNow = DateTime.parse('2026-06-10T00:00:00Z');
+  Map<String, dynamic> sprintIssue(int n, String sprint, String start) =>
+      issueNode(number: n, title: 'I$n', sprintTitle: sprint, sprintStart: start);
+  List<Map<String, dynamic>> threeSprintNodes() => [
+    sprintIssue(1, 'Sprint 23', '2026-05-20T00:00:00Z'),
+    sprintIssue(2, 'Sprint 24', '2026-06-03T00:00:00Z'),
+    sprintIssue(3, 'Sprint 24', '2026-06-03T00:00:00Z'),
+    sprintIssue(4, 'Sprint 25', '2026-06-17T00:00:00Z'),
+  ];
+
+  test('parses the sprint iteration value onto each card', () {
+    final b = boardFromProjectItems('B', [
+      issueNode(number: 1, title: 'In sprint', sprintTitle: 'Sprint 24', sprintStart: '2026-06-03T00:00:00Z'),
+    ], now: sprintNow);
+    expect(columnFor(b, IssueStatus.inProgress).cards.single.sprint, 'Sprint 24');
+  });
+
+  test('builds sprint catalog oldest->newest and flags the current iteration', () {
+    final b = boardFromProjectItems('B', threeSprintNodes(), now: sprintNow);
+    expect(b.sprints.map((s) => s.title).toList(), ['Sprint 23', 'Sprint 24', 'Sprint 25']);
+    expect(b.sprints.where((s) => s.isCurrent).map((s) => s.title).toList(), ['Sprint 24']);
+    expect(b.sprints.firstWhere((s) => s.title == 'Sprint 24').end, DateTime.parse('2026-06-17T00:00:00Z'));
+  });
+
+  test('boardForSprint filters to one iteration and recomputes counts', () {
+    final b = boardFromProjectItems('B', threeSprintNodes(), now: sprintNow);
+    final filtered = boardForSprint(b, 'Sprint 24');
+    expect(columnFor(filtered, IssueStatus.inProgress).cards.map((c) => c.number).toList(), [2, 3]);
+    // null title (All Tasks) returns the board unchanged.
+    expect(boardForSprint(b, null), same(b));
+  });
+
+  test('sprintTitleForTab resolves current/previous/next/all', () {
+    final s = boardFromProjectItems('B', threeSprintNodes(), now: sprintNow).sprints;
+    expect(sprintTitleForTab(s, SprintTab.current), 'Sprint 24');
+    expect(sprintTitleForTab(s, SprintTab.previous), 'Sprint 23');
+    expect(sprintTitleForTab(s, SprintTab.next), 'Sprint 25');
+    expect(sprintTitleForTab(s, SprintTab.all), isNull);
+    // No catalog at all -> every tab resolves to null (no filtering).
+    expect(sprintTitleForTab(const [], SprintTab.current), isNull);
+  });
+
+  test('iteration config drives the catalog, including an empty future sprint', () {
+    // Only Sprint 24 has an item; the field config still lists 23/24/25, so the
+    // "next" sprint (25, no items) must appear and resolve.
+    final b = boardFromProjectItems(
+      'B',
+      [sprintIssue(1, 'Sprint 24', '2026-06-03T00:00:00Z')],
+      now: sprintNow,
+      iterations: [
+        {'title': 'Sprint 23', 'startDate': '2026-05-20', 'duration': 14},
+        {'title': 'Sprint 24', 'startDate': '2026-06-03', 'duration': 14},
+        {'title': 'Sprint 25', 'startDate': '2026-06-17', 'duration': 14},
+      ],
+    );
+    expect(b.sprints.map((s) => s.title).toList(), ['Sprint 23', 'Sprint 24', 'Sprint 25']);
+    expect(sprintTitleForTab(b.sprints, SprintTab.next), 'Sprint 25');
   });
 }

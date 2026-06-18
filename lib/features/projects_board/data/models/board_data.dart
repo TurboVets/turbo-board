@@ -42,6 +42,10 @@ sealed class BoardCard with _$BoardCard {
 
     /// Repo owner login, used to build the PR-detail route on tap.
     String? owner,
+
+    /// Iteration (sprint) title this item is assigned to, from the board's
+    /// `Sprint` iteration field; null when the item is in no sprint.
+    String? sprint,
   }) = _BoardCard;
 
   factory BoardCard.fromJson(Map<String, dynamic> json) => _$BoardCardFromJson(json);
@@ -83,13 +87,39 @@ sealed class BoardColumn with _$BoardColumn {
   int get count => cards.length;
 }
 
-/// The whole board: title + ordered columns.
+/// One iteration (sprint) from the board's `Sprint` iteration field.
+@freezed
+sealed class BoardSprint with _$BoardSprint {
+  const BoardSprint._();
+
+  const factory BoardSprint({
+    required String title,
+    required DateTime start,
+    @Default(14) int durationDays,
+
+    /// True for the iteration whose window contains "now".
+    @Default(false) bool isCurrent,
+  }) = _BoardSprint;
+
+  factory BoardSprint.fromJson(Map<String, dynamic> json) => _$BoardSprintFromJson(json);
+
+  DateTime get end => start.add(Duration(days: durationDays));
+}
+
+/// The sprint filter tabs shown above the board.
+enum SprintTab { current, previous, next, all }
+
+/// The whole board: title + ordered columns + the sprint catalog (oldest →
+/// newest) used to drive the sprint filter tabs.
 @freezed
 sealed class ProjectBoardData with _$ProjectBoardData {
   const ProjectBoardData._();
 
-  const factory ProjectBoardData({required String title, @Default(<BoardColumn>[]) List<BoardColumn> columns}) =
-      _ProjectBoardData;
+  const factory ProjectBoardData({
+    required String title,
+    @Default(<BoardColumn>[]) List<BoardColumn> columns,
+    @Default(<BoardSprint>[]) List<BoardSprint> sprints,
+  }) = _ProjectBoardData;
 
   factory ProjectBoardData.fromJson(Map<String, dynamic> json) => _$ProjectBoardDataFromJson(json);
 

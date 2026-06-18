@@ -29,6 +29,18 @@ Future<ProjectBoardData> projectsBoard(Ref ref) async {
   );
 }
 
+/// Which sprint filter tab the board is showing. Defaults to the current
+/// sprint, per the design — the board opens on the in-flight iteration. Resets
+/// to current when the screen is rebuilt (auto-dispose) so a fresh visit always
+/// lands on "now".
+@riverpod
+class SelectedSprintTab extends _$SelectedSprintTab {
+  @override
+  SprintTab build() => SprintTab.current;
+
+  void select(SprintTab tab) => state = tab;
+}
+
 /// On-demand AI column insights. `null` = not requested yet (mirrors the cockpit
 /// brief / PR summary controllers). Never auto-fires.
 @riverpod
