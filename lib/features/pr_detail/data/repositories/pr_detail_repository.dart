@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:collection/collection.dart';
 import 'package:turbo_core/core.dart';
 
+import '../../../issue_detail/data/models/issue_detail.dart' show IssueRef;
 import '../../../pr_inbox/data/models/pr_data.dart' show PrReviewState;
 import '../../../repo_setup/data/services/github_api_client.dart';
 import '../models/pr_check.dart';
@@ -130,6 +131,16 @@ PrDetail prDetailFromNode(String owner, String name, Map<String, dynamic> repoNo
     mergeCommitAllowed: (repoNode['mergeCommitAllowed'] as bool?) ?? false,
     squashMergeAllowed: (repoNode['squashMergeAllowed'] as bool?) ?? false,
     rebaseMergeAllowed: (repoNode['rebaseMergeAllowed'] as bool?) ?? false,
+    linkedIssues: ((pr['closingIssuesReferences']?['nodes'] as List<dynamic>?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (i) => IssueRef(
+            repo: (i['repository']?['nameWithOwner'] as String?) ?? '',
+            number: (i['number'] as num?)?.toInt() ?? 0,
+            title: (i['title'] as String?) ?? '',
+          ),
+        )
+        .toList(),
   );
 }
 

@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:turbo_core/core.dart';
 
+import '../../../issue_detail/data/models/issue_detail.dart';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
@@ -40,6 +41,12 @@ abstract class AiRepository {
   /// Ranks the most action-worthy open PRs (review first / unblock / merge /
   /// nudge) from the current board.
   Future<Result<List<TriageItem>>> triage(List<PrData> prs);
+
+  /// 3-bullet TL;DR of an issue (title + body + fields).
+  Future<Result<List<String>>> summarizeIssue(IssueDetail issue);
+
+  /// One short recommended next action for an issue.
+  Future<Result<String>> suggestNextAction(IssueDetail issue);
 
   /// Per-column one-line board insights, keyed by status. Empty map if nothing notable.
   Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board);
@@ -136,6 +143,31 @@ class AnthropicAiRepository implements AiRepository {
     } catch (e, stackTrace) {
       log('Failed to triage PRs', error: e, stackTrace: stackTrace);
       return Result.failure('Could not triage the board.', stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<List<String>>> summarizeIssue(IssueDetail issue) async {
+    try {
+      final text = await _anthropic.complete(prompt: buildIssueSummaryPrompt(issue), maxTokens: 350);
+      final bullets = parseBullets(text);
+      if (bullets.isEmpty) return Result.failure('The model returned an empty summary.', StackTrace.current);
+      return Result.success(bullets);
+    } catch (e, stackTrace) {
+      log('Failed to summarize issue', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not generate a summary.', stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<String>> suggestNextAction(IssueDetail issue) async {
+    try {
+      final text = (await _anthropic.complete(prompt: buildNextActionPrompt(issue), maxTokens: 120)).trim();
+      if (text.isEmpty) return Result.failure('The model returned no suggestion.', StackTrace.current);
+      return Result.success(text);
+    } catch (e, stackTrace) {
+      log('Failed to suggest next action', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not suggest a next action.', stackTrace);
     }
   }
 

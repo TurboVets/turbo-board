@@ -26,6 +26,9 @@ query PrDetail($owner: String!, $name: String!, $number: Int!) {
       comments(first: 100) {
         nodes { author { login } body createdAt }
       }
+      closingIssuesReferences(first: 10) {
+        nodes { number title state repository { nameWithOwner } }
+      }
       timelineItems(
         first: 100
         itemTypes: [

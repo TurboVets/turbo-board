@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
+import '../../../issue_detail/data/models/issue_detail.dart';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
@@ -212,6 +213,40 @@ class WeeklyDigestController extends _$WeeklyDigestController {
   Future<void> generate(CockpitData cockpit) async {
     state = const AsyncValue.loading();
     final result = await ref.read(aiRepositoryProvider).weeklyDigest(cockpit);
+    state = switch (result) {
+      ResultSuccess(:final data) => AsyncValue.data(data),
+      ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+    };
+  }
+
+  void clear() => state = null;
+}
+
+/// On-demand issue TL;DR, keyed by issue slug. `null` = not requested yet.
+@riverpod
+class IssueSummaryController extends _$IssueSummaryController {
+  @override
+  AsyncValue<List<String>>? build(String slug) => null;
+
+  Future<void> generate(IssueDetail issue) async {
+    state = const AsyncValue.loading();
+    final result = await ref.read(aiRepositoryProvider).summarizeIssue(issue);
+    state = switch (result) {
+      ResultSuccess(:final data) => AsyncValue.data(data),
+      ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+    };
+  }
+}
+
+/// On-demand "suggest next action", keyed by issue slug. `null` = not requested.
+@riverpod
+class IssueNextActionController extends _$IssueNextActionController {
+  @override
+  AsyncValue<String>? build(String slug) => null;
+
+  Future<void> generate(IssueDetail issue) async {
+    state = const AsyncValue.loading();
+    final result = await ref.read(aiRepositoryProvider).suggestNextAction(issue);
     state = switch (result) {
       ResultSuccess(:final data) => AsyncValue.data(data),
       ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),

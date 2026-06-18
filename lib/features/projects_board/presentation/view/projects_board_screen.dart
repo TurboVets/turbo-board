@@ -117,10 +117,12 @@ class _BoardBody extends HookConsumerWidget {
   }
 
   void _openCard(BuildContext context, BoardCard card) {
-    if (card.isPr && card.owner != null) {
+    if (card.owner == null) {
+      _openOnGithub(card);
+    } else if (card.isPr) {
       context.push('/pr/${card.owner}/${card.repo}/${card.number}');
     } else {
-      _openOnGithub(card);
+      context.push('/issue/${card.owner}/${card.repo}/${card.number}');
     }
   }
 }
@@ -180,9 +182,10 @@ class _ErrorState extends StatelessWidget {
   );
 }
 
-/// Opens a board card's URL on GitHub. For issues it builds the URL from the
-/// card's owner/repo/number. For PRs this helper is not used (routed in-app).
-/// Mirrors [StuckIssueRow]'s `launchUrl` + [LaunchMode.externalApplication].
+/// Fallback for cards with no known owner: opens the card on GitHub, built from
+/// owner/repo/number. PR and issue cards with an owner are routed in-app
+/// (`/pr/...` and `/issue/...`); this is only reached when [BoardCard.owner] is
+/// null. Mirrors [StuckIssueRow]'s `launchUrl` + [LaunchMode.externalApplication].
 void _openOnGithub(BoardCard card) {
   final owner = card.owner;
   if (owner == null) return;

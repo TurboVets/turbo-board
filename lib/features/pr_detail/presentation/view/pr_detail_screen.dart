@@ -14,6 +14,7 @@ import '../../../../shared/ui/widgets/open_on_github_button.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
 import '../../../ai/presentation/view/widgets/pr_summary_card.dart';
 import '../../../ai/presentation/view/widgets/reply_drafter.dart';
+import '../../../issue_detail/data/models/issue_detail.dart' show IssueRef;
 import '../../data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart' show PrReviewState;
 import '../providers/pr_detail_provider.dart';
@@ -263,6 +264,10 @@ class _DetailBody extends StatelessWidget {
         const SizedBox(height: 12),
         PrReviewersCard(reviewers: detail.reviewers),
         if (detail.lastCommit != null) ...[const SizedBox(height: 12), PrCommitCard(commit: detail.lastCommit!)],
+        if (detail.linkedIssues.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _LinkedIssuesCard(issues: detail.linkedIssues),
+        ],
       ],
     );
 
@@ -456,3 +461,65 @@ TbSignal _reviewDecisionSignal(PrReviewState s) => switch (s) {
   PrReviewState.approved => TbSignal.ok,
   PrReviewState.waitingOnAuthor => TbSignal.gray,
 };
+
+class _LinkedIssuesCard extends StatelessWidget {
+  const _LinkedIssuesCard({required this.issues});
+  final List<IssueRef> issues;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: TbColors.surface,
+        border: Border.all(color: TbColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+            decoration: const BoxDecoration(
+              color: TbColors.surface2,
+              border: Border(bottom: BorderSide(color: TbColors.border)),
+            ),
+            child: Text(
+              'LINKED ISSUES',
+              style: TbText.label(size: 10, weight: FontWeight.w600, color: TbColors.muted, tracking: 1.4),
+            ),
+          ),
+          for (int idx = 0; idx < issues.length; idx++)
+            DecoratedBox(
+              decoration: BoxDecoration(
+                border: idx == issues.length - 1 ? null : const Border(bottom: BorderSide(color: TbColors.border)),
+              ),
+              child: InkWell(
+                onTap: () {
+                  final p = issues[idx].repo.split('/');
+                  if (p.length == 2) context.push('/issue/${p[0]}/${p[1]}/${issues[idx].number}');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                  child: Row(
+                    children: [
+                      Text('#${issues[idx].number}', style: TbText.label(size: 10, color: TbColors.dim)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          issues[idx].title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TbText.body(size: 13, color: TbColors.cyan),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
