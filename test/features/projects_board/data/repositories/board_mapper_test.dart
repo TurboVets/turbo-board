@@ -253,4 +253,25 @@ void main() {
     expect(b.sprints.map((s) => s.title).toList(), ['Sprint 23', 'Sprint 24', 'Sprint 25']);
     expect(sprintTitleForTab(b.sprints, SprintTab.next), 'Sprint 25');
   });
+
+  test('config catalog is sorted chronologically and uses currentSprint', () {
+    // GitHub order: completed newest-first then the active iteration — unsorted.
+    final b = boardFromProjectItems(
+      'B',
+      const [],
+      now: sprintNow,
+      currentSprint: 'Sprint 5',
+      iterations: [
+        {'title': 'Sprint 4', 'startDate': '2026-06-03', 'duration': 14},
+        {'title': 'Sprint 3', 'startDate': '2026-05-20', 'duration': 14},
+        {'title': 'Sprint 2', 'startDate': '2026-05-06', 'duration': 14},
+        {'title': 'Sprint 1', 'startDate': '2026-04-22', 'duration': 14},
+        {'title': 'Sprint 5', 'startDate': '2026-06-17', 'duration': 14},
+      ],
+    );
+    expect(b.sprints.map((s) => s.title).toList(), ['Sprint 1', 'Sprint 2', 'Sprint 3', 'Sprint 4', 'Sprint 5']);
+    expect(b.sprints.where((s) => s.isCurrent).map((s) => s.title).toList(), ['Sprint 5']);
+    expect(sprintTitleForTab(b.sprints, SprintTab.previous), 'Sprint 4'); // not Sprint 1
+    expect(sprintTitleForTab(b.sprints, SprintTab.next), isNull); // Sprint 5 is the latest
+  });
 }

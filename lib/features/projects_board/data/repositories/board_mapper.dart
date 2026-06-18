@@ -7,18 +7,23 @@ import '../../../lead_cockpit/data/repositories/cockpit_mapper.dart' show stuckA
 import '../../../lead_cockpit/presentation/helpers/cockpit_palette.dart';
 import '../models/board_data.dart';
 
-/// [iterations] is the Sprint field's full iteration config (oldest → newest,
-/// from the project `fields`); when supplied it defines the catalog so empty
-/// future iterations still appear. When empty (mock/tests) the catalog is
-/// derived from the iteration values present on the items.
+/// [iterations] is the iteration field's full config (oldest → newest, from the
+/// project `fields`); when supplied it defines the catalog so empty future
+/// iterations still appear. [currentSprint] is GitHub's current (first active)
+/// iteration title — authoritative, used in preference to date math. When
+/// [iterations] is empty (mock/tests) the catalog is derived from the iteration
+/// values present on the items, with the current sprint detected by date.
 ProjectBoardData boardFromProjectItems(
   String title,
   List<Map<String, dynamic>> nodes, {
   required DateTime now,
   List<Map<String, dynamic>> iterations = const [],
+  String? currentSprint,
 }) {
   final cards = nodes.map((n) => _parseCard(n, now)).whereType<BoardCard>().toList();
-  final sprints = iterations.isNotEmpty ? _sprintsFromConfig(iterations, now) : _sprintsFromItems(nodes, now);
+  final sprints = iterations.isNotEmpty
+      ? _sprintsFromConfig(iterations, now, currentSprint)
+      : _sprintsFromItems(nodes, now);
   return ProjectBoardData(title: title, columns: _columnsFrom(cards), sprints: sprints);
 }
 
@@ -58,20 +63,27 @@ List<BoardColumn> _columnsFrom(List<BoardCard> cards) => [
     ),
 ];
 
-/// Builds the catalog from the Sprint field's iteration config (each entry has
-/// `title` / `startDate` / `duration`). Authoritative — includes iterations no
-/// item is assigned to yet, such as the upcoming "next" sprint.
-List<BoardSprint> _sprintsFromConfig(List<Map<String, dynamic>> iterations, DateTime now) {
-  final starts = <String, DateTime>{};
-  final durations = <String, int>{};
+/// Builds the catalog from the iteration field's config (each entry has
+/// `title` / `startDate` / `duration`), preserving GitHub's oldest → newest
+/// order. Authoritative — includes iterations no item is assigned to yet, such
+/// as the upcoming "next" sprint. The current iteration is [currentSprint] (the
+/// title GitHub reports), falling back to the date window when null.
+List<BoardSprint> _sprintsFromConfig(List<Map<String, dynamic>> iterations, DateTime now, String? currentSprint) {
+  final list = <BoardSprint>[];
   for (final it in iterations) {
     final title = it['title'] as String?;
     final start = DateTime.tryParse((it['startDate'] as String?) ?? '');
     if (title == null || start == null) continue;
-    starts.putIfAbsent(title, () => start);
-    durations.putIfAbsent(title, () => (it['duration'] as num?)?.toInt() ?? 14);
+    final duration = (it['duration'] as num?)?.toInt() ?? 14;
+    final isCurrent = currentSprint != null
+        ? title == currentSprint
+        : !now.isBefore(start) && now.isBefore(start.add(Duration(days: duration)));
+    list.add(BoardSprint(title: title, start: start, durationDays: duration, isCurrent: isCurrent));
   }
-  return _buildCatalog(starts, durations, now);
+  // GitHub returns completedIterations newest-first; sort so previous/next
+  // resolve against true chronological neighbours.
+  list.sort((a, b) => a.start.compareTo(b.start));
+  return list;
 }
 
 /// Fallback catalog derived from the iteration values present on the items.
