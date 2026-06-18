@@ -22,7 +22,7 @@ This is the first of two features; **Issue Detail** follows in a separate cycle.
 | Data source | **Live GitHub**, reusing the lead_cockpit ProjectV2 query + pagination + project picker |
 | Card interaction | **Read-only** — no drag. PR cards open the existing PR Detail overlay; issue cards open on GitHub (issue detail is the next feature) |
 | Placement | **New feature** `lib/features/projects_board/` + route `/projects` |
-| Column "AI" summary | **Computed locally** (heuristic), no Anthropic call in v1 — see below |
+| Column "AI" summary | **Real Anthropic call** (BYOK), **on-demand via a CTA** — never auto-fires — see below |
 
 ## Scope
 
@@ -31,7 +31,8 @@ This is the first of two features; **Issue Detail** follows in a separate cycle.
 - Live fetch of the **currently selected** ProjectV2 board (reuses
   `SelectedProjectNotifier`, shared with the cockpit and persisted to prefs).
 - In-board project picker (reuses `ProjectPickerList`) to switch boards.
-- Per-column insight line (heuristic, labeled "AI").
+- Per-column insight line — **real Anthropic summary** (BYOK), one batched call,
+  triggered **on demand by a topbar CTA** (never auto). Board renders without it.
 - Responsive: desktop multi-column / tablet narrower / phone single-column with
   selector pills.
 - States: loading skeleton, empty board, per-column empty, error + retry.
@@ -42,7 +43,7 @@ This is the first of two features; **Issue Detail** follows in a separate cycle.
 - Drag-to-change-status + ProjectV2 field mutation (read-only v1).
 - Group-by anything other than Status; Filter panel (topbar buttons render but
   are inert/hidden in v1).
-- Real Anthropic-generated column summaries (heuristic stands in).
+- Per-column *drill-in* AI (chat / "explain this column") — v1 ships the one-line summary only.
 - User-owned (non-org) boards — query uses `organization(login:)`, same limit
   the cockpit has today.
 - Live polling ("Live" pulse from the mockup) → v1 shows manual refresh only.
@@ -150,12 +151,12 @@ In Review `#FFB000` · Done `#54AE39`. Add to `CockpitPalette` (or a new
    cockpit constant), else null.
 3. Group into the 5 visible columns in fixed order. `cancelled` items are
    dropped. Items with null/unknown status bucket into **Not Started**.
-4. Per-column `insight` (heuristic — joined with " · ", null if empty):
-   - `N P0 unowned` (P0 cards with no assignee)
-   - `N missing estimate` (cards with no points)
-   - `N stuck >{stuckAfterDays}d` (cards with staleDays set)
-   - `CI red on #X` (PR cards with ciState == failing)
-   Cap to the 2–3 most severe so the line stays one row.
+4. The mapper does **not** populate `insight` — `BoardColumn.insight` stays
+   null at the data layer. Insights are filled in by a separate AI provider
+   (below) so the board renders instantly and the API call streams in after.
+   The mapper does compute the **signal facts** each column carries
+   (`ColumnFacts`: p0Unowned, missingEstimate, stuckCount, ciRedNumbers) so the
+   AI prompt is grounded in numbers, not raw card dumps.
 
 ### Repository (`projects_board_repository.dart`)
 
@@ -185,6 +186,48 @@ Future<ProjectBoardData> projectsBoard(Ref ref) async { ... keepAlive on success
 
 Reuses `availableProjectsProvider` for the picker.
 
+### Column insights — on-demand AI (CTA, never auto)
+
+Mirrors the cockpit's `CockpitBriefController` pattern exactly.
+
+- **AI repo method** (`ai_repository.dart`): add
+  `Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board)`.
+  One batched Anthropic call. The prompt is grounded in the mapper's
+  per-column `ColumnFacts` (counts, not raw cards) and asks for one terse line
+  per non-empty column (≤ ~8 words, e.g. "2 stuck >5d · 1 P0 blocking · CI red on #155").
+  Returns a status→line map; columns the model omits simply get no line.
+- **Controller** (`projects_board_provider.dart`):
+
+  ```dart
+  @riverpod
+  class BoardInsightsController extends _$BoardInsightsController {
+    @override
+    AsyncValue<Map<IssueStatus, String>>? build() => null; // null = not requested
+    Future<void> generate(ProjectBoardData board) async {
+      state = const AsyncValue.loading();
+      final r = await ref.read(aiRepositoryProvider).boardInsights(board);
+      state = switch (r) {
+        ResultSuccess(:final data) => AsyncValue.data(data),
+        ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+      };
+    }
+    void clear() => state = null;
+  }
+  ```
+
+- **CTA**: a topbar button **"✨ AI Insights"** (cyan, matches the mockup's AI
+  chip palette). States:
+  - `null` (not yet run) → button enabled; **no insight lines** rendered on columns.
+  - loading → button shows spinner; each non-empty column's insight slot shows a
+    shimmer placeholder (project loading-indicator convention).
+  - data → button becomes "↻ Regenerate"; columns with a line render the cyan
+    "AI" insight row; columns without stay clean.
+  - error → button shows a small error affordance + retry; surfaces the
+    scope/no-key message (BYOK key missing → "Add an Anthropic key in Settings").
+  - Invalidated/cleared whenever the selected project changes (stale board).
+- `BoardColumn.insight` stays null at the data layer; the column widget reads the
+  controller and overlays the line for its own status. No auto-fetch anywhere.
+
 ### Presentation
 
 - **`projects_board_screen.dart`** (`HookConsumerWidget`): if no project selected
@@ -199,13 +242,16 @@ Reuses `availableProjectsProvider` for the picker.
     a `useState` hook.
 - **`board_topbar.dart`**: board title (Akshar), project-picker button (opens a
   popover/menu hosting `ProjectPickerList`; on select → `SelectedProjectNotifier.select`
-  + invalidate board), static "Group by: Status" + "Filter" (inert v1), refresh
-  `IconButton` (invalidate). Always show a loading indicator while the board
-  future is refreshing (project convention).
+  + invalidate board + `BoardInsightsController.clear()`), static "Group by:
+  Status" + "Filter" (inert v1), the **"✨ AI Insights" CTA** (drives
+  `BoardInsightsController`, states above), and a refresh `IconButton`
+  (invalidate). Always show a loading indicator while the board future is
+  refreshing (project convention).
 - **`board_column.dart`**: width 236px (272 for In Progress), `surface` bg, 2px
   top accent, header (dot + label + count badge + ⋯), insight line (cyan 2px
-  left bar + "AI" chip + text) when `insight != null`, scrollable card list,
-  per-column empty dashed box, inert "+ Add item" affordance.
+  left bar + "AI" chip + text) — rendered only when `BoardInsightsController`
+  holds a line for this column's status (shimmer while loading); scrollable card
+  list, per-column empty dashed box, inert "+ Add item" affordance.
 - **`board_card.dart`**: `surface2` bg, P0 cards get a `#5E2230` border; repo
   dot + name + `#number` + type glyph (◇ issue / ⑃ PR); 2-line title with inline
   Draft badge; meta row of `TbBadge`s (priority via `CockpitPalette.prioritySignal`,
@@ -225,9 +271,12 @@ Reuses `availableProjectsProvider` for the picker.
 
 - `board_mapper_test.dart` — pure mapper over fixture JSON: issue + PR parsing,
   CI/review mapping, status bucketing (incl. null→Not Started, cancelled
-  dropped), stale flag, insight heuristics (each branch + cap + null case).
+  dropped), stale flag, `ColumnFacts` counts (p0Unowned / missingEstimate /
+  stuckCount / ciRedNumbers).
 - `projects_board_provider_test.dart` — `ProviderContainer` with an overridden
-  repo (mock + failing) asserting success/error.
+  repo (mock + failing) asserting board success/error; `BoardInsightsController`
+  with an overridden `aiRepository` asserting null→loading→data and the error
+  (no-key) path, and `clear()` on project change.
 - `board_card_test.dart` (widget) — issue vs PR rendering, draft badge, P0
   border, sub-progress, stale chip, PR dots; tap routing.
 - `projects_board_screen_test.dart` (widget) — no-project picker, loading,
