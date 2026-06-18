@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../shared/ui/theme/tb_text.dart';
@@ -141,8 +142,17 @@ class StuckIssueRow extends StatelessWidget {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
-        child: Tooltip(message: 'Open issue on GitHub', child: container),
+        onTap: () {
+          final u = Uri.tryParse(url);
+          final seg = u?.pathSegments ?? const [];
+          // GitHub issue URLs: https://github.com/{owner}/{repo}/issues/{number}
+          if (seg.length >= 4 && seg[2] == 'issues') {
+            context.push('/issue/${seg[0]}/${seg[1]}/${seg[3]}');
+          } else {
+            launchUrl(u ?? Uri.parse(url), mode: LaunchMode.externalApplication);
+          }
+        },
+        child: Tooltip(message: 'Open issue', child: container),
       ),
     );
   }
