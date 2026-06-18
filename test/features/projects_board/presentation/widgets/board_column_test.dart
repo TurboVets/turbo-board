@@ -7,7 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:hooks_riverpod/misc.dart';
+import 'package:hooks_riverpod/misc.dart'; // for the Override type (not in the main barrel)
 import 'package:turbo_board/features/lead_cockpit/data/models/cockpit_data.dart';
 import 'package:turbo_board/features/projects_board/data/models/board_data.dart';
 import 'package:turbo_board/features/projects_board/presentation/providers/projects_board_provider.dart';
