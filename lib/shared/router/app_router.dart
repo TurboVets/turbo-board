@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../features/issue_detail/presentation/view/issue_detail_screen.dart';
 import '../../features/lead_cockpit/presentation/view/lead_cockpit_screen.dart';
 import '../../features/needs_attention/presentation/view/needs_attention_screen.dart';
 import '../../features/pr_detail/presentation/view/pr_detail_screen.dart';
@@ -72,6 +73,23 @@ GoRouter appRouter(Ref ref) {
               barrierDismissible: false,
               transitionDuration: const Duration(milliseconds: 220),
               child: PrDetailScreen(
+                owner: state.pathParameters['owner']!,
+                repo: state.pathParameters['repo']!,
+                number: int.tryParse(state.pathParameters['number'] ?? '') ?? 0,
+              ),
+              transitionsBuilder: (context, animation, _, child) => FadeTransition(opacity: animation, child: child),
+            ),
+          ),
+          GoRoute(
+            path: '/issue/:owner/:repo/:number',
+            name: IssueDetailScreen.routeName,
+            // Transparent overlay so the board stays painted behind the drawer.
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              opaque: false,
+              barrierDismissible: false,
+              transitionDuration: const Duration(milliseconds: 220),
+              child: IssueDetailScreen(
                 owner: state.pathParameters['owner']!,
                 repo: state.pathParameters['repo']!,
                 number: int.tryParse(state.pathParameters['number'] ?? '') ?? 0,
