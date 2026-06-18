@@ -11,6 +11,23 @@ and shows it at the bottom of the nav rail.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-06-18
+
+### Added
+- PR Detail: a "Files changed" button in the header that opens the PR's Files
+  changed (diff) tab on github.com.
+- PR Detail: an "Open in Desktop" button that checks out the PR's branch in the
+  GitHub Desktop app via its deep-link scheme.
+- PR cards: a "Conflicts" badge that surfaces mergeability against the base
+  branch (`mergeState` is now fetched and modelled).
+- "What's new" dialog, opened from a button at the end of the version row in the
+  nav rail; shows the latest release notes read from this `CHANGELOG.md`.
+
+### Changed
+- PR Detail markdown: GitHub task-list items (`- [x]` / `- [ ]`) now render as
+  right-sized icons, and headings are scaled to match the app's body text.
+- Settings: filtering is now applied live as you type.
+
 ## [0.1.1] - 2026-06-17
 
 ### Added
