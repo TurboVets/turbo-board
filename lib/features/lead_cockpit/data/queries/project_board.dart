@@ -2,9 +2,9 @@
 
 /// GraphQL document reading one organization Projects v2 board, page by page.
 ///
-/// `$org` + `$number` address the board; `$first`/`$after` paginate `items`.
-/// Custom fields (Status / Priority / Complexity / Sprint) are read from each
-/// item's `fieldValues` — the plain Issues REST/Search API cannot see them.
+/// Selects both Issues and Pull Requests. `$org` + `$number` address the board;
+/// `$first`/`$after` paginate `items`. Custom fields (Status / Priority / Complexity / Sprint)
+/// are read from each item's `fieldValues` — the plain Issues REST/Search API cannot see them.
 const String projectBoardQuery = r'''
 query ProjectBoard($org: String!, $number: Int!, $first: Int!, $after: String) {
   organization(login: $org) {
@@ -22,9 +22,20 @@ query ProjectBoard($org: String!, $number: Int!, $first: Int!, $after: String) {
               url
               closed
               closedAt
-              repository { name }
+              repository { name owner { login } }
               assignees(first: 5) { nodes { login } }
               subIssuesSummary { total completed percentCompleted }
+            }
+            ... on PullRequest {
+              number
+              title
+              url
+              isDraft
+              state
+              reviewDecision
+              repository { name owner { login } }
+              assignees(first: 5) { nodes { login } }
+              commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
             }
           }
           fieldValues(first: 20) {
