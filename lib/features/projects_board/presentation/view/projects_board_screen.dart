@@ -29,6 +29,9 @@ class ProjectsBoardScreen extends HookConsumerWidget {
 
     final board = ref.watch(projectsBoardProvider);
     return board.when(
+      // Keep the board on screen while a refresh refetches on top of it; the
+      // topbar shows the in-flight spinner. Only the first load shows this.
+      skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => _ErrorState(message: '$err', onRetry: () => ref.invalidate(projectsBoardProvider)),
       data: (data) => _BoardBody(board: data),

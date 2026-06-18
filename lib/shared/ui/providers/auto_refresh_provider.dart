@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../features/lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import '../../../features/pr_detail/presentation/providers/pr_detail_provider.dart';
 import '../../../features/pr_inbox/presentation/providers/pr_inbox_provider.dart';
+import '../../../features/projects_board/presentation/providers/projects_board_provider.dart';
 import '../../../features/sprint_report/presentation/providers/sprint_report_provider.dart';
 import 'refresh_interval_provider.dart';
 
@@ -35,5 +36,6 @@ class AutoRefresh extends _$AutoRefresh {
     ref.invalidate(leadCockpitProvider);
     ref.invalidate(sprintReportProvider);
     ref.invalidate(prDetailProvider);
+    ref.invalidate(projectsBoardProvider);
   }
 }

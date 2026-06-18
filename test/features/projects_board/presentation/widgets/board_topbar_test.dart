@@ -20,6 +20,10 @@ import 'package:turbo_board/features/projects_board/presentation/view/widgets/bo
 
 const _board = ProjectBoardData(title: 'Mobile Q3 Roadmap');
 
+// The topbar watches projectsBoardProvider to drive the refresh-button spinner.
+// Supply settled board data so isRefreshing is false; these tests target the AI CTA.
+final _boardOverride = projectsBoardProvider.overrideWith((ref) => _board);
+
 class _RecordingInsights extends BoardInsightsController {
   static int calls = 0;
   @override
@@ -47,11 +51,13 @@ void main() {
   testWidgets('renders title and AI CTA', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [_boardOverride],
         child: MaterialApp(
           home: Scaffold(body: BoardTopbar(board: _board)),
         ),
       ),
     );
+    await tester.pump();
     expect(find.text('Mobile Q3 Roadmap'), findsOneWidget);
     expect(find.textContaining('AI Insights'), findsOneWidget);
   });
@@ -60,7 +66,7 @@ void main() {
     _RecordingInsights.calls = 0;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [boardInsightsControllerProvider.overrideWith(_RecordingInsights.new)],
+        overrides: [_boardOverride, boardInsightsControllerProvider.overrideWith(_RecordingInsights.new)],
         child: MaterialApp(
           home: Scaffold(body: BoardTopbar(board: _board)),
         ),
@@ -74,7 +80,7 @@ void main() {
   testWidgets('loading state: shows CircularProgressIndicator and CTA is disabled', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [boardInsightsControllerProvider.overrideWith(_LoadingInsights.new)],
+        overrides: [_boardOverride, boardInsightsControllerProvider.overrideWith(_LoadingInsights.new)],
         child: MaterialApp(
           home: Scaffold(body: BoardTopbar(board: _board)),
         ),
@@ -91,7 +97,7 @@ void main() {
   testWidgets('data state: CTA shows Regenerate', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [boardInsightsControllerProvider.overrideWith(_DataInsights.new)],
+        overrides: [_boardOverride, boardInsightsControllerProvider.overrideWith(_DataInsights.new)],
         child: MaterialApp(
           home: Scaffold(body: BoardTopbar(board: _board)),
         ),
@@ -104,7 +110,7 @@ void main() {
   testWidgets('error state: CTA shows Retry', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [boardInsightsControllerProvider.overrideWith(_ErrorInsights.new)],
+        overrides: [_boardOverride, boardInsightsControllerProvider.overrideWith(_ErrorInsights.new)],
         child: MaterialApp(
           home: Scaffold(body: BoardTopbar(board: _board)),
         ),

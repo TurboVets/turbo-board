@@ -21,6 +21,10 @@ class BoardTopbar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final insights = ref.watch(boardInsightsControllerProvider);
+    // True only while reloading on top of existing data (manual refresh or the
+    // auto-refresh timer). Drives the refresh button's spinner.
+    final boardAsync = ref.watch(projectsBoardProvider);
+    final isRefreshing = boardAsync.isLoading && boardAsync.hasValue;
     return Container(
       height: 58,
       padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -42,9 +46,15 @@ class BoardTopbar extends ConsumerWidget {
           _aiCta(ref, insights),
           const SizedBox(width: 10),
           IconButton(
-            tooltip: 'Refresh',
-            icon: const Icon(LucideIcons.refreshCw, size: 15, color: TbColors.muted),
-            onPressed: () => ref.invalidate(projectsBoardProvider),
+            tooltip: isRefreshing ? 'Refreshing…' : 'Refresh',
+            icon: isRefreshing
+                ? const SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: TbColors.muted),
+                  )
+                : const Icon(LucideIcons.refreshCw, size: 15, color: TbColors.muted),
+            onPressed: isRefreshing ? null : () => ref.invalidate(projectsBoardProvider),
           ),
         ],
       ),
