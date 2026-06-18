@@ -6,6 +6,7 @@ import 'package:turbo_core/core.dart';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
+import '../../../projects_board/data/models/board_data.dart';
 import '../../../repo_setup/data/services/github_api_client.dart';
 import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../presentation/helpers/ai_prompts.dart';
@@ -39,6 +40,9 @@ abstract class AiRepository {
   /// Ranks the most action-worthy open PRs (review first / unblock / merge /
   /// nudge) from the current board.
   Future<Result<List<TriageItem>>> triage(List<PrData> prs);
+
+  /// Per-column one-line board insights, keyed by status. Empty map if nothing notable.
+  Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board);
 }
 
 class AnthropicAiRepository implements AiRepository {
@@ -132,6 +136,17 @@ class AnthropicAiRepository implements AiRepository {
     } catch (e, stackTrace) {
       log('Failed to triage PRs', error: e, stackTrace: stackTrace);
       return Result.failure('Could not triage the board.', stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board) async {
+    try {
+      final text = await _anthropic.complete(prompt: buildBoardInsightsPrompt(board), maxTokens: 400);
+      return Result.success(parseBoardInsights(text));
+    } catch (e, stackTrace) {
+      log('Failed to generate board insights', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not generate board insights.', stackTrace);
     }
   }
 
