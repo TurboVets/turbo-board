@@ -21,6 +21,7 @@ class AppBottomNav extends ConsumerWidget {
     (LucideIcons.layoutGrid, 'Board', '/'),
     (LucideIcons.circleDot, 'Attention', '/needs-attention'),
     (LucideIcons.crosshair, 'Cockpit', '/lead-cockpit'),
+    (LucideIcons.columns3, 'Projects', '/projects'),
     (LucideIcons.chartNoAxesColumn, 'Report', '/sprint-report'),
     (LucideIcons.settings2, 'Settings', '/settings'),
   ];
