@@ -263,8 +263,8 @@ List<String> parseBullets(String response) {
 /// 3-bullet TL;DR of an issue, grounded in title + body + key project fields.
 String buildIssueSummaryPrompt(IssueDetail i) {
   final fields = [
-    if (i.status != null) 'Status: ${i.status!.name}',
-    if (i.priority != null) 'Priority: ${i.priority!.name.toUpperCase()}',
+    if (i.status != null) 'Status: ${_statusName(i.status!)}',
+    if (i.priority != null) 'Priority: ${_priorityName(i.priority!)}',
     if (i.points != null) 'Estimate: ${i.points} pts',
     if (i.hasSubIssues) 'Sub-issues: ${i.subDone}/${i.subTotal} done',
     if (i.linkedPrs.isNotEmpty) 'Linked PRs: ${i.linkedPrs.length}',

@@ -484,29 +484,37 @@ class _LinkedIssuesCard extends StatelessWidget {
               color: TbColors.surface2,
               border: Border(bottom: BorderSide(color: TbColors.border)),
             ),
-            child: Text('LINKED ISSUES', style: TbText.label(size: 10, color: TbColors.muted, tracking: 1.0)),
+            child: Text(
+              'LINKED ISSUES',
+              style: TbText.label(size: 10, weight: FontWeight.w600, color: TbColors.muted, tracking: 1.4),
+            ),
           ),
-          for (final i in issues)
-            InkWell(
-              onTap: () {
-                final p = i.repo.split('/');
-                if (p.length == 2) context.push('/issue/${p[0]}/${p[1]}/${i.number}');
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-                child: Row(
-                  children: [
-                    Text('#${i.number}', style: TbText.label(size: 10, color: TbColors.dim)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        i.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TbText.body(size: 13, color: TbColors.cyan),
+          for (int idx = 0; idx < issues.length; idx++)
+            DecoratedBox(
+              decoration: BoxDecoration(
+                border: idx == issues.length - 1 ? null : const Border(bottom: BorderSide(color: TbColors.border)),
+              ),
+              child: InkWell(
+                onTap: () {
+                  final p = issues[idx].repo.split('/');
+                  if (p.length == 2) context.push('/issue/${p[0]}/${p[1]}/${issues[idx].number}');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                  child: Row(
+                    children: [
+                      Text('#${issues[idx].number}', style: TbText.label(size: 10, color: TbColors.dim)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          issues[idx].title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TbText.body(size: 13, color: TbColors.cyan),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
