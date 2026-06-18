@@ -162,13 +162,16 @@ void main() {
   });
 
   test('computes column facts', () {
+    final old = now.subtract(Duration(days: stuckAfterDays + 1)).toIso8601String();
     final b = boardFromProjectItems('B', [
       issueNode(number: 5, title: 'P0 unowned', priority: 'P0'), // p0Unowned, missingEstimate
       prNode(number: 6, title: 'Red CI', ci: 'FAILURE', priority: 'P1'), // ciRed, missingEstimate
+      issueNode(number: 7, title: 'Stale item', updatedAt: old), // stuckCount
     ], now: now);
     final facts = columnFor(b, IssueStatus.inProgress).facts;
     expect(facts.p0Unowned, 1);
-    expect(facts.missingEstimate, 2);
+    expect(facts.missingEstimate, 3);
     expect(facts.ciRedNumbers, [6]);
+    expect(facts.stuckCount, 1);
   });
 }

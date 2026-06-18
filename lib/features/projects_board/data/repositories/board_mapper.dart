@@ -91,7 +91,7 @@ BoardCard? _parseCard(Map<String, dynamic> node, DateTime now) {
 
 PrCiState _ciFrom(Map<String, dynamic> content) {
   final nodes = content['commits']?['nodes'] as List<dynamic>?;
-  final state = (nodes?.firstOrNull as Map<String, dynamic>?)?['commit']?['statusCheckRollup']?['state'] as String?;
+  final state = (nodes?.lastOrNull as Map<String, dynamic>?)?['commit']?['statusCheckRollup']?['state'] as String?;
   return switch (state) {
     'SUCCESS' => PrCiState.passing,
     'FAILURE' || 'ERROR' => PrCiState.failing,
