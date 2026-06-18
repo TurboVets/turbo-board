@@ -43,6 +43,11 @@ class _BoardBody extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final phoneIndex = useState(_defaultIndex(board));
+
+    if (board.columns.isEmpty) {
+      return const Center(child: Text('No columns'));
+    }
+
     return Column(
       children: [
         BoardTopbar(board: board),
@@ -77,7 +82,7 @@ class _BoardBody extends HookWidget {
                     for (var i = 0; i < board.columns.length; i++) ...[
                       if (i > 0) const SizedBox(width: 14),
                       SizedBox(
-                        height: constraints.maxHeight - 44,
+                        height: (constraints.maxHeight - 44).clamp(0, double.infinity),
                         child: BoardColumnView(
                           column: board.columns[i],
                           width: board.columns[i].status == IssueStatus.inProgress ? 272 : 236,
