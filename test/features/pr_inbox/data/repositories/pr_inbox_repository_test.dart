@@ -4,6 +4,7 @@
 // - GithubPrInboxRepository returns empty list (no network call) when no repos watched
 // - GithubPrInboxRepository maps a PullRequest node across review and CI states
 // - null reviewDecision maps to waitingOnAuthor; missing rollup maps to pending
+// - CONFLICTING mergeable maps to conflicting; missing mergeable maps to unknown
 // - GithubPrInboxRepository returns failure when the GraphQL call throws
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -81,6 +82,7 @@ void main() {
                 'author': {'login': 'sang'},
                 'repository': {'nameWithOwner': 'o/r'},
                 'reviewDecision': 'CHANGES_REQUESTED',
+                'mergeable': 'CONFLICTING',
                 'comments': {'totalCount': 4},
                 'commits': {
                   'nodes': [
@@ -108,6 +110,7 @@ void main() {
       expect(prs.single.author, 'sang');
       expect(prs.single.reviewState, PrReviewState.changesRequested);
       expect(prs.single.ciState, PrCiState.failing);
+      expect(prs.single.mergeState, PrMergeState.conflicting);
       expect(prs.single.commentsCount, 4);
     });
 
@@ -134,6 +137,7 @@ void main() {
       final prs = (await repo.fetchOpenPrs() as ResultSuccess<List<PrData>>).data;
       expect(prs.single.reviewState, PrReviewState.waitingOnAuthor);
       expect(prs.single.ciState, PrCiState.pending);
+      expect(prs.single.mergeState, PrMergeState.unknown);
     });
 
     test('returns failure when the GraphQL call throws', () async {

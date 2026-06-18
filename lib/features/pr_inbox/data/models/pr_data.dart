@@ -23,6 +23,18 @@ enum PrCiState {
   failing,
 }
 
+/// Mergeability against the destination branch.
+/// GitHub computes this lazily, so [unknown] is the expected state right after
+/// a push until the background calculation finishes.
+enum PrMergeState {
+  @JsonValue('mergeable')
+  mergeable,
+  @JsonValue('conflicting')
+  conflicting,
+  @JsonValue('unknown')
+  unknown,
+}
+
 @freezed
 sealed class PrData with _$PrData {
   const PrData._();
@@ -37,6 +49,7 @@ sealed class PrData with _$PrData {
     @Default(false) bool isDraft,
     required PrReviewState reviewState,
     required PrCiState ciState,
+    @Default(PrMergeState.unknown) PrMergeState mergeState,
     required DateTime updatedAt,
     String? htmlUrl,
     @Default(0) int commentsCount,

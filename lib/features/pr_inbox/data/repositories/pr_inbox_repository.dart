@@ -49,6 +49,7 @@ final _samplePrs = <PrData>[
     author: 'alex',
     reviewState: PrReviewState.changesRequested,
     ciState: PrCiState.failing,
+    mergeState: PrMergeState.conflicting,
     updatedAt: DateTime.now().subtract(const Duration(days: 1)),
   ),
   PrData(
@@ -104,6 +105,7 @@ PrData? prFromSearchNode(Map<String, dynamic> node) {
     isDraft: (node['isDraft'] as bool?) ?? false,
     reviewState: _reviewStateFrom(node['reviewDecision'] as String?),
     ciState: _ciStateFrom(rollupState),
+    mergeState: _mergeStateFrom(node['mergeable'] as String?),
     updatedAt: DateTime.tryParse((node['updatedAt'] as String?) ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
     htmlUrl: node['url'] as String?,
     commentsCount: (node['comments']?['totalCount'] as int?) ?? 0,
@@ -121,4 +123,10 @@ PrCiState _ciStateFrom(String? rollup) => switch (rollup) {
   'SUCCESS' => PrCiState.passing,
   'FAILURE' || 'ERROR' => PrCiState.failing,
   _ => PrCiState.pending,
+};
+
+PrMergeState _mergeStateFrom(String? mergeable) => switch (mergeable) {
+  'MERGEABLE' => PrMergeState.mergeable,
+  'CONFLICTING' => PrMergeState.conflicting,
+  _ => PrMergeState.unknown,
 };

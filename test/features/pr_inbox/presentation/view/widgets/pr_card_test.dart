@@ -2,6 +2,8 @@
 //
 // Test summary:
 // - renders the title, repo slug with number, and author for a PR.
+// - shows a CONFLICTS badge when the PR is conflicting with its base branch.
+// - hides the CONFLICTS badge when the PR is mergeable or unknown.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turbo_board/features/pr_inbox/data/models/pr_data.dart';
@@ -34,5 +36,40 @@ void main() {
     expect(find.textContaining('o/r'), findsAtLeastNWidgets(1));
     expect(find.textContaining('#42'), findsAtLeastNWidgets(1));
     expect(find.textContaining('sang'), findsAtLeastNWidgets(1));
+  });
+
+  PrData prWith(PrMergeState mergeState) => PrData(
+    repo: 'o/r',
+    number: 42,
+    title: 'Add rate limiting',
+    author: 'sang',
+    reviewState: PrReviewState.needsReview,
+    ciState: PrCiState.passing,
+    mergeState: mergeState,
+    updatedAt: DateTime(2026, 6, 10),
+  );
+
+  testWidgets('shows CONFLICTS badge when conflicting', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: getAppTheme(),
+        home: Scaffold(body: PrCard(pr: prWith(PrMergeState.conflicting))),
+      ),
+    );
+
+    expect(find.textContaining('CONFLICTS'), findsOneWidget);
+  });
+
+  testWidgets('hides CONFLICTS badge when mergeable or unknown', (tester) async {
+    for (final state in [PrMergeState.mergeable, PrMergeState.unknown]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: getAppTheme(),
+          home: Scaffold(body: PrCard(pr: prWith(state))),
+        ),
+      );
+
+      expect(find.textContaining('CONFLICTS'), findsNothing, reason: 'state=$state');
+    }
   });
 }

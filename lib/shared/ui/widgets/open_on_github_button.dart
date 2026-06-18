@@ -20,11 +20,21 @@ import '../theme/tb_tokens.dart';
 /// tappable (the PR card), Flutter routes the tap to this inner button so the
 /// card's own onTap does not fire.
 class OpenOnGitHubButton extends StatefulWidget {
-  const OpenOnGitHubButton.icon({super.key, required this.url}) : labeled = false;
-  const OpenOnGitHubButton.labeled({super.key, required this.url}) : labeled = true;
+  const OpenOnGitHubButton.icon({super.key, required this.url}) : labeled = false, files = false;
+  const OpenOnGitHubButton.labeled({super.key, required this.url}) : labeled = true, files = false;
+
+  /// "FILES CHANGED ↗" action — opens the PR's Files changed tab on github.com.
+  /// Pass the PR page url; the `/files` segment is appended.
+  const OpenOnGitHubButton.filesLabeled({super.key, required String prUrl})
+    : url = '$prUrl/files',
+      labeled = true,
+      files = true;
 
   final String url;
   final bool labeled;
+
+  /// Whether this is the Files-changed variant (different icon + label).
+  final bool files;
 
   @override
   State<OpenOnGitHubButton> createState() => _OpenOnGitHubButtonState();
@@ -53,7 +63,11 @@ class _OpenOnGitHubButtonState extends State<OpenOnGitHubButton> {
         behavior: HitTestBehavior.opaque,
         onTap: _open,
         child: Tooltip(
-          message: widget.labeled ? 'Open this pull request on GitHub' : 'Open on GitHub',
+          message: widget.files
+              ? 'Open the Files changed tab on GitHub'
+              : widget.labeled
+              ? 'Open this pull request on GitHub'
+              : 'Open on GitHub',
           child: widget.labeled ? _labeled() : _iconOnly(),
         ),
       ),
@@ -85,10 +99,10 @@ class _OpenOnGitHubButtonState extends State<OpenOnGitHubButton> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(LucideIcons.gitPullRequest, size: 14, color: color),
+          Icon(widget.files ? LucideIcons.fileDiff : LucideIcons.gitPullRequest, size: 14, color: color),
           const SizedBox(width: 8),
           Text(
-            'OPEN ON GITHUB',
+            widget.files ? 'FILES CHANGED' : 'OPEN ON GITHUB',
             style: TbText.label(size: 11, weight: FontWeight.w600, color: color, tracking: 0.66),
           ),
           const SizedBox(width: 6),

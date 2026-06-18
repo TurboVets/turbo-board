@@ -9,6 +9,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../shared/ui/theme/tb_breakpoints.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../shared/ui/widgets/open_in_github_desktop_button.dart';
 import '../../../../shared/ui/widgets/open_on_github_button.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
 import '../../../ai/presentation/view/widgets/pr_summary_card.dart';
@@ -21,6 +22,7 @@ import 'widgets/pr_comment_composer.dart';
 import 'widgets/pr_commit_card.dart';
 import 'widgets/pr_reviewers_card.dart';
 import 'widgets/pr_timeline.dart';
+import 'widgets/markdown_body.dart';
 
 /// Read-only PR Detail, presented as a wide (~70%) overlay drawer that slides in
 /// over the board with a dimming scrim. Reached via /pr/:owner/:repo/:number
@@ -233,11 +235,18 @@ class _DetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasDescription = detail.bodyMarkdown.trim().isNotEmpty;
     final main = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         PrChecksPanel(checks: detail.checks),
         const SizedBox(height: 16),
+        if (hasDescription) ...[
+          Text('DESCRIPTION', style: TbText.label(size: 10, color: TbColors.muted, tracking: 1.4)),
+          const SizedBox(height: 8),
+          _DescriptionCard(detail: detail),
+          const SizedBox(height: 16),
+        ],
         Text('CONVERSATION', style: TbText.label(size: 10, color: TbColors.muted, tracking: 1.4)),
         const SizedBox(height: 8),
         PrTimeline(events: detail.timeline),
@@ -285,6 +294,49 @@ class _DetailBody extends StatelessWidget {
   }
 }
 
+/// The PR description (body) rendered as a card, styled like a timeline comment:
+/// author header over the markdown body. GitHub shows this as the opening post.
+class _DescriptionCard extends StatelessWidget {
+  const _DescriptionCard({required this.detail});
+
+  final PrDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: TbColors.surface,
+        border: Border.all(color: TbColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+            decoration: const BoxDecoration(
+              color: TbColors.surface2,
+              border: Border(bottom: BorderSide(color: TbColors.border)),
+            ),
+            child: Row(
+              children: [
+                Text(detail.author, style: TbText.body(size: 12, weight: FontWeight.w700)),
+                const SizedBox(width: 7),
+                Text('opened this pull request', style: TbText.body(size: 12, color: TbColors.dim)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+            child: MarkdownBody(detail.bodyMarkdown),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _HeaderSection extends StatelessWidget {
   const _HeaderSection({required this.detail});
 
@@ -311,7 +363,20 @@ class _HeaderSection extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (detail.url != null) ...[const SizedBox(width: 12), OpenOnGitHubButton.labeled(url: detail.url!)],
+            const SizedBox(width: 12),
+            OpenInGitHubDesktopButton(
+              repo: detail.repo,
+              headRefName: detail.headRefName,
+              number: detail.number,
+              isCrossRepository: detail.isCrossRepository,
+              compact: context.isMobile,
+            ),
+            if (detail.url != null) ...[
+              const SizedBox(width: 8),
+              OpenOnGitHubButton.filesLabeled(prUrl: detail.url!),
+              const SizedBox(width: 8),
+              OpenOnGitHubButton.labeled(url: detail.url!),
+            ],
           ],
         ),
         const SizedBox(height: 8),

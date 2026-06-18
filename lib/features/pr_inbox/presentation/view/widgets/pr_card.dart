@@ -97,6 +97,12 @@ class PrCard extends StatelessWidget {
                   _reviewSignal(pr.reviewState),
                   tooltip: _reviewTooltip(pr.reviewState),
                 ),
+                if (pr.mergeState == PrMergeState.conflicting)
+                  const TbBadge(
+                    '⚠ CONFLICTS',
+                    TbSignal.orange,
+                    tooltip: 'Has merge conflicts with the destination branch',
+                  ),
               ],
             ),
             const SizedBox(height: 11),

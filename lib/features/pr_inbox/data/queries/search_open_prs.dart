@@ -15,6 +15,7 @@ query SearchOpenPrs($q: String!, $first: Int!) {
         author { login }
         repository { nameWithOwner }
         reviewDecision
+        mergeable
         comments { totalCount }
         commits(last: 1) {
           nodes { commit { statusCheckRollup { state } } }
