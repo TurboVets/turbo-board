@@ -1,6 +1,7 @@
 // lib/features/pr_detail/data/models/pr_detail.dart
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../issue_detail/data/models/issue_detail.dart' show IssueRef;
 import '../../../pr_inbox/data/models/pr_data.dart' show PrReviewState;
 import 'pr_check.dart';
 import 'pr_commit.dart';
@@ -58,6 +59,7 @@ sealed class PrDetail with _$PrDetail {
     @Default(false) bool mergeCommitAllowed,
     @Default(false) bool squashMergeAllowed,
     @Default(false) bool rebaseMergeAllowed,
+    @Default(<IssueRef>[]) List<IssueRef> linkedIssues,
   }) = _PrDetail;
 
   String get slug => '$repo#$number';
