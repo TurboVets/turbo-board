@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
 
+import 'ai_provider_kind.dart';
+import 'llm_client.dart';
+
 /// An Anthropic-scoped Dio instance for the Messages API (BYOK).
 ///
 /// Like GithubApiClient, we do NOT reuse turbo_core's `DioClient.I`: that is
@@ -8,12 +11,15 @@ import 'package:dio/dio.dart';
 ///
 /// The model is fixed to `claude-haiku-4-5` (per docs/V1-SCOPE.md — cheap enough
 /// for BYOK). The key lives only in flutter_secure_storage; never logged.
-class AnthropicApiClient {
+class AnthropicApiClient implements LlmClient {
   AnthropicApiClient({Dio? dio, String? apiKey}) : dio = dio ?? _build() {
     if (apiKey != null) setKey(apiKey);
   }
 
   final Dio dio;
+
+  @override
+  AiProvider get provider => AiProvider.anthropic;
 
   static const String model = 'claude-haiku-4-5';
   static const String _version = '2023-06-01';
@@ -28,6 +34,7 @@ class AnthropicApiClient {
   );
 
   /// Sets (or clears) the `x-api-key` header used for every request.
+  @override
   void setKey(String? apiKey) {
     if (apiKey == null) {
       dio.options.headers.remove('x-api-key');
@@ -38,6 +45,7 @@ class AnthropicApiClient {
 
   /// Sends a single-turn Messages request and returns the concatenated text of
   /// the response content blocks. Throws on a non-200 status.
+  @override
   Future<String> complete({required String prompt, int maxTokens = 512}) async {
     final res = await dio.post<Map<String, dynamic>>(
       '/v1/messages',
@@ -61,6 +69,7 @@ class AnthropicApiClient {
   }
 
   /// Cheap validity check: a 1-token ping. 200 → valid, 401 → invalid key.
+  @override
   Future<bool> validateKey() async {
     final res = await dio.post<Map<String, dynamic>>(
       '/v1/messages',
