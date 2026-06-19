@@ -1,6 +1,4 @@
 // lib/features/pr_detail/presentation/view/pr_detail_screen.dart
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -52,12 +50,9 @@ class PrDetailScreen extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final avail = constraints.maxWidth;
-        // Phone: take nearly the whole width. Otherwise ~70% of the board area,
-        // clamped to a comfortable range, never wider than the available space.
-        final drawerW = avail < TbBreakpoints.mobile
-            ? avail * 0.96
-            : math.min(avail * 0.96, (avail * 0.7).clamp(560.0, 1060.0));
+        // Fill the whole content area, right up to the side nav rail (the shell
+        // sits outside this LayoutBuilder, so maxWidth already excludes the rail).
+        final drawerW = constraints.maxWidth;
 
         final body = detail.when(
           loading: () => const Center(child: CircularProgressIndicator()),
