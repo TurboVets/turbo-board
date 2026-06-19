@@ -11,6 +11,37 @@ and shows it at the bottom of the nav rail.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-18
+
+### Added
+- **Projects Board** — a GitHub ProjectV2 kanban grouped by Status, with mixed
+  issue/PR cards, sprint tabs (current / previous / next / all), an on-demand AI
+  per-column insights CTA, and a phone column selector.
+- **Issue Detail** drawer — a ProjectV2-enriched issue view: markdown body,
+  sub-issue task list, linked PRs, full activity timeline + comment composer
+  (comment, close/reopen, create branch, open in GitHub Desktop), an AI TL;DR +
+  "suggest next action", and a project-field sidebar. Opens from board issue
+  cards, Lead Cockpit stuck rows, and a PR Detail ↔ Issue cross-link.
+- Issue Detail: change **Status** from the sidebar via a dropdown; the board
+  view refreshes so the card moves columns.
+- Issue Detail: a confirm dialog with an editable branch name before creating a
+  branch.
+- Projects Board: **filter tickets by assignee**, including an Unassigned option.
+- Board view **toggle** — fit all columns into the width, or scroll through them
+  horizontally; remembered per board (PR Board and Projects Board).
+- Board cards are bordered with the assignee's avatar color for quick scanning.
+
+### Changed
+- Detail drawers (Issue and PR) now fill the content area right up to the nav
+  rail, and tapping anywhere on the nav bar dismisses an open drawer.
+- Avatars now give each user a distinct color.
+- Board columns share a single fit/scroll mechanism across the PR and Projects
+  boards.
+
+### Fixed
+- Filled buttons (Comment, Create, …) are now readable in the dark theme
+  (blue fill, white label).
+
 ## [0.1.2] - 2026-06-18
 
 ### Added
