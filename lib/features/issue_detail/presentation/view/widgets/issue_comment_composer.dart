@@ -76,7 +76,7 @@ class IssueCommentComposer extends HookConsumerWidget {
                   child: Text(issue.isClosed ? 'Reopen issue' : 'Close issue'),
                 ),
                 const SizedBox(width: 8),
-                FilledButton(onPressed: busy ? null : submitComment, child: const Text('Comment')),
+                FilledButton.tonal(onPressed: busy ? null : submitComment, child: const Text('Comment')),
               ],
             ),
           ),

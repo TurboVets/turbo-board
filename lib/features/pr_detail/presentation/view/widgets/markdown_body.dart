@@ -85,6 +85,18 @@ class MarkdownBody extends StatelessWidget {
           ),
           child,
         ),
+
+        codeBuilder: (context, code, language, closed) => Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(4),
+          ),
+
+          padding: const EdgeInsets.all(8),
+          child: Text(language, style: body?.copyWith(fontFamily: 'monospace', fontSize: (10) )),
+        ),
+        
         orderedListBuilder: (context, no, child, config) => listRow(Text('$no.', style: markerStyle), child),
       ),
     );
