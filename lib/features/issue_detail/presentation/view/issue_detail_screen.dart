@@ -1,5 +1,7 @@
 // lib/features/issue_detail/presentation/view/issue_detail_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -23,7 +25,7 @@ import 'widgets/issue_timeline.dart';
 /// Read-only Issue Detail, presented as a wide (~70%) overlay drawer that slides in
 /// over the board with a dimming scrim. Reached via /issue/:owner/:repo/:number
 /// inside the shell; tapping the scrim or ✕ closes it.
-class IssueDetailScreen extends ConsumerWidget {
+class IssueDetailScreen extends HookConsumerWidget {
   const IssueDetailScreen({super.key, required this.owner, required this.repo, required this.number});
 
   static const String routeName = 'issueDetail';
@@ -44,6 +46,14 @@ class IssueDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(issueDetailProvider(owner: owner, repo: repo, number: number));
     final routeAnim = ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation;
+
+    // The board behind stays mounted (opaque:false overlay), so it keeps focus —
+    // grab focus explicitly after first frame so Esc dismisses the drawer.
+    final focusNode = useFocusNode();
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) => focusNode.requestFocus());
+      return null;
+    }, const []);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -94,33 +104,43 @@ class IssueDetailScreen extends ConsumerWidget {
           ),
         );
 
-        return Stack(
-          children: [
-            // Scrim over the board — tap to dismiss.
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _close(context),
-                child: const ColoredBox(color: Color(0x73000000)),
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: SlideTransition(
-                position: Tween(
-                  begin: const Offset(1, 0),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(parent: routeAnim, curve: Curves.easeOutCubic)),
-                child: _DrawerPanel(
-                  width: drawerW,
-                  number: number,
-                  onClose: () => _close(context),
-                  onRefresh: () => ref.invalidate(issueDetailProvider(owner: owner, repo: repo, number: number)),
-                  child: body,
+        return Focus(
+          focusNode: focusNode,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+              _close(context);
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Stack(
+            children: [
+              // Scrim over the board — tap to dismiss.
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _close(context),
+                  child: const ColoredBox(color: Color(0x73000000)),
                 ),
               ),
-            ),
-          ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: SlideTransition(
+                  position: Tween(
+                    begin: const Offset(1, 0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(parent: routeAnim, curve: Curves.easeOutCubic)),
+                  child: _DrawerPanel(
+                    width: drawerW,
+                    number: number,
+                    onClose: () => _close(context),
+                    onRefresh: () => ref.invalidate(issueDetailProvider(owner: owner, repo: repo, number: number)),
+                    child: body,
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
