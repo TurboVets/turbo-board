@@ -18,7 +18,12 @@ class BoardCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = card.priority == IssuePriority.p0 ? const Color(0xFF5E2230) : TbColors.border;
+    // Tint the border with the (first) assignee's avatar color so a card reads
+    // as "theirs" at a glance; fall back to the P0 / default border when unowned.
+    final assigned = card.assignees.isNotEmpty;
+    final borderColor = assigned
+        ? TbAvatar.bgFor(card.assignees.first)
+        : (card.priority == IssuePriority.p0 ? const Color(0xFF5E2230) : TbColors.border);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -28,7 +33,7 @@ class BoardCardTile extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: TbColors.surface2,
-            border: Border.all(color: borderColor),
+            border: Border.all(color: borderColor, width: assigned ? 1.5 : 1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
