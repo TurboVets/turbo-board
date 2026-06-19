@@ -94,9 +94,12 @@ class MarkdownBody extends StatelessWidget {
           ),
 
           padding: const EdgeInsets.all(8),
-          child: Text(language, style: body?.copyWith(fontFamily: 'monospace', fontSize: (10) )),
+          child: Text(
+            language,
+            style: body?.copyWith(fontFamily: 'monospace', fontSize: (10)),
+          ),
         ),
-        
+
         orderedListBuilder: (context, no, child, config) => listRow(Text('$no.', style: markerStyle), child),
       ),
     );
