@@ -20,7 +20,7 @@ import '../helpers/ai_prompts.dart';
 part 'ai_provider.freezed.dart';
 part 'ai_provider.g.dart';
 
-/// State of the BYOK Anthropic key.
+/// State of the active provider's BYOK key.
 @freezed
 sealed class AiKeyState with _$AiKeyState {
   const factory AiKeyState.loading() = AiKeyLoading;

@@ -14,7 +14,7 @@ import '../../presentation/helpers/ai_prompts.dart';
 import '../models/triage_item.dart';
 import '../services/llm_client.dart';
 
-/// AI features over the Anthropic Messages API (BYOK). Errors are caught here
+/// AI features over the active LLM provider (BYOK). Errors are caught here
 /// and surfaced as [Result] failures; nothing above the repo layer throws.
 abstract class AiRepository {
   /// True if the stored key is valid, false if rejected (401).
