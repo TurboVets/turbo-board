@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../../shared/ui/board/board_columns.dart';
 import '../../../../../shared/ui/theme/tb_text.dart';
+import 'board_assignee_filter.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../data/models/board_data.dart';
@@ -39,7 +40,9 @@ class BoardTopbar extends ConsumerWidget {
               style: TbText.label(size: 14, weight: FontWeight.w600, tracking: 0.5),
             ),
           ),
-
+          const SizedBox(width: 10),
+          BoardAssigneeFilterButton(board: board),
+          const SizedBox(width: 10),
           _aiCta(ref, insights),
           const SizedBox(width: 10),
           const BoardFitToggle(boardId: 'projects'),

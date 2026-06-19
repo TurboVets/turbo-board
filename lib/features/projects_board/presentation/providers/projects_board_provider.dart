@@ -59,3 +59,49 @@ class BoardInsightsController extends _$BoardInsightsController {
 
   void clear() => state = null;
 }
+
+/// Sentinel member of the assignee filter meaning "no assignee".
+const String kBoardUnassigned = '(unassigned)';
+
+/// Selected assignee logins to filter the board by (plus [kBoardUnassigned] for
+/// unowned cards). Empty = no filter (show everything). Session-scoped.
+@Riverpod(keepAlive: true)
+class BoardAssigneeFilter extends _$BoardAssigneeFilter {
+  @override
+  Set<String> build() => const {};
+
+  void toggle(String key) {
+    final next = {...state};
+    next.contains(key) ? next.remove(key) : next.add(key);
+    state = next;
+  }
+
+  void clear() => state = const {};
+}
+
+/// All assignee logins present on the board, deduped and sorted.
+List<String> boardAssignees(ProjectBoardData board) {
+  final logins = <String>{};
+  for (final col in board.columns) {
+    for (final card in col.cards) {
+      logins.addAll(card.assignees);
+    }
+  }
+  final sorted = logins.toList()..sort();
+  return sorted;
+}
+
+/// Filters [board]'s cards by [filter]. Empty filter returns [board] unchanged.
+/// A card matches if any of its assignees is selected, or — when
+/// [kBoardUnassigned] is selected — it has no assignees.
+ProjectBoardData filterBoardByAssignees(ProjectBoardData board, Set<String> filter) {
+  if (filter.isEmpty) return board;
+  bool matches(BoardCard c) {
+    if (c.assignees.isEmpty) return filter.contains(kBoardUnassigned);
+    return c.assignees.any(filter.contains);
+  }
+
+  return board.copyWith(
+    columns: [for (final col in board.columns) col.copyWith(cards: col.cards.where(matches).toList())],
+  );
+}

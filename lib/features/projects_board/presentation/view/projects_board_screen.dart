@@ -58,6 +58,10 @@ class _BoardBody extends HookConsumerWidget {
       return const Center(child: Text('No columns'));
     }
 
+    // Assignee filter is applied to the rendered columns only. The topbar gets
+    // the unfiltered `view` so its assignee menu still lists everyone.
+    final filtered = filterBoardByAssignees(view, ref.watch(boardAssigneeFilterProvider));
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,13 +75,17 @@ class _BoardBody extends HookConsumerWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth < TbBreakpoints.mobile) {
-                final i = phoneIndex.value.clamp(0, view.columns.length - 1);
+                final i = phoneIndex.value.clamp(0, filtered.columns.length - 1);
                 return Column(
                   children: [
-                    PhoneColumnSelector(columns: view.columns, selectedIndex: i, onSelect: (n) => phoneIndex.value = n),
+                    PhoneColumnSelector(
+                      columns: filtered.columns,
+                      selectedIndex: i,
+                      onSelect: (n) => phoneIndex.value = n,
+                    ),
                     Expanded(
                       child: BoardColumnView(
-                        column: view.columns[i],
+                        column: filtered.columns[i],
                         width: double.infinity,
                         onCardTap: (c) => _openCard(context, c),
                       ),
@@ -91,7 +99,7 @@ class _BoardBody extends HookConsumerWidget {
                 boardId: 'projects',
                 columnVerticalInset: 44,
                 columns: [
-                  for (final c in view.columns)
+                  for (final c in filtered.columns)
                     BoardColumnSpec(
                       weight: weightFor(c).round(),
                       scrollWidth: weightFor(c),
