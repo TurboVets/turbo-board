@@ -54,7 +54,7 @@ void main() {
 
   test('complete throws on non-200', () async {
     stub(chat(null, status: 429));
-    expect(() => client.complete(prompt: 'hi'), throwsException);
+    await expectLater(client.complete(prompt: 'hi'), throwsA(isA<Exception>()));
   });
 
   test('validateKey true/false/throw', () async {
@@ -63,7 +63,7 @@ void main() {
     stub(chat(null, status: 401));
     expect(await client.validateKey(), isFalse);
     stub(chat(null, status: 500));
-    expect(() => client.validateKey(), throwsException);
+    await expectLater(client.validateKey(), throwsA(isA<Exception>()));
   });
 
   test('setKey sets and clears the bearer header', () {
