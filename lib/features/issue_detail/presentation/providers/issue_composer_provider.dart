@@ -2,6 +2,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
+import '../../../projects_board/presentation/providers/projects_board_provider.dart';
 import 'issue_detail_provider.dart';
 
 part 'issue_composer_provider.g.dart';
@@ -22,6 +23,9 @@ class IssueComposer extends _$IssueComposer {
       case ResultSuccess():
         state = const AsyncData(null);
         ref.invalidate(issueDetailProvider(owner: owner, repo: name, number: number));
+        // Issue changes (status / close / reopen) move cards between columns, so
+        // refresh the board view too.
+        ref.invalidate(projectsBoardProvider);
         return true;
       case ResultFailure(:final message):
         state = AsyncError(message, StackTrace.current);
@@ -38,4 +42,7 @@ class IssueComposer extends _$IssueComposer {
 
   Future<bool> createBranch(String issueId, String oid, String branchName) =>
       _run(() => ref.read(issueDetailRepositoryProvider).createBranch(issueId, oid, branchName));
+
+  Future<bool> setStatus(String projectId, String itemId, String fieldId, String optionId) =>
+      _run(() => ref.read(issueDetailRepositoryProvider).updateStatus(projectId, itemId, fieldId, optionId));
 }

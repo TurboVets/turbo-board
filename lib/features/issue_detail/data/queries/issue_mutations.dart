@@ -1,5 +1,16 @@
 // lib/features/issue_detail/data/queries/issue_mutations.dart
 
+/// Sets a ProjectV2 single-select field (Status) on a project item.
+const String updateProjectStatusMutation = r'''
+mutation UpdateProjectStatus($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+  updateProjectV2ItemFieldValue(
+    input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: {singleSelectOptionId: $optionId}}
+  ) {
+    projectV2Item { id }
+  }
+}
+''';
+
 /// Posts a comment to the issue conversation. [subjectId] is the issue node id.
 const String addIssueCommentMutation = r'''
 mutation AddIssueComment($subjectId: ID!, $body: String!) {

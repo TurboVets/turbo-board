@@ -25,6 +25,9 @@ class _FailRepo implements IssueDetailRepository {
   Future<Result<bool>> reopenIssue(String id) async => Result.success(true);
   @override
   Future<Result<String>> createBranch(String id, String oid, String name) async => Result.success(name);
+  @override
+  Future<Result<bool>> updateStatus(String projectId, String itemId, String fieldId, String optionId) async =>
+      Result.success(true);
 }
 
 void main() {

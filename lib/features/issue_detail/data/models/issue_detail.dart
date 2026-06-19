@@ -101,6 +101,13 @@ sealed class IssueDetail with _$IssueDetail {
     @Default(<IssueTimelineEvent>[]) List<IssueTimelineEvent> timeline,
     @Default(false) bool viewerCanUpdate,
     String? repoDefaultBranchOid,
+
+    // ProjectV2 Status-field write handles. Present only when the issue is on a
+    // project and the viewer can update it.
+    String? projectId,
+    String? projectItemId,
+    String? statusFieldId,
+    @Default(<IssueStatusOption>[]) List<IssueStatusOption> statusOptions,
   }) = _IssueDetail;
 
   factory IssueDetail.fromJson(Map<String, dynamic> json) => _$IssueDetailFromJson(json);
@@ -110,4 +117,21 @@ sealed class IssueDetail with _$IssueDetail {
   int get subTotal => subIssues.length;
   bool get hasSubIssues => subTotal > 0;
   bool get isClosed => state == IssueState.closed;
+
+  /// The viewer can change the Status field from the drawer.
+  bool get canUpdateStatus =>
+      viewerCanUpdate &&
+      projectId != null &&
+      projectItemId != null &&
+      statusFieldId != null &&
+      statusOptions.isNotEmpty;
+}
+
+/// One selectable value of the project's Status single-select field. [id] is the
+/// option id used by the update mutation; [status] is its mapped enum (for the
+/// dot color), or null when the option name doesn't map to a known status.
+@freezed
+sealed class IssueStatusOption with _$IssueStatusOption {
+  const factory IssueStatusOption({required String id, required String name, IssueStatus? status}) = _IssueStatusOption;
+  factory IssueStatusOption.fromJson(Map<String, dynamic> json) => _$IssueStatusOptionFromJson(json);
 }

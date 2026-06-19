@@ -18,15 +18,18 @@ void main() {
       'projectItems',
       'timelineItems',
       'defaultBranchRef',
+      'ProjectV2SingleSelectField',
     ]) {
       expect(issueDetailQuery, contains(fragment), reason: 'missing $fragment');
     }
   });
 
-  test('mutations cover comment/close/reopen/branch', () {
+  test('mutations cover comment/close/reopen/branch/status', () {
     expect(addIssueCommentMutation, contains('addComment'));
     expect(closeIssueMutation, contains('closeIssue'));
     expect(reopenIssueMutation, contains('reopenIssue'));
     expect(createLinkedBranchMutation, contains('createLinkedBranch'));
+    expect(updateProjectStatusMutation, contains('updateProjectV2ItemFieldValue'));
+    expect(updateProjectStatusMutation, contains('singleSelectOptionId'));
   });
 }

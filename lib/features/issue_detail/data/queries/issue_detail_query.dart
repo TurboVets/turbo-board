@@ -27,6 +27,13 @@ query IssueDetail($owner: String!, $name: String!, $number: Int!) {
       }
       projectItems(first: 5) {
         nodes {
+          id
+          project {
+            id
+            field(name: "Status") {
+              ... on ProjectV2SingleSelectField { id options { id name } }
+            }
+          }
           fieldValues(first: 20) {
             nodes {
               __typename

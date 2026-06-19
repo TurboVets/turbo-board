@@ -18,6 +18,9 @@ abstract interface class IssueDetailRepository {
 
   /// Creates a branch from the issue; returns the created branch name.
   Future<Result<String>> createBranch(String issueId, String oid, String name);
+
+  /// Sets the project Status single-select field to [optionId].
+  Future<Result<bool>> updateStatus(String projectId, String itemId, String fieldId, String optionId);
 }
 
 class GithubIssueDetailRepository implements IssueDetailRepository {
@@ -62,6 +65,13 @@ class GithubIssueDetailRepository implements IssueDetailRepository {
     }
   }
 
+  @override
+  Future<Result<bool>> updateStatus(String projectId, String itemId, String fieldId, String optionId) => _mutate(
+    updateProjectStatusMutation,
+    {'projectId': projectId, 'itemId': itemId, 'fieldId': fieldId, 'optionId': optionId},
+    'Could not update the status.',
+  );
+
   Future<Result<bool>> _mutate(String mutation, Map<String, dynamic> vars, String failure) async {
     try {
       await _client.graphql(mutation, vars);
@@ -105,6 +115,10 @@ IssueDetail issueDetailFromNode(String owner, String name, Map<String, dynamic> 
     timeline: _timelineFrom(issue),
     viewerCanUpdate: (issue['viewerCanUpdate'] as bool?) ?? false,
     repoDefaultBranchOid: repoNode['defaultBranchRef']?['target']?['oid'] as String?,
+    projectId: fields.projectId,
+    projectItemId: fields.projectItemId,
+    statusFieldId: fields.statusFieldId,
+    statusOptions: fields.statusOptions,
   );
 }
 
@@ -114,15 +128,48 @@ List<String> _logins(dynamic conn) => ((conn?['nodes'] as List<dynamic>?) ?? con
     .whereType<String>()
     .toList();
 
-typedef _Fields = ({IssueStatus? status, IssuePriority? priority, String? sprint, int? points});
+typedef _Fields = ({
+  IssueStatus? status,
+  IssuePriority? priority,
+  String? sprint,
+  int? points,
+  String? projectId,
+  String? projectItemId,
+  String? statusFieldId,
+  List<IssueStatusOption> statusOptions,
+});
 
 _Fields _projectFields(Map<String, dynamic> issue) {
   IssueStatus? status;
   IssuePriority? priority;
   String? sprint;
   int? points;
+  String? projectId;
+  String? projectItemId;
+  String? statusFieldId;
+  var statusOptions = const <IssueStatusOption>[];
   final items = (issue['projectItems']?['nodes'] as List<dynamic>?) ?? const [];
   for (final item in items.whereType<Map<String, dynamic>>()) {
+    // Capture Status-field write handles from the first item that exposes them.
+    if (projectItemId == null) {
+      final project = item['project'] as Map<String, dynamic>?;
+      final statusField = project?['field'] as Map<String, dynamic>?;
+      if (statusField?['id'] != null) {
+        projectId = project?['id'] as String?;
+        projectItemId = item['id'] as String?;
+        statusFieldId = statusField!['id'] as String?;
+        statusOptions = ((statusField['options'] as List<dynamic>?) ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(
+              (o) => IssueStatusOption(
+                id: (o['id'] as String?) ?? '',
+                name: (o['name'] as String?) ?? '',
+                status: _statusFrom(o['name'] as String?),
+              ),
+            )
+            .toList();
+      }
+    }
     for (final raw
         in ((item['fieldValues']?['nodes'] as List<dynamic>?) ?? const []).whereType<Map<String, dynamic>>()) {
       final field = (raw['field']?['name'] as String?)?.toLowerCase() ?? '';
@@ -138,7 +185,16 @@ _Fields _projectFields(Map<String, dynamic> issue) {
       }
     }
   }
-  return (status: status, priority: priority, sprint: sprint, points: points);
+  return (
+    status: status,
+    priority: priority,
+    sprint: sprint,
+    points: points,
+    projectId: projectId,
+    projectItemId: projectItemId,
+    statusFieldId: statusFieldId,
+    statusOptions: statusOptions,
+  );
 }
 
 IssueRef? _parentFrom(Map<String, dynamic>? p) => p == null
@@ -291,6 +347,9 @@ class MockIssueDetailRepository implements IssueDetailRepository {
   Future<Result<bool>> reopenIssue(String issueId) async => Result.success(true);
   @override
   Future<Result<String>> createBranch(String issueId, String oid, String name) async => Result.success(name);
+  @override
+  Future<Result<bool>> updateStatus(String projectId, String itemId, String fieldId, String optionId) async =>
+      Result.success(true);
 }
 
 /// Sample from `Issue Detail.dc.html` (auth-rotation issue #155).
@@ -385,4 +444,14 @@ final IssueDetail sampleIssueDetail = IssueDetail(
   ],
   viewerCanUpdate: true,
   repoDefaultBranchOid: 'deadbeefcafe',
+  projectId: 'PVT_sample',
+  projectItemId: 'PVTI_sample',
+  statusFieldId: 'PVTF_status',
+  statusOptions: const [
+    IssueStatusOption(id: 'opt_triage', name: 'Triage', status: IssueStatus.triage),
+    IssueStatusOption(id: 'opt_not_started', name: 'Not Started', status: IssueStatus.notStarted),
+    IssueStatusOption(id: 'opt_in_progress', name: 'In Progress', status: IssueStatus.inProgress),
+    IssueStatusOption(id: 'opt_in_review', name: 'In Review', status: IssueStatus.inReview),
+    IssueStatusOption(id: 'opt_done', name: 'Done', status: IssueStatus.done),
+  ],
 );

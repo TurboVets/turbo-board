@@ -110,6 +110,17 @@ Map<String, dynamic> repoNode() => {
     'projectItems': {
       'nodes': [
         {
+          'id': 'PVTI_1',
+          'project': {
+            'id': 'PVT_1',
+            'field': {
+              'id': 'PVTF_status',
+              'options': [
+                {'id': 'opt_ip', 'name': 'In Progress'},
+                {'id': 'opt_done', 'name': 'Done'},
+              ],
+            },
+          },
           'fieldValues': {
             'nodes': [
               {
@@ -176,6 +187,13 @@ void main() {
     expect(pr.reviewState, PrReviewState.changesRequested);
     expect(pr.mergeState, PrLinkMergeState.draft);
     expect(d.timeline.first.kind, IssueEventKind.opened); // synthesized from createdAt
+    // ProjectV2 status-update handles.
+    expect(d.projectId, 'PVT_1');
+    expect(d.projectItemId, 'PVTI_1');
+    expect(d.statusFieldId, 'PVTF_status');
+    expect(d.statusOptions.map((o) => o.id), ['opt_ip', 'opt_done']);
+    expect(d.statusOptions.first.status, IssueStatus.inProgress);
+    expect(d.canUpdateStatus, isTrue);
   });
 
   test('mock repo returns the sample and accepts mutations', () async {
@@ -198,5 +216,9 @@ void main() {
       ResultSuccess(:final data) => data,
       ResultFailure(:final message) => fail(message),
     }, '155-rotate');
+    expect(switch (await repo.updateStatus('p', 'i', 'f', 'opt')) {
+      ResultSuccess(:final data) => data,
+      ResultFailure(:final message) => fail(message),
+    }, isTrue);
   });
 }

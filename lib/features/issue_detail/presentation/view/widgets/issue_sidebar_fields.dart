@@ -1,11 +1,13 @@
 // lib/features/issue_detail/presentation/view/widgets/issue_sidebar_fields.dart
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../../shared/ui/widgets/tb_badge.dart';
 import '../../../../lead_cockpit/presentation/helpers/cockpit_palette.dart';
 import '../../../data/models/issue_detail.dart';
+import '../../providers/issue_composer_provider.dart';
 
 /// Sidebar column: Assignees, Labels, Project fields (Status / Priority /
 /// Sprint / Complexity / Milestone), Relationships, Participants. Each
@@ -95,7 +97,14 @@ class IssueSidebarFields extends StatelessWidget {
   Widget _buildProject() {
     final rows = <Widget>[];
 
-    if (issue.status != null) {
+    if (issue.canUpdateStatus) {
+      rows.add(
+        _FieldRow(
+          label: 'Status',
+          child: _StatusMenu(issue: issue),
+        ),
+      );
+    } else if (issue.status != null) {
       rows.add(
         _FieldRow(
           label: 'Status',
@@ -258,6 +267,52 @@ class _LabelChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(label.name, style: TbText.body(size: 11, color: chipColor)),
+    );
+  }
+}
+
+/// Tappable Status chip → dropdown of the project's Status options. Selecting
+/// one writes the new status (then the detail reloads with it).
+class _StatusMenu extends ConsumerWidget {
+  const _StatusMenu({required this.issue});
+
+  final IssueDetail issue;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final parts = issue.repo.split('/');
+    final owner = parts.first;
+    final name = parts.length > 1 ? parts[1] : '';
+    final composer = ref.read(issueComposerProvider(owner: owner, name: name, number: issue.number).notifier);
+    final label = issue.status != null ? CockpitPalette.statusLabel(issue.status!) : 'Set status';
+
+    return MenuAnchor(
+      style: MenuStyle(
+        backgroundColor: const WidgetStatePropertyAll(TbColors.surface),
+        side: const WidgetStatePropertyAll(BorderSide(color: TbColors.border)),
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+      ),
+      menuChildren: [
+        for (final opt in issue.statusOptions)
+          MenuItemButton(
+            leadingIcon: opt.status != null
+                ? TbSignalDot(color: CockpitPalette.statusDot(opt.status!), size: 8)
+                : const SizedBox(width: 8),
+            onPressed: () => composer.setStatus(issue.projectId!, issue.projectItemId!, issue.statusFieldId!, opt.id),
+            child: Text(opt.name, style: TbText.body(size: 13, color: TbColors.text)),
+          ),
+      ],
+      builder: (context, controller, _) => GestureDetector(
+        onTap: () => controller.isOpen ? controller.close() : controller.open(),
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TbBadge(label, TbSignal.gray, small: true),
+            const Icon(Icons.arrow_drop_down, size: 16, color: TbColors.muted),
+          ],
+        ),
+      ),
     );
   }
 }
