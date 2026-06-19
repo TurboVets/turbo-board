@@ -152,7 +152,7 @@ String? maskSecret(String? secret) {
 
 /// On-demand PR summary, keyed by PR slug so each detail screen has its own.
 /// `null` state means "not requested yet".
-@riverpod
+@Riverpod(keepAlive: true)
 class PrSummaryController extends _$PrSummaryController {
   @override
   AsyncValue<List<String>>? build(String slug) => null;
@@ -168,7 +168,7 @@ class PrSummaryController extends _$PrSummaryController {
 }
 
 /// On-demand reply draft, keyed by PR slug.
-@riverpod
+@Riverpod(keepAlive: true)
 class ReplyDraftController extends _$ReplyDraftController {
   @override
   AsyncValue<String>? build(String slug) => null;
@@ -187,7 +187,7 @@ class ReplyDraftController extends _$ReplyDraftController {
 
 /// Board-level AI triage ranking. `null` = not run yet (idle); loading while
 /// the model ranks; data holds the ranked rows. Single instance for the board.
-@riverpod
+@Riverpod(keepAlive: true)
 class TriageController extends _$TriageController {
   @override
   AsyncValue<List<TriageItem>>? build() => null;
@@ -205,7 +205,7 @@ class TriageController extends _$TriageController {
 }
 
 /// On-demand full sprint summary (Sprint Report). `null` = not requested yet.
-@riverpod
+@Riverpod(keepAlive: true)
 class SprintSummaryController extends _$SprintSummaryController {
   @override
   AsyncValue<String>? build() => null;
@@ -223,7 +223,7 @@ class SprintSummaryController extends _$SprintSummaryController {
 }
 
 /// On-demand scannable sprint digest (Sprint Report). `null` = not requested.
-@riverpod
+@Riverpod(keepAlive: true)
 class SprintDigestController extends _$SprintDigestController {
   @override
   AsyncValue<String>? build() => null;
@@ -241,7 +241,7 @@ class SprintDigestController extends _$SprintDigestController {
 }
 
 /// On-demand weekly digest (Lead Cockpit). `null` = not requested yet.
-@riverpod
+@Riverpod(keepAlive: true)
 class WeeklyDigestController extends _$WeeklyDigestController {
   @override
   AsyncValue<String>? build() => null;
@@ -259,7 +259,7 @@ class WeeklyDigestController extends _$WeeklyDigestController {
 }
 
 /// On-demand issue TL;DR, keyed by issue slug. `null` = not requested yet.
-@riverpod
+@Riverpod(keepAlive: true)
 class IssueSummaryController extends _$IssueSummaryController {
   @override
   AsyncValue<List<String>>? build(String slug) => null;
@@ -275,7 +275,7 @@ class IssueSummaryController extends _$IssueSummaryController {
 }
 
 /// On-demand "suggest next action", keyed by issue slug. `null` = not requested.
-@riverpod
+@Riverpod(keepAlive: true)
 class IssueNextActionController extends _$IssueNextActionController {
   @override
   AsyncValue<String>? build(String slug) => null;
