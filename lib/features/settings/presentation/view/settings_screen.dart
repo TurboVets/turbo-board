@@ -2,12 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:turbo_ui/turbo_ui.dart';
 
 import '../../../../shared/ui/providers/refresh_interval_provider.dart';
 import '../../../../shared/ui/providers/text_scale_provider.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
+import '../../../ai/data/services/ai_provider_kind.dart';
 import '../../../ai/presentation/providers/ai_provider.dart';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
@@ -15,7 +17,7 @@ import '../../../lead_cockpit/presentation/view/widgets/project_picker.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
 import '../../../repo_setup/presentation/providers/watched_repos_provider.dart';
 
-/// The Settings screen — GitHub connection, watched repos, Anthropic key,
+/// The Settings screen — GitHub connection, watched repos, AI provider key,
 /// appearance. Reached via /settings inside the shell. Matches TurboBoard.dc.html.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -52,7 +54,7 @@ class SettingsScreen extends StatelessWidget {
                     SizedBox(height: 14),
                     _ProjectSection(),
                     SizedBox(height: 14),
-                    _AnthropicKeySection(),
+                    _AiProviderSection(),
                     SizedBox(height: 14),
                     _BillingCard(),
                     SizedBox(height: 14),
@@ -573,20 +575,28 @@ class _ProjectSection extends HookConsumerWidget {
   }
 }
 
-// ─── Anthropic API key ──────────────────────────────────────────────────────
+// ─── AI provider + key ──────────────────────────────────────────────────────
 
 enum _ValidateResult { none, checking, valid, invalid, error }
 
-class _AnthropicKeySection extends HookConsumerWidget {
-  const _AnthropicKeySection();
+class _AiProviderSection extends HookConsumerWidget {
+  const _AiProviderSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final provider = ref.watch(activeAiProviderProvider);
     final state = ref.watch(aiKeyProvider);
     final saved = state is AiKeyValid;
     final controller = useTextEditingController();
     final validateState = useState(_ValidateResult.none);
-    final maskedAsync = ref.watch(anthropicKeyMaskedProvider);
+    final maskedAsync = ref.watch(activeKeyMaskedProvider);
+
+    // Reset the input affordances when the active provider changes.
+    useEffect(() {
+      controller.clear();
+      validateState.value = _ValidateResult.none;
+      return null;
+    }, [provider]);
 
     Widget? badge;
     if (saved) {
@@ -617,87 +627,106 @@ class _AnthropicKeySection extends HookConsumerWidget {
       _ValidateResult.none => 'Validate',
     };
 
+    final selector = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: TetherSegmentedButtonGroup(
+        segments: [for (final p in AiProvider.values) p.displayName],
+        selectedIndex: AiProvider.values.indexOf(provider),
+        onChanged: (i) => ref.read(activeAiProviderProvider.notifier).set(AiProvider.values[i]),
+        fillWidth: true,
+      ),
+    );
+
     return _Card(
-      title: 'Anthropic API key',
+      title: 'AI provider',
       headerTrailing: badge,
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: saved
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          selector,
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: saved
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: _maskedCode(maskedAsync.asData?.value ?? '••••••••')),
-                      const SizedBox(width: 12),
-                      _Btn('Remove key', kind: _BtnKind.danger, onTap: () => ref.read(aiKeyProvider.notifier).clear()),
+                      Row(
+                        children: [
+                          Expanded(child: _maskedCode(maskedAsync.asData?.value ?? '••••••••')),
+                          const SizedBox(width: 12),
+                          _Btn(
+                            'Remove key',
+                            kind: _BtnKind.danger,
+                            onTap: () => ref.read(aiKeyProvider.notifier).clear(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'AI Summary, Draft reply and Inbox triage are enabled via ${provider.displayName}. '
+                        'The key lives in your device Keychain / Keystore — never logged, never sent to GitHub.',
+                        style: TbText.body(size: 12, color: TbColors.muted, height: 1.5),
+                      ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'AI Summary, Draft reply and Inbox triage are enabled. The key lives in your device '
-                    'Keychain / Keystore — never logged, never sent to GitHub.',
-                    style: TbText.body(size: 12, color: TbColors.muted, height: 1.5),
-                  ),
-                ],
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text.rich(
-                    TextSpan(
-                      style: TbText.body(size: 13, color: TbColors.muted, height: 1.55),
-                      children: [
-                        const TextSpan(text: 'Create a key at '),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.rich(
                         TextSpan(
-                          text: 'console.anthropic.com',
-                          style: TbText.body(size: 13, weight: FontWeight.w600),
+                          style: TbText.body(size: 13, color: TbColors.muted, height: 1.55),
+                          children: [
+                            const TextSpan(text: 'Create a key at '),
+                            TextSpan(
+                              text: provider.consoleLabel,
+                              style: TbText.body(size: 13, weight: FontWeight.w600),
+                            ),
+                            TextSpan(
+                              text:
+                                  ' and paste it here — keys start with ${provider.keyHint}. '
+                                  'The API is billed separately by ${provider.displayName}, pay-per-use.',
+                            ),
+                          ],
                         ),
-                        const TextSpan(
-                          text:
-                              ' (Settings → API keys) and paste it here — keys start with sk-ant-. '
-                              'Note: a claude.ai Pro/Max subscription does not include API access; the API '
-                              'is billed separately, pay-per-use.',
-                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: controller,
+                              obscureText: true,
+                              style: TbText.body(size: 13),
+                              decoration: _fieldDecoration(provider.keyPlaceholder),
+                              onChanged: (_) => validateState.value = _ValidateResult.none,
+                              onSubmitted: (_) => validate(),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          _Btn(
+                            validateLabel,
+                            kind: _BtnKind.outline,
+                            onTap: validateState.value == _ValidateResult.checking ? null : validate,
+                          ),
+                          const SizedBox(width: 10),
+                          _Btn(
+                            state is AiKeyValidating ? 'Saving…' : 'Save',
+                            kind: _BtnKind.primary,
+                            onTap: state is AiKeyValidating
+                                ? null
+                                : () => ref.read(aiKeyProvider.notifier).submit(controller.text.trim()),
+                          ),
+                        ],
+                      ),
+                      if (state is AiKeyError) ...[
+                        const SizedBox(height: 8),
+                        Text(state.message, style: TbText.body(size: 12, color: TbSignal.bad.border)),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: controller,
-                          obscureText: true,
-                          style: TbText.body(size: 13),
-                          decoration: _fieldDecoration('sk-ant-api03-…'),
-                          onChanged: (_) => validateState.value = _ValidateResult.none,
-                          onSubmitted: (_) => validate(),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      _Btn(
-                        validateLabel,
-                        kind: _BtnKind.outline,
-                        onTap: validateState.value == _ValidateResult.checking ? null : validate,
-                      ),
-                      const SizedBox(width: 10),
-                      _Btn(
-                        state is AiKeyValidating ? 'Saving…' : 'Save',
-                        kind: _BtnKind.primary,
-                        onTap: state is AiKeyValidating
-                            ? null
-                            : () => ref.read(aiKeyProvider.notifier).submit(controller.text.trim()),
-                      ),
+                      _hint('Validated with a 1-token test call · stored in Keychain / Keystore — never logged'),
                     ],
                   ),
-                  if (state is AiKeyError) ...[
-                    const SizedBox(height: 8),
-                    Text(state.message, style: TbText.body(size: 12, color: TbSignal.bad.border)),
-                  ],
-                  _hint('Validated with a 1-token test call · stored in Keychain / Keystore — never logged'),
-                ],
-              ),
+          ),
+        ],
       ),
     );
   }
@@ -705,11 +734,12 @@ class _AnthropicKeySection extends HookConsumerWidget {
 
 // ─── Billing ────────────────────────────────────────────────────────────────
 
-class _BillingCard extends StatelessWidget {
+class _BillingCard extends ConsumerWidget {
   const _BillingCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final provider = ref.watch(activeAiProviderProvider);
     return Container(
       decoration: BoxDecoration(
         color: TbColors.surface,
@@ -723,10 +753,9 @@ class _BillingCard extends StatelessWidget {
           Text('BILLING', style: TbText.label(size: 11, color: TbColors.muted, tracking: 1.4)),
           const SizedBox(height: 10),
           Text(
-            'AI features call the Anthropic Messages API directly from the app with your key — there is no '
+            'AI features call ${provider.displayName} directly from the app with your key — there is no '
             'TurboBoard backend in the loop. Summaries, triage and reply drafts are pay-per-use, billed to your '
-            'Anthropic account — typically well under \$1/month at this team\'s volume. No PR content is stored '
-            'by TurboBoard.',
+            '${provider.displayName} account. No PR content is stored by TurboBoard.',
             style: TbText.body(size: 13, color: TbColors.muted, height: 1.6),
           ),
         ],
