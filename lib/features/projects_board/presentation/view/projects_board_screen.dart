@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../shared/ui/board/board_columns.dart';
 import '../../../../shared/ui/theme/tb_breakpoints.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
@@ -84,57 +85,19 @@ class _BoardBody extends HookConsumerWidget {
                   ],
                 );
               }
-              const gap = 14.0;
-              const padH = 22.0;
-              final cols = view.columns;
               // In Progress is the widest column (design ratio 272 : 236).
-              int weightFor(BoardColumn c) => c.status == IssueStatus.inProgress ? 272 : 236;
-              final colHeight = (constraints.maxHeight - 44).clamp(0.0, double.infinity);
-              final fit = ref.watch(boardFitColumnsProvider);
-
-              // Fit mode: every column shares the viewport via flex — all visible,
-              // no horizontal scroll, In Progress proportionally wider.
-              if (fit) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: padH),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (var i = 0; i < cols.length; i++) ...[
-                        if (i > 0) const SizedBox(width: gap),
-                        Expanded(
-                          flex: weightFor(cols[i]),
-                          child: SizedBox(
-                            height: colHeight,
-                            child: BoardColumnView(column: cols[i], onCardTap: (c) => _openCard(context, c)),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              }
-
-              // Scroll mode: comfortable fixed widths, scroll through columns.
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(left: padH, right: padH),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (var i = 0; i < cols.length; i++) ...[
-                      if (i > 0) const SizedBox(width: gap),
-                      SizedBox(
-                        height: colHeight,
-                        child: BoardColumnView(
-                          column: cols[i],
-                          width: weightFor(cols[i]).toDouble(),
-                          onCardTap: (c) => _openCard(context, c),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+              double weightFor(BoardColumn c) => c.status == IssueStatus.inProgress ? 272 : 236;
+              return BoardColumnsRow(
+                boardId: 'projects',
+                columnVerticalInset: 44,
+                columns: [
+                  for (final c in view.columns)
+                    BoardColumnSpec(
+                      weight: weightFor(c).round(),
+                      scrollWidth: weightFor(c),
+                      child: BoardColumnView(column: c, onCardTap: (card) => _openCard(context, card)),
+                    ),
+                ],
               );
             },
           ),

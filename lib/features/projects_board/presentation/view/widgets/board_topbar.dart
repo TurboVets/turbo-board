@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../../shared/ui/board/board_columns.dart';
 import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../lead_cockpit/data/models/cockpit_data.dart';
@@ -41,20 +42,7 @@ class BoardTopbar extends ConsumerWidget {
 
           _aiCta(ref, insights),
           const SizedBox(width: 10),
-          Builder(
-            builder: (context) {
-              final fit = ref.watch(boardFitColumnsProvider);
-              return IconButton(
-                tooltip: fit ? 'Fit all columns to width' : 'Scroll columns',
-                icon: Icon(
-                  fit ? Icons.fit_screen_outlined : Icons.view_column_outlined,
-                  size: 16,
-                  color: fit ? TbColors.cyan : TbColors.muted,
-                ),
-                onPressed: () => ref.read(boardFitColumnsProvider.notifier).toggle(),
-              );
-            },
-          ),
+          const BoardFitToggle(boardId: 'projects'),
           IconButton(
             tooltip: isRefreshing ? 'Refreshing…' : 'Refresh',
             icon: isRefreshing

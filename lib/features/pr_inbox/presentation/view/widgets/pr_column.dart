@@ -50,8 +50,15 @@ class PrColumn extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Text(title, style: TbText.label(size: 11, color: TbColors.text, tracking: 1.0)),
-                const Spacer(),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TbText.label(size: 11, color: TbColors.text, tracking: 1.0),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Text(
                   '${prs.length}',
                   style: TbText.label(size: 13, weight: FontWeight.w700, color: TbColors.muted, tracking: 0.2),

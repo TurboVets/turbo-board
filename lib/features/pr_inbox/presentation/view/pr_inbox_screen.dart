@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../shared/ui/board/board_columns.dart';
 import '../../../../shared/ui/theme/tb_breakpoints.dart';
 import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
@@ -142,6 +143,8 @@ class _Topbar extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          const BoardFitToggle(boardId: 'pr-inbox'),
+          const SizedBox(width: 8),
           // REFRESH button
           _OutlineButton(label: isRefreshing ? 'REFRESHING' : 'REFRESH', onPressed: onRefresh, busy: isRefreshing),
           const SizedBox(width: 8),
@@ -290,32 +293,23 @@ class _DesktopBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columnHeight = constraints.maxHeight - 16;
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final (state, label, accent) in PrInboxScreen._columns) ...[
-                SizedBox(
-                  width: 280,
-                  height: columnHeight > 0 ? columnHeight : null,
-                  child: PrColumn(
-                    title: label,
-                    accent: accent,
-                    prs: items.where((p) => p.reviewState == state).toList(),
-                    onCardTap: (pr) => _openPr(context, pr),
-                  ),
-                ),
-                const SizedBox(width: 14),
-              ],
-            ],
+    return BoardColumnsRow(
+      boardId: 'pr-inbox',
+      padding: const EdgeInsets.all(8),
+      columnVerticalInset: 16,
+      columns: [
+        for (final (state, label, accent) in PrInboxScreen._columns)
+          BoardColumnSpec(
+            weight: 280,
+            scrollWidth: 280,
+            child: PrColumn(
+              title: label,
+              accent: accent,
+              prs: items.where((p) => p.reviewState == state).toList(),
+              onCardTap: (pr) => _openPr(context, pr),
+            ),
           ),
-        );
-      },
+      ],
     );
   }
 }
