@@ -59,12 +59,18 @@ class IssueDevelopmentCard extends HookConsumerWidget {
                 if (createdBranch.value == null)
                   OutlinedButton.icon(
                     icon: const Icon(Icons.account_tree_outlined, size: 14),
-                    label: Text('Create branch  ${_branchName()}', overflow: TextOverflow.ellipsis),
+                    label: const Text('Create branch…', overflow: TextOverflow.ellipsis),
                     onPressed: (id == null || oid == null)
                         ? null
                         : () async {
-                            final ok = await notifier.createBranch(id, oid, _branchName());
-                            if (ok) createdBranch.value = _branchName();
+                            final chosen = await showDialog<String>(
+                              context: context,
+                              builder: (_) => _CreateBranchDialog(initialName: _branchName(), repo: issue.repo),
+                            );
+                            final branch = chosen?.trim();
+                            if (branch == null || branch.isEmpty) return;
+                            final ok = await notifier.createBranch(id, oid, branch);
+                            if (ok) createdBranch.value = branch;
                           },
                   )
                 else ...[
@@ -84,6 +90,75 @@ class IssueDevelopmentCard extends HookConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Confirms branch creation, letting the user edit the name first. Returns the
+/// chosen name on Create, or null on Cancel / dismiss.
+class _CreateBranchDialog extends StatefulWidget {
+  const _CreateBranchDialog({required this.initialName, required this.repo});
+
+  final String initialName;
+  final String repo;
+
+  @override
+  State<_CreateBranchDialog> createState() => _CreateBranchDialogState();
+}
+
+class _CreateBranchDialogState extends State<_CreateBranchDialog> {
+  late final TextEditingController _ctrl = TextEditingController(text: widget.initialName);
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_ctrl.text.trim());
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: TbColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: TbColors.border),
+      ),
+      title: Text('Create branch', style: TbText.label(size: 13, weight: FontWeight.w600, tracking: 0.5)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('From ${widget.repo} default branch.', style: TbText.body(size: 12, color: TbColors.muted)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            style: TbText.body(size: 13, color: TbColors.text),
+            onSubmitted: (_) => _submit(),
+            decoration: InputDecoration(
+              labelText: 'Branch name',
+              filled: true,
+              fillColor: TbColors.canvas,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: const BorderSide(color: TbColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: const BorderSide(color: TbColors.blue),
+              ),
+              isDense: true,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(onPressed: _submit, child: const Text('Create')),
+      ],
     );
   }
 }
