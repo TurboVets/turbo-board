@@ -59,3 +59,14 @@ class BoardInsightsController extends _$BoardInsightsController {
 
   void clear() => state = null;
 }
+
+/// Board column sizing mode. `true` (default) fits all columns into the
+/// viewport; `false` gives them a comfortable fixed width and scrolls
+/// horizontally. Session-scoped (keepAlive) so it persists while navigating.
+@Riverpod(keepAlive: true)
+class BoardFitColumns extends _$BoardFitColumns {
+  @override
+  bool build() => true;
+
+  void toggle() => state = !state;
+}

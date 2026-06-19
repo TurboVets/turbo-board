@@ -31,16 +31,30 @@ class BoardTopbar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Flexible(
+          Expanded(
             child: Text(
               board.title,
               overflow: TextOverflow.ellipsis,
               style: TbText.label(size: 14, weight: FontWeight.w600, tracking: 0.5),
             ),
           ),
-          const Spacer(),
+
           _aiCta(ref, insights),
           const SizedBox(width: 10),
+          Builder(
+            builder: (context) {
+              final fit = ref.watch(boardFitColumnsProvider);
+              return IconButton(
+                tooltip: fit ? 'Fit all columns to width' : 'Scroll columns',
+                icon: Icon(
+                  fit ? Icons.fit_screen_outlined : Icons.view_column_outlined,
+                  size: 16,
+                  color: fit ? TbColors.cyan : TbColors.muted,
+                ),
+                onPressed: () => ref.read(boardFitColumnsProvider.notifier).toggle(),
+              );
+            },
+          ),
           IconButton(
             tooltip: isRefreshing ? 'Refreshing…' : 'Refresh',
             icon: isRefreshing

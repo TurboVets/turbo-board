@@ -13,11 +13,14 @@ import 'board_card.dart';
 
 /// One Status column: accent header, optional AI insight line, scrollable cards.
 class BoardColumnView extends ConsumerWidget {
-  const BoardColumnView({super.key, required this.column, required this.onCardTap, this.width = 236});
+  const BoardColumnView({super.key, required this.column, required this.onCardTap, this.width});
 
   final BoardColumn column;
   final void Function(BoardCard) onCardTap;
-  final double width;
+
+  /// Fixed column width. `null` fills the parent's constraints (used in
+  /// fit-to-width mode where the column sits inside an [Expanded]).
+  final double? width;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,7 +50,14 @@ class BoardColumnView extends ConsumerWidget {
       children: [
         TbSignalDot(color: accent, size: 7),
         const SizedBox(width: 8),
-        Text(column.label, style: TbText.label(size: 11, weight: FontWeight.w600, tracking: 0.4)),
+        Flexible(
+          child: Text(
+            column.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TbText.label(size: 11, weight: FontWeight.w600, tracking: 0.4),
+          ),
+        ),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),

@@ -37,7 +37,7 @@ Widget _host(Widget child, {List<Override> overrides = const []}) => ProviderSco
 
 void main() {
   testWidgets('renders label, count, cards', (tester) async {
-    await tester.pumpWidget(_host(BoardColumnView(column: _col, onCardTap: (_) {})));
+    await tester.pumpWidget(_host(BoardColumnView(column: _col, width: 236, onCardTap: (_) {})));
     expect(find.text('In Progress'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
     expect(find.text('Card one'), findsOneWidget);
@@ -48,6 +48,7 @@ void main() {
       _host(
         const BoardColumnView(
           column: BoardColumn(status: IssueStatus.done, label: 'Done'),
+          width: 236,
           onCardTap: _noop,
         ),
       ),
@@ -58,7 +59,7 @@ void main() {
   testWidgets('shows AI insight line when controller has one', (tester) async {
     await tester.pumpWidget(
       _host(
-        BoardColumnView(column: _col, onCardTap: (_) {}),
+        BoardColumnView(column: _col, width: 236, onCardTap: (_) {}),
         overrides: [
           boardInsightsControllerProvider.overrideWith(() => _StubInsights({IssueStatus.inProgress: '1 P0 blocking'})),
         ],

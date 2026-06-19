@@ -133,12 +133,24 @@ class BoardCardTile extends StatelessWidget {
 
   Widget _footer() => Row(
     children: [
-      if (card.isPr) ...[
-        _signalLabel('CI', BoardPalette.ciDot(card.ciState ?? PrCiState.none)),
-        const SizedBox(width: 11),
-        _signalLabel('REV', BoardPalette.reviewDot(card.reviewState ?? PrReviewState.none)),
-      ],
-      const Spacer(),
+      // Leading CI/REV signals take the remaining width and clip when a column
+      // is squeezed narrow (fit-to-width mode), so the row never overflows.
+      if (card.isPr)
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            child: Row(
+              children: [
+                _signalLabel('CI', BoardPalette.ciDot(card.ciState ?? PrCiState.none)),
+                const SizedBox(width: 11),
+                _signalLabel('REV', BoardPalette.reviewDot(card.reviewState ?? PrReviewState.none)),
+              ],
+            ),
+          ),
+        )
+      else
+        const Spacer(),
       _assignees(),
     ],
   );
