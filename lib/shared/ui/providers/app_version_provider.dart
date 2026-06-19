@@ -8,7 +8,7 @@ part 'app_version_provider.g.dart';
 
 /// Fallback shown if [PackageInfo] can't be read. Keep in sync with
 /// `pubspec.yaml`'s `version:` (bumped together each release).
-const String kAppVersionFallback = '0.1.2';
+const String kAppVersionFallback = '0.2.0';
 
 /// The app's semantic version (e.g. `0.1.2`), read from the bundle metadata —
 /// generated from `pubspec.yaml`'s `version:` at build time, so that's the
