@@ -20,5 +20,16 @@ ThemeData getAppTheme({Brightness brightness = Brightness.dark}) {
       base.textTheme,
     ).apply(bodyColor: TbColors.text, displayColor: TbColors.text),
     progressIndicatorTheme: base.progressIndicatorTheme.copyWith(color: TbColors.blue),
+    // Tether's base leaves FilledButton low-contrast (light-on-light in dark
+    // mode). Pin a readable primary: blue fill, white label.
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: TbColors.blue,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: TbColors.surface2,
+        disabledForegroundColor: TbColors.dim,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      ),
+    ),
   );
 }
