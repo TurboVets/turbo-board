@@ -60,6 +60,27 @@ class BoardInsightsController extends _$BoardInsightsController {
   void clear() => state = null;
 }
 
+/// Board view preferences (session-scoped). Currently just whether columns with
+/// no cards are hidden, toggled from the topbar preferences menu.
+@Riverpod(keepAlive: true)
+class HideEmptyColumns extends _$HideEmptyColumns {
+  @override
+  bool build() => false;
+
+  void toggle() => state = !state;
+}
+
+/// Drops columns with no cards. Returns [board] unchanged when [hide] is false.
+ProjectBoardData hideEmptyBoardColumns(ProjectBoardData board, {required bool hide}) {
+  if (!hide) return board;
+  return board.copyWith(
+    columns: [
+      for (final col in board.columns)
+        if (col.cards.isNotEmpty) col,
+    ],
+  );
+}
+
 /// Sentinel member of the assignee filter meaning "no assignee".
 const String kBoardUnassigned = '(unassigned)';
 

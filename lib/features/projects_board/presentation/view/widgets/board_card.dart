@@ -69,8 +69,6 @@ class BoardCardTile extends StatelessWidget {
         '#${card.number}',
         style: TbText.label(size: 10, weight: FontWeight.w600, color: TbColors.dim),
       ),
-      const Spacer(),
-      Text(card.isPr ? '⑃' : '◇', style: TextStyle(fontSize: 12, color: card.isPr ? TbColors.cyan : TbColors.dim)),
     ],
   );
 
@@ -91,8 +89,7 @@ class BoardCardTile extends StatelessWidget {
         ),
       ],
     ),
-    maxLines: 2,
-    overflow: TextOverflow.ellipsis,
+    softWrap: true,
   );
 
   Widget _metaRow() => Wrap(

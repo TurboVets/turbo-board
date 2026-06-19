@@ -60,7 +60,20 @@ class _BoardBody extends HookConsumerWidget {
 
     // Assignee filter is applied to the rendered columns only. The topbar gets
     // the unfiltered `view` so its assignee menu still lists everyone.
-    final filtered = filterBoardByAssignees(view, ref.watch(boardAssigneeFilterProvider));
+    final assigneeFiltered = filterBoardByAssignees(view, ref.watch(boardAssigneeFilterProvider));
+    // Optionally drop empty columns (topbar preference), after assignee filtering
+    // so a column emptied by the filter is hidden too.
+    final filtered = hideEmptyBoardColumns(assigneeFiltered, hide: ref.watch(hideEmptyColumnsProvider));
+
+    if (filtered.columns.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BoardTopbar(board: view),
+          const Expanded(child: Center(child: Text('No columns to show'))),
+        ],
+      );
+    }
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,

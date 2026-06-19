@@ -60,8 +60,10 @@ abstract final class TbBoard {
 /// signal-dot colors used for repos. Mirrors the design's `AV` map but works
 /// for any login via a stable hash.
 abstract final class TbAvatar {
-  /// A distinct background per [login]: the hash picks a hue across the full
-  /// wheel, so different users get different colors (not a small fixed palette).
+  /// A distinct background per [login]: the hash picks a hue, so different users
+  /// get different colors (not a small fixed palette). The hue is constrained to
+  /// 30–330° — the red band (~330–360, 0–30) is skipped so an avatar (and the
+  /// card border tinted from it) never reads as an alert/error color.
   /// Saturation/lightness are pinned dark enough for the light monogram text.
   static Color bgFor(String login) {
     if (login.isEmpty) return const Color(0xFF1F3A5F);
@@ -69,7 +71,7 @@ abstract final class TbAvatar {
     for (final unit in login.codeUnits) {
       hash = (hash * 31 + unit) & 0x7FFFFFFF;
     }
-    final hue = (hash % 360).toDouble();
+    final hue = (30 + (hash % 300)).toDouble();
     return HSLColor.fromAHSL(1, hue, 0.45, 0.34).toColor();
   }
 

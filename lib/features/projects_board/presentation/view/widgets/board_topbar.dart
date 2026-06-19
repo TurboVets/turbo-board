@@ -57,7 +57,45 @@ class BoardTopbar extends ConsumerWidget {
                 : const Icon(LucideIcons.refreshCw, size: 15, color: TbColors.muted),
             onPressed: isRefreshing ? null : () => ref.invalidate(projectsBoardProvider),
           ),
+          _preferencesButton(ref),
         ],
+      ),
+    );
+  }
+
+  Widget _preferencesButton(WidgetRef ref) {
+    final hideEmpty = ref.watch(hideEmptyColumnsProvider);
+    // Number of enabled preferences — drives the highlight + count badge, the
+    // same affordance as the assignee filter button.
+    final count = hideEmpty ? 1 : 0;
+    final active = count > 0;
+    return PopupMenuButton<String>(
+      tooltip: 'Board preferences',
+      padding: EdgeInsets.zero,
+      color: TbColors.surface2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: TbColors.border),
+      ),
+      onSelected: (value) {
+        if (value == 'hideEmpty') ref.read(hideEmptyColumnsProvider.notifier).toggle();
+      },
+      itemBuilder: (context) => [
+        CheckedPopupMenuItem(
+          value: 'hideEmpty',
+          checked: hideEmpty,
+          child: Text('Hide empty columns', style: TbText.body(size: 13, color: TbColors.text)),
+        ),
+      ],
+      child: Container(
+        margin: const EdgeInsets.only(left: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        decoration: BoxDecoration(
+          color: active ? TbColors.navy : Colors.transparent,
+          border: Border.all(color: active ? TbColors.cyan : TbColors.borderStrong),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Icon(LucideIcons.settings2, size: 15, color: active ? TbColors.cyan : TbColors.muted),
       ),
     );
   }
