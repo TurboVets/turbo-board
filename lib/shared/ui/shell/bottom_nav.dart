@@ -9,6 +9,16 @@ import '../theme/tb_text.dart';
 import '../theme/tb_tokens.dart';
 import '../widgets/tb_badge.dart';
 
+/// Switches to [location], first dismissing any detail overlay (issue/PR drawer)
+/// pushed on top of the shell — so tapping a tab while a drawer is open closes
+/// it. Pops the whole overlay stack; base shell routes aren't poppable.
+void _goTab(BuildContext context, String location) {
+  while (context.canPop()) {
+    context.pop();
+  }
+  context.go(location);
+}
+
 /// Fixed bottom tab bar shown on phone-width layouts (<640px) in place of the
 /// left nav rail. Mirrors the design mockup's five-tab bar: an active tab gets a
 /// 2px blue top border, a blue tint, and blue icon + label.
@@ -46,7 +56,7 @@ class AppBottomNav extends ConsumerWidget {
                 label: label,
                 active: location == path,
                 badgeCount: path == '/needs-attention' ? attentionCount : 0,
-                onTap: () => context.go(path),
+                onTap: () => _goTab(context, path),
               ),
             ),
         ],

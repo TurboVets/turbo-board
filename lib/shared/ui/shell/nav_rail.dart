@@ -16,6 +16,17 @@ import '../widgets/tb_badge.dart';
 import '../widgets/turbo_mark.dart';
 import '../widgets/whats_new_dialog.dart';
 
+/// Switches to [location], first dismissing any detail overlay (issue/PR drawer)
+/// pushed on top of the shell — so tapping the nav while a drawer is open closes
+/// it. Pops the whole overlay stack; base shell routes aren't poppable, so the
+/// loop stops there.
+void _goTab(BuildContext context, String location) {
+  while (context.canPop()) {
+    context.pop();
+  }
+  context.go(location);
+}
+
 /// Left navigation rail of the app shell. [collapsed] hides labels (tablet).
 class AppNavRail extends ConsumerWidget {
   const AppNavRail({super.key, required this.collapsed});
@@ -67,7 +78,7 @@ class AppNavRail extends ConsumerWidget {
                     label: 'PR Board',
                     collapsed: collapsed,
                     active: location == '/',
-                    onTap: () => context.go('/'),
+                    onTap: () => _goTab(context, '/'),
                   ),
 
                   _NavItem(
@@ -76,7 +87,7 @@ class AppNavRail extends ConsumerWidget {
                     collapsed: collapsed,
                     active: location == '/needs-attention',
                     badgeCount: attentionCount,
-                    onTap: () => context.go('/needs-attention'),
+                    onTap: () => _goTab(context, '/needs-attention'),
                   ),
                   // ISSUES section
                   if (!collapsed) const _SectionLabel('ISSUES') else const SizedBox(height: 12),
@@ -85,28 +96,28 @@ class AppNavRail extends ConsumerWidget {
                     label: 'Lead cockpit',
                     collapsed: collapsed,
                     active: location == '/lead-cockpit',
-                    onTap: () => context.go('/lead-cockpit'),
+                    onTap: () => _goTab(context, '/lead-cockpit'),
                   ),
                   _NavItem(
                     icon: LucideIcons.columns3,
                     label: 'Projects board',
                     collapsed: collapsed,
                     active: location == '/projects',
-                    onTap: () => context.go('/projects'),
+                    onTap: () => _goTab(context, '/projects'),
                   ),
                   _NavItem(
                     icon: LucideIcons.chartNoAxesColumn,
                     label: 'Sprint report',
                     collapsed: collapsed,
                     active: location == '/sprint-report',
-                    onTap: () => context.go('/sprint-report'),
+                    onTap: () => _goTab(context, '/sprint-report'),
                   ),
                   _NavItem(
                     icon: LucideIcons.settings2,
                     label: 'Settings',
                     collapsed: collapsed,
                     active: location == '/settings',
-                    onTap: () => context.go('/settings'),
+                    onTap: () => _goTab(context, '/settings'),
                   ),
 
                   // WATCHED REPOS section label
