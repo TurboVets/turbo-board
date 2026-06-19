@@ -17,7 +17,7 @@ import '../../../lead_cockpit/presentation/view/widgets/project_picker.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
 import '../../../repo_setup/presentation/providers/watched_repos_provider.dart';
 
-/// The Settings screen — GitHub connection, watched repos, Anthropic key,
+/// The Settings screen — GitHub connection, watched repos, AI provider key,
 /// appearance. Reached via /settings inside the shell. Matches TurboBoard.dc.html.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
