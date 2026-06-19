@@ -23,14 +23,14 @@ import 'ai_repository_test.mocks.dart';
 void main() {
   late MockDio anthropicDio;
   late MockDio githubDio;
-  late AnthropicAiRepository repo;
+  late LlmAiRepository repo;
 
   setUp(() {
     anthropicDio = MockDio();
     githubDio = MockDio();
     when(anthropicDio.options).thenReturn(BaseOptions());
     when(githubDio.options).thenReturn(BaseOptions());
-    repo = AnthropicAiRepository(AnthropicApiClient(dio: anthropicDio), GithubApiClient(dio: githubDio));
+    repo = LlmAiRepository(AnthropicApiClient(dio: anthropicDio), GithubApiClient(dio: githubDio));
   });
 
   Response<Map<String, dynamic>> msg(Map<String, dynamic>? data, {int status = 200}) => Response(

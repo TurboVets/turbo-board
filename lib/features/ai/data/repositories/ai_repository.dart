@@ -12,7 +12,7 @@ import '../../../repo_setup/data/services/github_api_client.dart';
 import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../presentation/helpers/ai_prompts.dart';
 import '../models/triage_item.dart';
-import '../services/anthropic_api_client.dart';
+import '../services/llm_client.dart';
 
 /// AI features over the Anthropic Messages API (BYOK). Errors are caught here
 /// and surfaced as [Result] failures; nothing above the repo layer throws.
@@ -52,19 +52,19 @@ abstract class AiRepository {
   Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board);
 }
 
-class AnthropicAiRepository implements AiRepository {
-  AnthropicAiRepository(this._anthropic, this._github);
+class LlmAiRepository implements AiRepository {
+  LlmAiRepository(this._llm, this._github);
 
-  final AnthropicApiClient _anthropic;
+  final LlmClient _llm;
   final GithubApiClient _github;
 
   @override
   Future<Result<bool>> validateKey() async {
     try {
-      return Result.success(await _anthropic.validateKey());
+      return Result.success(await _llm.validateKey());
     } catch (e, stackTrace) {
-      log('Failed to validate Anthropic key', error: e, stackTrace: stackTrace);
-      return Result.failure('Could not reach Anthropic. Check your connection and try again.', stackTrace);
+      log('Failed to validate AI provider key', error: e, stackTrace: stackTrace);
+      return Result.failure('Could not reach the AI provider. Check your connection and try again.', stackTrace);
     }
   }
 
@@ -73,7 +73,7 @@ class AnthropicAiRepository implements AiRepository {
     try {
       final parts = detail.repo.split('/');
       final diff = parts.length == 2 ? await _fetchDiff(parts[0], parts[1], detail.number) : '';
-      final text = await _anthropic.complete(prompt: buildSummaryPrompt(detail, diff), maxTokens: 400);
+      final text = await _llm.complete(prompt: buildSummaryPrompt(detail, diff), maxTokens: 400);
       final bullets = parseBullets(text);
       if (bullets.isEmpty) return Result.failure('The model returned an empty summary.', StackTrace.current);
       return Result.success(bullets);
@@ -86,7 +86,7 @@ class AnthropicAiRepository implements AiRepository {
   @override
   Future<Result<String>> draftReply(PrDetail detail, ReplyIntent intent) async {
     try {
-      final text = await _anthropic.complete(prompt: buildReplyPrompt(detail, intent), maxTokens: 300);
+      final text = await _llm.complete(prompt: buildReplyPrompt(detail, intent), maxTokens: 300);
       return Result.success(text.trim());
     } catch (e, stackTrace) {
       log('Failed to draft reply', error: e, stackTrace: stackTrace);
@@ -97,7 +97,7 @@ class AnthropicAiRepository implements AiRepository {
   @override
   Future<Result<String>> sprintBrief(CockpitData cockpit) async {
     try {
-      final text = await _anthropic.complete(prompt: buildSprintBriefPrompt(cockpit), maxTokens: 320);
+      final text = await _llm.complete(prompt: buildSprintBriefPrompt(cockpit), maxTokens: 320);
       final trimmed = text.trim();
       if (trimmed.isEmpty) return Result.failure('The model returned an empty brief.', StackTrace.current);
       return Result.success(trimmed);
@@ -111,7 +111,7 @@ class AnthropicAiRepository implements AiRepository {
   /// on an empty response / any error. Shared by the sprint narratives.
   Future<Result<String>> _narrative(String prompt, {int maxTokens = 400, required String failure}) async {
     try {
-      final text = (await _anthropic.complete(prompt: prompt, maxTokens: maxTokens)).trim();
+      final text = (await _llm.complete(prompt: prompt, maxTokens: maxTokens)).trim();
       if (text.isEmpty) return Result.failure('The model returned an empty response.', StackTrace.current);
       return Result.success(text);
     } catch (e, stackTrace) {
@@ -136,7 +136,7 @@ class AnthropicAiRepository implements AiRepository {
   Future<Result<List<TriageItem>>> triage(List<PrData> prs) async {
     try {
       if (prs.isEmpty) return Result.success(const []);
-      final text = await _anthropic.complete(prompt: buildTriagePrompt(prs), maxTokens: 700);
+      final text = await _llm.complete(prompt: buildTriagePrompt(prs), maxTokens: 700);
       final items = parseTriage(text, prs);
       if (items.isEmpty) return Result.failure('The model returned no triage results.', StackTrace.current);
       return Result.success(items);
@@ -149,7 +149,7 @@ class AnthropicAiRepository implements AiRepository {
   @override
   Future<Result<List<String>>> summarizeIssue(IssueDetail issue) async {
     try {
-      final text = await _anthropic.complete(prompt: buildIssueSummaryPrompt(issue), maxTokens: 350);
+      final text = await _llm.complete(prompt: buildIssueSummaryPrompt(issue), maxTokens: 350);
       final bullets = parseBullets(text);
       if (bullets.isEmpty) return Result.failure('The model returned an empty summary.', StackTrace.current);
       return Result.success(bullets);
@@ -162,7 +162,7 @@ class AnthropicAiRepository implements AiRepository {
   @override
   Future<Result<String>> suggestNextAction(IssueDetail issue) async {
     try {
-      final text = (await _anthropic.complete(prompt: buildNextActionPrompt(issue), maxTokens: 120)).trim();
+      final text = (await _llm.complete(prompt: buildNextActionPrompt(issue), maxTokens: 120)).trim();
       if (text.isEmpty) return Result.failure('The model returned no suggestion.', StackTrace.current);
       return Result.success(text);
     } catch (e, stackTrace) {
@@ -174,7 +174,7 @@ class AnthropicAiRepository implements AiRepository {
   @override
   Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board) async {
     try {
-      final text = await _anthropic.complete(prompt: buildBoardInsightsPrompt(board), maxTokens: 400);
+      final text = await _llm.complete(prompt: buildBoardInsightsPrompt(board), maxTokens: 400);
       return Result.success(parseBoardInsights(text));
     } catch (e, stackTrace) {
       log('Failed to generate board insights', error: e, stackTrace: stackTrace);
