@@ -98,6 +98,7 @@ class _OpenOnGitHubButtonState extends State<OpenOnGitHubButton> {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(widget.files ? LucideIcons.fileDiff : LucideIcons.gitPullRequest, size: 14, color: color),
           const SizedBox(width: 8),

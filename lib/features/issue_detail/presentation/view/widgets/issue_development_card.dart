@@ -57,7 +57,7 @@ class IssueDevelopmentCard extends HookConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (createdBranch.value == null)
-                  OutlinedButton.icon(
+                  FilledButton.icon(
                     icon: const Icon(Icons.account_tree_outlined, size: 14),
                     label: const Text('Create branch…', overflow: TextOverflow.ellipsis),
                     onPressed: (id == null || oid == null)

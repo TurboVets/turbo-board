@@ -26,7 +26,7 @@ class BoardAssigneeFilterButton extends ConsumerWidget {
       style: MenuStyle(
         backgroundColor: const WidgetStatePropertyAll(TbColors.surface),
         side: const WidgetStatePropertyAll(BorderSide(color: TbColors.border)),
-        shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
       ),
       menuChildren: [
         _row(
@@ -63,9 +63,8 @@ class BoardAssigneeFilterButton extends ConsumerWidget {
           side: BorderSide(color: active ? TbColors.cyan : TbColors.borderStrong),
           backgroundColor: active ? TbColors.navy : Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         ),
       ),
     );
