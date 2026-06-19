@@ -10,8 +10,11 @@ import '../../../repo_setup/presentation/providers/auth_provider.dart';
 import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../data/models/triage_item.dart';
 import '../../data/repositories/ai_repository.dart';
+import '../../data/services/ai_provider_kind.dart';
 import '../../data/services/anthropic_api_client.dart';
 import '../../data/services/api_key_store.dart';
+import '../../data/services/llm_client.dart';
+import '../../data/services/openai_api_client.dart';
 import '../helpers/ai_prompts.dart';
 
 part 'ai_provider.freezed.dart';
@@ -30,35 +33,68 @@ sealed class AiKeyState with _$AiKeyState {
 @Riverpod(keepAlive: true)
 ApiKeyStore apiKeyStore(Ref ref) => const SecureApiKeyStore();
 
+/// The currently selected provider. Defaults to anthropic, hydrates from the
+/// store on build, and persists on [set].
 @Riverpod(keepAlive: true)
-AnthropicApiClient anthropicApiClient(Ref ref) => AnthropicApiClient();
+class ActiveAiProvider extends _$ActiveAiProvider {
+  @override
+  AiProvider build() {
+    _hydrate();
+    return AiProvider.anthropic;
+  }
+
+  Future<void> _hydrate() async {
+    final stored = await ref.read(apiKeyStoreProvider).readActiveProvider();
+    if (stored != null) state = stored;
+  }
+
+  Future<void> set(AiProvider provider) async {
+    if (provider == state) return;
+    await ref.read(apiKeyStoreProvider).writeActiveProvider(provider);
+    state = provider;
+  }
+}
+
+/// The LLM client for the active provider, with that provider's stored key
+/// injected. Rebuilt whenever the active provider changes.
+@Riverpod(keepAlive: true)
+LlmClient llmClient(Ref ref) {
+  final provider = ref.watch(activeAiProviderProvider);
+  return switch (provider) {
+    AiProvider.anthropic => AnthropicApiClient(),
+    AiProvider.openai => OpenAiApiClient(),
+  };
+}
 
 @Riverpod(keepAlive: true)
-AiRepository aiRepository(Ref ref) =>
-    AnthropicAiRepository(ref.watch(anthropicApiClientProvider), ref.watch(githubApiClientProvider));
+AiRepository aiRepository(Ref ref) => LlmAiRepository(ref.watch(llmClientProvider), ref.watch(githubApiClientProvider));
 
 @Riverpod(keepAlive: true)
 class AiKeyNotifier extends _$AiKeyNotifier {
   @override
   AiKeyState build() {
+    // Re-init whenever the active provider changes.
+    ref.watch(activeAiProviderProvider);
     _init();
     return const AiKeyState.loading();
   }
 
+  AiProvider get _provider => ref.read(activeAiProviderProvider);
+
   Future<void> _init() async {
-    final key = await ref.read(apiKeyStoreProvider).read();
+    final key = await ref.read(apiKeyStoreProvider).read(_provider);
     if (key == null || key.isEmpty) {
       state = const AiKeyState.missing();
       return;
     }
-    ref.read(anthropicApiClientProvider).setKey(key);
+    ref.read(llmClientProvider).setKey(key);
     state = const AiKeyState.valid(); // trust the stored key; re-validated on submit
   }
 
   /// Validity check without persisting (the Settings "Validate" button).
   /// Returns true (valid), false (rejected 401), or null (could not check).
   Future<bool?> validate(String key) async {
-    ref.read(anthropicApiClientProvider).setKey(key);
+    ref.read(llmClientProvider).setKey(key);
     final result = await ref.read(aiRepositoryProvider).validateKey();
     return switch (result) {
       ResultSuccess(:final data) => data,
@@ -66,19 +102,19 @@ class AiKeyNotifier extends _$AiKeyNotifier {
     };
   }
 
-  /// Validates [key]; on success persists it and marks valid.
+  /// Validates [key]; on success persists it under the active provider and marks valid.
   Future<void> submit(String key) async {
     state = const AiKeyState.validating();
-    ref.read(anthropicApiClientProvider).setKey(key);
+    ref.read(llmClientProvider).setKey(key);
     final result = await ref.read(aiRepositoryProvider).validateKey();
     switch (result) {
       case ResultSuccess(:final data):
         if (data) {
-          await ref.read(apiKeyStoreProvider).write(key);
+          await ref.read(apiKeyStoreProvider).write(_provider, key);
           state = const AiKeyState.valid();
         } else {
-          ref.read(anthropicApiClientProvider).setKey(null);
-          state = const AiKeyState.error('That key was rejected by Anthropic (401).');
+          ref.read(llmClientProvider).setKey(null);
+          state = const AiKeyState.error('That key was rejected by the provider (401).');
         }
       case ResultFailure(:final message):
         state = AiKeyState.error(message);
@@ -86,8 +122,8 @@ class AiKeyNotifier extends _$AiKeyNotifier {
   }
 
   Future<void> clear() async {
-    await ref.read(apiKeyStoreProvider).delete();
-    ref.read(anthropicApiClientProvider).setKey(null);
+    await ref.read(apiKeyStoreProvider).delete(_provider);
+    ref.read(llmClientProvider).setKey(null);
     state = const AiKeyState.missing();
   }
 }
@@ -96,12 +132,12 @@ class AiKeyNotifier extends _$AiKeyNotifier {
 @riverpod
 bool aiKeyReady(Ref ref) => ref.watch(aiKeyProvider) is AiKeyValid;
 
-/// Masked form of the stored Anthropic key for display (Settings). Re-reads
-/// when the key state changes (save/remove).
+/// Masked form of the active provider's stored key for display (Settings).
 @riverpod
-Future<String?> anthropicKeyMasked(Ref ref) async {
+Future<String?> activeKeyMasked(Ref ref) async {
   ref.watch(aiKeyProvider); // refresh when the key is saved/removed
-  final key = await ref.watch(apiKeyStoreProvider).read();
+  final provider = ref.watch(activeAiProviderProvider);
+  final key = await ref.watch(apiKeyStoreProvider).read(provider);
   return maskSecret(key);
 }
 
