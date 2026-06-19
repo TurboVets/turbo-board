@@ -11,6 +11,22 @@ and shows it at the bottom of the nav rail.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-19
+
+### Added
+- **Choose your AI provider** — AI features now work with **OpenAI** as well as
+  Anthropic. Pick a provider in Settings and paste that provider's key
+  (bring-your-own-key, stored only on your device). (#4)
+
+### Changed
+- AI features are now provider-agnostic under the hood; if you already had an
+  Anthropic key saved, it carries over automatically — no need to re-enter it.
+  (#4)
+- AI results (PR/issue summaries, reply drafts, inbox triage, sprint and weekly
+  digests) now stick around for the session, so leaving a screen and coming back
+  no longer throws away what was generated — or spends another API call to
+  regenerate it. (#4)
+
 ## [0.2.0] - 2026-06-18
 
 ### Added
