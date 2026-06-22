@@ -11,6 +11,14 @@ and shows it at the bottom of the nav rail.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-06-22
+
+### Changed
+- Auto-refresh now pauses while the app is backgrounded, loses focus, or the
+  browser tab is hidden — no more silent GitHub API calls for a screen nobody is
+  looking at. When you come back, the data refreshes immediately and the timer
+  resumes.
+
 ## [0.2.1] - 2026-06-19
 
 ### Added

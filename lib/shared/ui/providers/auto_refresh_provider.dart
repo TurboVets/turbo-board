@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../features/lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
@@ -19,16 +20,48 @@ part 'auto_refresh_provider.g.dart';
 /// Invalidating a provider with no active listeners is a no-op, so only the
 /// mounted screen actually refetches. `prDetailProvider` is a family —
 /// invalidating it clears every cached (owner, name, number) instance.
+///
+/// The timer is gated by app lifecycle: it only ticks while the app is
+/// `resumed` (foreground window / focused, visible browser tab). When the app
+/// is backgrounded, loses focus, or the tab is hidden the timer is paused so we
+/// don't hammer the GitHub API for a view nobody is looking at. On resume we
+/// fire one immediate catch-up tick and restart the timer. Flutter maps web tab
+/// `visibilitychange`/`focus` events to `AppLifecycleState`, so this single
+/// path covers desktop, mobile, and web with no platform-specific code.
 @Riverpod(keepAlive: true)
-class AutoRefresh extends _$AutoRefresh {
+class AutoRefresh extends _$AutoRefresh with WidgetsBindingObserver {
   Timer? _timer;
+  int _seconds = refreshIntervalDefault;
 
   @override
   void build() {
-    final seconds = ref.watch(refreshIntervalProvider);
+    _seconds = ref.watch(refreshIntervalProvider);
+    WidgetsBinding.instance.addObserver(this);
+    // Only run the timer if we're currently in the foreground. On first build
+    // lifecycleState may be null (pre-first-frame) — treat that as resumed.
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state == null || state == AppLifecycleState.resumed) {
+      _start();
+    }
+    ref.onDispose(() {
+      _timer?.cancel();
+      WidgetsBinding.instance.removeObserver(this);
+    });
+  }
+
+  void _start() {
     _timer?.cancel();
-    _timer = Timer.periodic(Duration(seconds: seconds), (_) => _tick());
-    ref.onDispose(() => _timer?.cancel());
+    _timer = Timer.periodic(Duration(seconds: _seconds), (_) => _tick());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _tick(); // catch up on whatever we missed while away
+      _start();
+    } else {
+      _timer?.cancel(); // pause while backgrounded / unfocused / tab hidden
+    }
   }
 
   void _tick() {
