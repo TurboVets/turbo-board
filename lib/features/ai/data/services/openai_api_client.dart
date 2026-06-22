@@ -52,7 +52,7 @@ class OpenAiApiClient implements LlmClient {
       },
     );
     if (res.statusCode != 200 || res.data == null) {
-      throw Exception('OpenAI request failed (HTTP ${res.statusCode}).');
+      throw _failure(res.statusCode, res.data);
     }
     final choices = (res.data!['choices'] as List<dynamic>?) ?? const [];
     if (choices.isEmpty) return '';
@@ -74,6 +74,21 @@ class OpenAiApiClient implements LlmClient {
     );
     if (res.statusCode == 200) return true;
     if (res.statusCode == 401) return false;
-    throw Exception('Could not validate key (HTTP ${res.statusCode}).');
+    throw _failure(res.statusCode, res.data);
+  }
+
+  /// Builds an [LlmException] from OpenAI's `{"error": {message, type, code}}`
+  /// body, preserving the provider's own message (e.g. "You exceeded your
+  /// current quota...") so it can be shown to the user. Falls back to a generic
+  /// message when no body is present. The key is never in the error body.
+  static LlmException _failure(int? statusCode, Map<String, dynamic>? data) {
+    final error = data?['error'];
+    final message = (error is Map<String, dynamic> ? error['message']?.toString() : null);
+    final code = (error is Map<String, dynamic> ? (error['code'] ?? error['type'])?.toString() : null);
+    return LlmException(
+      message == null || message.isEmpty ? 'OpenAI request failed (HTTP $statusCode).' : message,
+      statusCode: statusCode,
+      code: code,
+    );
   }
 }

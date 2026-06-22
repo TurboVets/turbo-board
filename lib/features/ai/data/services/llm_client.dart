@@ -20,3 +20,25 @@ abstract interface class LlmClient {
   /// (401). Throws when validity could not be determined.
   Future<bool> validateKey();
 }
+
+/// A failed LLM request that carries the provider's own error text so it can be
+/// surfaced to the user (e.g. "You exceeded your current quota...").
+///
+/// [message] is the clean provider message safe for display; [statusCode] is
+/// the HTTP status; [code] is the provider error code/type (e.g.
+/// `insufficient_quota`). The key is never part of a provider error body, so
+/// this is safe to surface and log.
+class LlmException implements Exception {
+  const LlmException(this.message, {this.statusCode, this.code});
+
+  final String message;
+  final int? statusCode;
+  final String? code;
+
+  @override
+  String toString() {
+    final status = statusCode == null ? '' : ' (HTTP $statusCode)';
+    final tag = code == null || code!.isEmpty ? '' : ' [$code]';
+    return 'LlmException$status$tag: $message';
+  }
+}

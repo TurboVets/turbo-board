@@ -58,13 +58,20 @@ class LlmAiRepository implements AiRepository {
   final LlmClient _llm;
   final GithubApiClient _github;
 
+  /// Surfaces the provider's own error text (e.g. an OpenAI quota message) when
+  /// the failure is an [LlmException]; otherwise the generic [fallback].
+  static String _message(Object e, String fallback) => e is LlmException ? e.message : fallback;
+
   @override
   Future<Result<bool>> validateKey() async {
     try {
       return Result.success(await _llm.validateKey());
     } catch (e, stackTrace) {
       log('Failed to validate AI provider key', error: e, stackTrace: stackTrace);
-      return Result.failure('Could not reach the AI provider. Check your connection and try again.', stackTrace);
+      return Result.failure(
+        _message(e, 'Could not reach the AI provider. Check your connection and try again.'),
+        stackTrace,
+      );
     }
   }
 
@@ -79,7 +86,7 @@ class LlmAiRepository implements AiRepository {
       return Result.success(bullets);
     } catch (e, stackTrace) {
       log('Failed to summarize PR', error: e, stackTrace: stackTrace);
-      return Result.failure('Could not generate a summary.', stackTrace);
+      return Result.failure(_message(e, 'Could not generate a summary.'), stackTrace);
     }
   }
 
@@ -90,7 +97,7 @@ class LlmAiRepository implements AiRepository {
       return Result.success(text.trim());
     } catch (e, stackTrace) {
       log('Failed to draft reply', error: e, stackTrace: stackTrace);
-      return Result.failure('Could not draft a reply.', stackTrace);
+      return Result.failure(_message(e, 'Could not draft a reply.'), stackTrace);
     }
   }
 
@@ -103,7 +110,7 @@ class LlmAiRepository implements AiRepository {
       return Result.success(trimmed);
     } catch (e, stackTrace) {
       log('Failed to generate sprint brief', error: e, stackTrace: stackTrace);
-      return Result.failure('Could not generate the sprint brief.', stackTrace);
+      return Result.failure(_message(e, 'Could not generate the sprint brief.'), stackTrace);
     }
   }
 
@@ -116,7 +123,7 @@ class LlmAiRepository implements AiRepository {
       return Result.success(text);
     } catch (e, stackTrace) {
       log(failure, error: e, stackTrace: stackTrace);
-      return Result.failure(failure, stackTrace);
+      return Result.failure(_message(e, failure), stackTrace);
     }
   }
 
@@ -142,7 +149,7 @@ class LlmAiRepository implements AiRepository {
       return Result.success(items);
     } catch (e, stackTrace) {
       log('Failed to triage PRs', error: e, stackTrace: stackTrace);
-      return Result.failure('Could not triage the board.', stackTrace);
+      return Result.failure(_message(e, 'Could not triage the board.'), stackTrace);
     }
   }
 
@@ -155,7 +162,7 @@ class LlmAiRepository implements AiRepository {
       return Result.success(bullets);
     } catch (e, stackTrace) {
       log('Failed to summarize issue', error: e, stackTrace: stackTrace);
-      return Result.failure('Could not generate a summary.', stackTrace);
+      return Result.failure(_message(e, 'Could not generate a summary.'), stackTrace);
     }
   }
 
@@ -167,7 +174,7 @@ class LlmAiRepository implements AiRepository {
       return Result.success(text);
     } catch (e, stackTrace) {
       log('Failed to suggest next action', error: e, stackTrace: stackTrace);
-      return Result.failure('Could not suggest a next action.', stackTrace);
+      return Result.failure(_message(e, 'Could not suggest a next action.'), stackTrace);
     }
   }
 
@@ -178,7 +185,7 @@ class LlmAiRepository implements AiRepository {
       return Result.success(parseBoardInsights(text));
     } catch (e, stackTrace) {
       log('Failed to generate board insights', error: e, stackTrace: stackTrace);
-      return Result.failure('Could not generate board insights.', stackTrace);
+      return Result.failure(_message(e, 'Could not generate board insights.'), stackTrace);
     }
   }
 
