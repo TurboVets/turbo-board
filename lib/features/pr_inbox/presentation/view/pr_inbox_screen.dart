@@ -264,6 +264,11 @@ class _OutlineButton extends StatelessWidget {
 
 // ─── Board grid ───────────────────────────────────────────────────────────────
 
+/// The board column a PR belongs to. Drafts are never shown under NEEDS REVIEW —
+/// a draft isn't ready for review yet, so it sits in WAITING ON AUTHOR until the
+/// author marks it ready, regardless of its GitHub review decision.
+PrReviewState _columnState(PrData pr) => pr.isDraft ? PrReviewState.waitingOnAuthor : pr.reviewState;
+
 /// Opens the PR detail overlay for [pr]; shared by the desktop and mobile boards.
 void _openPr(BuildContext context, PrData pr) {
   final parts = pr.repo.split('/');
@@ -305,7 +310,7 @@ class _DesktopBoard extends StatelessWidget {
             child: PrColumn(
               title: label,
               accent: accent,
-              prs: items.where((p) => p.reviewState == state).toList(),
+              prs: items.where((p) => _columnState(p) == state).toList(),
               onCardTap: (pr) => _openPr(context, pr),
             ),
           ),
@@ -337,7 +342,7 @@ class _MobileBoard extends HookWidget {
               for (final (state, label, accent) in PrInboxScreen._columns) ...[
                 _ColumnPill(
                   label: label.split(' ').first,
-                  count: items.where((p) => p.reviewState == state).length,
+                  count: items.where((p) => _columnState(p) == state).length,
                   accent: accent,
                   selected: selected.value == state,
                   onTap: () => selected.value = state,
@@ -357,7 +362,7 @@ class _MobileBoard extends HookWidget {
                 return PrColumn(
                   title: label,
                   accent: accent,
-                  prs: items.where((p) => p.reviewState == state).toList(),
+                  prs: items.where((p) => _columnState(p) == state).toList(),
                   onCardTap: (pr) => _openPr(context, pr),
                 );
               },

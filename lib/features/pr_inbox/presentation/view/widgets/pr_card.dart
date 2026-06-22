@@ -19,109 +19,126 @@ class PrCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: TbColors.surface2,
-          border: Border.all(color: TbColors.border),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Repo line: signal dot + slug + #num
-            Row(
-              children: [
-                TbSignalDot(color: TbRepoColor.forSlug(pr.repo), size: 9),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(text: pr.repo),
-                        TextSpan(
-                          text: ' #${pr.number}',
-                          style: TbText.label(size: 10, weight: FontWeight.w600, color: TbColors.muted, tracking: 0.5),
-                        ),
-                      ],
-                      style: TbText.label(size: 10, weight: FontWeight.w500, color: TbColors.muted, tracking: 0.5),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (pr.htmlUrl != null) ...[const SizedBox(width: 6), OpenOnGitHubButton.icon(url: pr.htmlUrl!)],
-              ],
-            ),
-            const SizedBox(height: 7),
-            // Title (with optional Draft badge inline before it)
-            Text.rich(
-              TextSpan(
+      // Drafts are dimmed to read as not-yet-active work on the board.
+      child: Opacity(
+        opacity: pr.isDraft ? 0.55 : 1.0,
+        child: Container(
+          decoration: BoxDecoration(
+            color: TbColors.surface2,
+            border: Border.all(color: TbColors.border),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Repo line: signal dot + slug + #num
+              Row(
                 children: [
-                  if (pr.isDraft) ...[
-                    WidgetSpan(
-                      alignment: PlaceholderAlignment.middle,
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: TbColors.surface2,
-                          border: Border.all(color: const Color(0x73BABBBF)),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'DRAFT',
-                          style: TbText.label(size: 10, weight: FontWeight.w500, color: TbColors.muted, tracking: 0.4),
+                  TbSignalDot(color: TbRepoColor.forSlug(pr.repo), size: 9),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: pr.repo),
+                          TextSpan(
+                            text: ' #${pr.number}',
+                            style: TbText.label(
+                              size: 10,
+                              weight: FontWeight.w600,
+                              color: TbColors.muted,
+                              tracking: 0.5,
+                            ),
+                          ),
+                        ],
+                        style: TbText.label(size: 10, weight: FontWeight.w500, color: TbColors.muted, tracking: 0.5),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (pr.htmlUrl != null) ...[const SizedBox(width: 6), OpenOnGitHubButton.icon(url: pr.htmlUrl!)],
+                ],
+              ),
+              const SizedBox(height: 7),
+              // Title (with optional Draft badge inline before it)
+              Text.rich(
+                TextSpan(
+                  children: [
+                    if (pr.isDraft) ...[
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: TbColors.surface2,
+                            border: Border.all(color: const Color(0x73BABBBF)),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'DRAFT',
+                            style: TbText.label(
+                              size: 10,
+                              weight: FontWeight.w500,
+                              color: TbColors.muted,
+                              tracking: 0.4,
+                            ),
+                          ),
                         ),
                       ),
+                    ],
+                    TextSpan(
+                      text: pr.title,
+                      style: TbText.body(size: 13, weight: FontWeight.w600, color: TbColors.text, height: 1.4),
                     ),
                   ],
-                  TextSpan(
-                    text: pr.title,
-                    style: TbText.body(size: 13, weight: FontWeight.w600, color: TbColors.text, height: 1.4),
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 10),
+              // CI + review badges
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  TbBadge(_ciLabel(pr.ciState), _ciSignal(pr.ciState), tooltip: _ciTooltip(pr.ciState)),
+                  // Drafts aren't up for review yet — show WAITING regardless of
+                  // GitHub's review decision so the badge matches the board column.
+                  Builder(
+                    builder: (_) {
+                      final review = pr.isDraft ? PrReviewState.waitingOnAuthor : pr.reviewState;
+                      return TbBadge(_reviewLabel(review), _reviewSignal(review), tooltip: _reviewTooltip(review));
+                    },
+                  ),
+                  if (pr.mergeState == PrMergeState.conflicting)
+                    const TbBadge(
+                      '⚠ CONFLICTS',
+                      TbSignal.orange,
+                      tooltip: 'Has merge conflicts with the destination branch',
+                    ),
+                ],
+              ),
+              const SizedBox(height: 11),
+              // Footer: avatar tile + author · updated · Nc
+              Row(
+                children: [
+                  TbAvatarTile(login: pr.author, size: 18),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      '${pr.author} · ${timeago.format(pr.updatedAt)}${pr.commentsCount > 0 ? ' · ${pr.commentsCount}c' : ''}',
+                      style: TbText.label(size: 10, weight: FontWeight.w400, color: TbColors.dim, tracking: 0.3),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 10),
-            // CI + review badges
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                TbBadge(_ciLabel(pr.ciState), _ciSignal(pr.ciState), tooltip: _ciTooltip(pr.ciState)),
-                TbBadge(
-                  _reviewLabel(pr.reviewState),
-                  _reviewSignal(pr.reviewState),
-                  tooltip: _reviewTooltip(pr.reviewState),
-                ),
-                if (pr.mergeState == PrMergeState.conflicting)
-                  const TbBadge(
-                    '⚠ CONFLICTS',
-                    TbSignal.orange,
-                    tooltip: 'Has merge conflicts with the destination branch',
-                  ),
-              ],
-            ),
-            const SizedBox(height: 11),
-            // Footer: avatar tile + author · updated · Nc
-            Row(
-              children: [
-                TbAvatarTile(login: pr.author, size: 18),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    '${pr.author} · ${timeago.format(pr.updatedAt)}${pr.commentsCount > 0 ? ' · ${pr.commentsCount}c' : ''}',
-                    style: TbText.label(size: 10, weight: FontWeight.w400, color: TbColors.dim, tracking: 0.3),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
