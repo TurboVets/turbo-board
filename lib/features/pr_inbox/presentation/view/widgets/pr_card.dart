@@ -17,6 +17,9 @@ class PrCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Conflicting PRs are highlighted with an orange border + faint tint so they
+    // stand out on the board, matching the inline CONFLICTS badge.
+    final conflicting = pr.mergeState == PrMergeState.conflicting;
     return GestureDetector(
       onTap: onTap,
       // Drafts are dimmed to read as not-yet-active work on the board.
@@ -24,8 +27,8 @@ class PrCard extends StatelessWidget {
         opacity: pr.isDraft ? 0.55 : 1.0,
         child: Container(
           decoration: BoxDecoration(
-            color: TbColors.surface2,
-            border: Border.all(color: TbColors.border),
+            color: conflicting ? TbSignal.orange.bg : TbColors.surface2,
+            border: Border.all(color: conflicting ? TbSignal.orange.border : TbColors.border),
             borderRadius: BorderRadius.circular(8),
           ),
           padding: const EdgeInsets.all(12),
