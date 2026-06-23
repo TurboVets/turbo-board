@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /repo_events/{id} {
+      allow read: if request.auth != null;
+      allow write: if false; // Admin SDK (Cloud Function) bypasses rules
+    }
+  }
+}
