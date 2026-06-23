@@ -87,7 +87,7 @@ pw.Document buildSprintPdf({
           ),
           pw.SizedBox(height: 2),
           pw.Text(
-            '${sanitizePdfText(dateRange)}  ·  Report date: ${sanitizePdfText(reportDate)}',
+            '${sanitizePdfText(dateRange)}  |  Report date: ${sanitizePdfText(reportDate)}',
             style: const pw.TextStyle(fontSize: 10, color: _muted),
           ),
           pw.SizedBox(height: 4),
@@ -179,7 +179,7 @@ pw.Document buildSprintPdf({
         alignment: pw.Alignment.centerRight,
         margin: const pw.EdgeInsets.only(top: 8),
         child: pw.Text(
-          'TurboBoard · page ${context.pageNumber}/${context.pagesCount}',
+          'TurboBoard | page ${context.pageNumber}/${context.pagesCount}',
           style: const pw.TextStyle(fontSize: 8, color: _muted),
         ),
       ),
