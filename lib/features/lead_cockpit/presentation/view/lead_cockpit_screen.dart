@@ -11,6 +11,7 @@ import '../../data/models/cockpit_data.dart';
 import '../../data/repositories/cockpit_mapper.dart';
 import '../providers/lead_cockpit_provider.dart';
 import 'widgets/project_picker.dart';
+import 'widgets/sprint_flow_section.dart';
 import 'widgets/sprint_health_strip.dart';
 import 'widgets/stuck_issue_row.dart';
 import 'widgets/team_load_card.dart';
@@ -105,6 +106,9 @@ class _CockpitBody extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SprintHealthStrip(data: data),
+              const SizedBox(height: 18),
+
+              SprintFlowSection(flow: data.flow),
               const SizedBox(height: 18),
 
               // AI sprint brief + weekly digest (BYOK — only when a key is set).

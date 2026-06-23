@@ -30,7 +30,9 @@ SprintReport _report() => const SprintReport(
   burndown: Burndown(committedPoints: 168, totalDays: 14, todayDay: 8, snapshotsCaptured: 8, snapshotsTotal: 14),
 );
 
-CockpitData _cockpit() => const CockpitData(
+final _emptyFlow = SprintFlow(start: DateTime(2026, 6, 15), end: DateTime(2026, 6, 26), days: const []);
+
+CockpitData _cockpit() => CockpitData(
   sprint: SprintHealth(
     name: 'S24',
     daysRemaining: 6,
@@ -46,6 +48,7 @@ CockpitData _cockpit() => const CockpitData(
   ),
   team: [],
   stuck: [],
+  flow: _emptyFlow,
 );
 
 void main() {
