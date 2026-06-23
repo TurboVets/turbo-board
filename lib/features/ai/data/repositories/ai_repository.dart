@@ -9,6 +9,7 @@ import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../projects_board/data/models/board_data.dart';
 import '../../../repo_setup/data/services/github_api_client.dart';
+import '../../../sprint_report/data/models/sprint_narrative_report.dart';
 import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../presentation/helpers/ai_prompts.dart';
 import '../models/triage_item.dart';
@@ -50,6 +51,9 @@ abstract class AiRepository {
 
   /// Per-column one-line board insights, keyed by status. Empty map if nothing notable.
   Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board);
+
+  /// Generates the structured narrative executive Sprint Report.
+  Future<Result<SprintNarrativeReport>> generateSprintReport(SprintReport report);
 }
 
 class LlmAiRepository implements AiRepository {
@@ -186,6 +190,21 @@ class LlmAiRepository implements AiRepository {
     } catch (e, stackTrace) {
       log('Failed to generate board insights', error: e, stackTrace: stackTrace);
       return Result.failure(_message(e, 'Could not generate board insights.'), stackTrace);
+    }
+  }
+
+  @override
+  Future<Result<SprintNarrativeReport>> generateSprintReport(SprintReport report) async {
+    try {
+      final text = await _llm.complete(prompt: buildSprintReportPrompt(report), maxTokens: 900);
+      final parsed = parseSprintReport(text);
+      if (parsed.executiveSummary.isEmpty && parsed.keyWins.isEmpty && parsed.deliverables.isEmpty) {
+        return Result.failure('The model returned an unusable report.', StackTrace.current);
+      }
+      return Result.success(parsed);
+    } catch (e, stackTrace) {
+      log('Failed to generate sprint report', error: e, stackTrace: stackTrace);
+      return Result.failure(_message(e, 'Could not generate the sprint report.'), stackTrace);
     }
   }
 
