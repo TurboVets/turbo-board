@@ -11,6 +11,32 @@ and shows it at the bottom of the nav rail.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-23
+
+### Added
+- **Sprint Flow** on the Lead Cockpit — a daily activity strip showing a burnup
+  of work done vs. opened across the sprint, with a tile per weekday. Tap any
+  day to see exactly which tickets closed and opened. Now you can spot the day
+  the work piled up without playing detective.
+- Issue and PR descriptions now render **inline images** — screenshots and
+  diagrams show up right in the body instead of as a bare link, complete with a
+  loading spinner and a graceful fallback if an image won't load.
+
+### Changed
+- The PR board now calls out **drafts and conflicts** at a glance: draft PRs are
+  dimmed and moved to *Waiting on Author* (they're not up for review yet), while
+  PRs with merge conflicts get an orange border and tint so they stop hiding in
+  the pile.
+
+### Fixed
+- **Epics no longer skew the numbers.** Epics are containers, not point-bearing
+  tickets, so they're excluded from committed/done points, estimate counts, and
+  the burndown in the sprint report and cockpit — "X unestimated tickets" finally
+  tells the truth.
+- AI failures now surface the **actual provider error message** instead of a
+  generic "something went wrong," so you know whether it's your key, your quota,
+  or the model having a bad day.
+
 ## [0.2.2] - 2026-06-22
 
 ### Changed
