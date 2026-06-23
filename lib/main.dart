@@ -1,10 +1,13 @@
+import 'dart:developer' as developer;
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'app.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -14,5 +17,14 @@ void main() async {
   // Hosting rewrites all paths to index.html (see firebase.json).
   if (kIsWeb) usePathUrlStrategy();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Silent anonymous auth gates Firestore reads of the realtime relay. Best
+  // effort: on failure the app runs polling-only (see auto_refresh_provider).
+  try {
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance.signInAnonymously();
+    }
+  } catch (e, s) {
+    developer.log('Anonymous sign-in failed; realtime disabled', error: e, stackTrace: s);
+  }
   runApp(const ProviderScope(child: TurboBoardApp()));
 }
