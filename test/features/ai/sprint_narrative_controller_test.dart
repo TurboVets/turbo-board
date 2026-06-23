@@ -45,7 +45,7 @@ void main() {
     addTearDown(c.dispose);
     await c.read(sprintNarrativeControllerProvider.notifier).generate(_report(behind: true));
     final state = c.read(sprintNarrativeControllerProvider);
-    expect(state!.value!.overallStatus, SprintHealth.behind);
+    expect(state!.value!.overallStatus, SprintOutlook.behind);
   });
 
   test('generate failure sets error', () async {

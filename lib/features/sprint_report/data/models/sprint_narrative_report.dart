@@ -5,7 +5,7 @@ part 'sprint_narrative_report.g.dart';
 
 /// Overall sprint health. Set deterministically from the forecast after the AI
 /// call — the model never trusts the AI for this value.
-enum SprintHealth { onTrack, atRisk, behind }
+enum SprintOutlook { onTrack, atRisk, behind }
 
 @freezed
 sealed class Deliverable with _$Deliverable {
@@ -36,7 +36,7 @@ sealed class SprintNarrativeReport with _$SprintNarrativeReport {
   const factory SprintNarrativeReport({
     @Default('') String executiveSummary,
     @Default(<String>[]) List<String> keyWins,
-    @Default(SprintHealth.onTrack) SprintHealth overallStatus,
+    @Default(SprintOutlook.onTrack) SprintOutlook overallStatus,
     @Default(<Deliverable>[]) List<Deliverable> deliverables,
     @Default(TechHighlights()) TechHighlights techHighlights,
     @Default(<String>[]) List<String> challenges,

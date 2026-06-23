@@ -18,6 +18,7 @@ import 'package:turbo_board/features/lead_cockpit/data/repositories/lead_cockpit
 import 'package:turbo_board/features/lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import 'package:turbo_board/features/lead_cockpit/presentation/view/lead_cockpit_screen.dart';
 import 'package:turbo_board/features/pr_detail/data/models/pr_detail.dart';
+import 'package:turbo_board/features/sprint_report/data/models/sprint_narrative_report.dart';
 import 'package:turbo_board/features/sprint_report/data/models/sprint_report.dart';
 import 'package:turbo_board/shared/ui/theme/app_theme.dart';
 import 'package:turbo_core/core.dart';
@@ -47,6 +48,8 @@ class _StubAi implements AiRepository {
   Future<Result<List<String>>> summarizeIssue(IssueDetail issue) => throw UnimplementedError();
   @override
   Future<Result<String>> suggestNextAction(IssueDetail issue) => throw UnimplementedError();
+  @override
+  Future<Result<SprintNarrativeReport>> generateSprintReport(SprintReport report) => throw UnimplementedError();
   @override
   Future<Result<Map<IssueStatus, String>>> boardInsights(ProjectBoardData board) => throw UnimplementedError();
 }

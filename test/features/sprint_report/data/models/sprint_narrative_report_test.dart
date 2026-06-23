@@ -42,6 +42,6 @@ void main() {
 
   test('copyWith replaces overallStatus', () {
     final r = SprintNarrativeReport.fromJson({'executiveSummary': 'x'});
-    expect(r.copyWith(overallStatus: SprintHealth.behind).overallStatus, SprintHealth.behind);
+    expect(r.copyWith(overallStatus: SprintOutlook.behind).overallStatus, SprintOutlook.behind);
   });
 }

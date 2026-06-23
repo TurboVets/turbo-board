@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
 import '../../../issue_detail/data/models/issue_detail.dart';
-import '../../../lead_cockpit/data/models/cockpit_data.dart' as cockpit;
+import '../../../lead_cockpit/data/models/cockpit_data.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
@@ -253,7 +253,7 @@ class SprintNarrativeController extends _$SprintNarrativeController {
     state = switch (result) {
       ResultSuccess(:final data) => AsyncValue.data(
         // Forecast status is deterministic — never trust the AI for it.
-        data.copyWith(overallStatus: report.behind ? SprintHealth.behind : SprintHealth.onTrack),
+        data.copyWith(overallStatus: report.behind ? SprintOutlook.behind : SprintOutlook.onTrack),
       ),
       ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
     };
@@ -268,7 +268,7 @@ class WeeklyDigestController extends _$WeeklyDigestController {
   @override
   AsyncValue<String>? build() => null;
 
-  Future<void> generate(cockpit.CockpitData cockpit) async {
+  Future<void> generate(CockpitData cockpit) async {
     state = const AsyncValue.loading();
     final result = await ref.read(aiRepositoryProvider).weeklyDigest(cockpit);
     state = switch (result) {
