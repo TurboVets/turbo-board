@@ -14,8 +14,10 @@ environment:
 # turbo_ui directly instead of the turbo_sdk umbrella (turbo_services and
 # turbo_task pull in mobile-only plugins that break desktop/web builds).
 dependencies:
+  cloud_firestore: ^6.6.0
   collection: ^1.19.1
   dio: ^5.9.0
+  firebase_auth: ^6.5.4
   firebase_core: ^4.10.0
   flutter:
     sdk: flutter
