@@ -3,10 +3,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:turbo_core/core.dart';
 
 import '../../../issue_detail/data/models/issue_detail.dart';
-import '../../../lead_cockpit/data/models/cockpit_data.dart';
+import '../../../lead_cockpit/data/models/cockpit_data.dart' as cockpit;
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
+import '../../../sprint_report/data/models/sprint_narrative_report.dart';
 import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../data/models/triage_item.dart';
 import '../../data/repositories/ai_repository.dart';
@@ -240,13 +241,34 @@ class SprintDigestController extends _$SprintDigestController {
   void clear() => state = null;
 }
 
+/// On-demand structured narrative Sprint Report. `null` = not requested yet.
+@Riverpod(keepAlive: true)
+class SprintNarrativeController extends _$SprintNarrativeController {
+  @override
+  AsyncValue<SprintNarrativeReport>? build() => null;
+
+  Future<void> generate(SprintReport report) async {
+    state = const AsyncValue.loading();
+    final result = await ref.read(aiRepositoryProvider).generateSprintReport(report);
+    state = switch (result) {
+      ResultSuccess(:final data) => AsyncValue.data(
+        // Forecast status is deterministic — never trust the AI for it.
+        data.copyWith(overallStatus: report.behind ? SprintHealth.behind : SprintHealth.onTrack),
+      ),
+      ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+    };
+  }
+
+  void clear() => state = null;
+}
+
 /// On-demand weekly digest (Lead Cockpit). `null` = not requested yet.
 @Riverpod(keepAlive: true)
 class WeeklyDigestController extends _$WeeklyDigestController {
   @override
   AsyncValue<String>? build() => null;
 
-  Future<void> generate(CockpitData cockpit) async {
+  Future<void> generate(cockpit.CockpitData cockpit) async {
     state = const AsyncValue.loading();
     final result = await ref.read(aiRepositoryProvider).weeklyDigest(cockpit);
     state = switch (result) {
