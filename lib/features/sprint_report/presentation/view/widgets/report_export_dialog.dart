@@ -44,14 +44,11 @@ class ReportExportDialog extends HookConsumerWidget {
     final data = narrative.value!;
     final metrics = [...computeReportMetrics(report), ...customRows.value];
 
-    Future<void> run(Future<void> Function() action, {String? copyFallback}) async {
+    Future<void> run(Future<void> Function() action) async {
       final messenger = ScaffoldMessenger.of(context);
       try {
         await action();
       } catch (e) {
-        if (copyFallback != null) {
-          await ref.read(sprintExporterProvider).copySummary(copyFallback);
-        }
         messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
       }
     }
@@ -104,18 +101,20 @@ class ReportExportDialog extends HookConsumerWidget {
               ),
               const SizedBox(width: 8),
               TextButton(
-                onPressed: () => run(() async {
+                onPressed: () {
                   final m = mail();
-                  final ok = await exporter.openEmail(subject: m.subject, body: m.body);
-                  if (!ok) {
-                    await exporter.copySummary(m.body);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(const SnackBar(content: Text('No mail client — summary copied to clipboard')));
+                  run(() async {
+                    final ok = await exporter.openEmail(subject: m.subject, body: m.body);
+                    if (!ok) {
+                      await exporter.copySummary(m.body);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(const SnackBar(content: Text('No mail client — summary copied to clipboard')));
+                      }
                     }
-                  }
-                }, copyFallback: mail().body),
+                  });
+                },
                 child: const Text('Email'),
               ),
               const SizedBox(width: 8),
