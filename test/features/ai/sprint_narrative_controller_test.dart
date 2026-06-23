@@ -2,11 +2,15 @@
 // - generate() success sets AsyncData with overallStatus overwritten from forecast
 // - generate() failure sets AsyncError
 // - clear() resets to null
+// - switching selected project resets state to null (stale-narrative guard)
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turbo_core/core.dart';
 import 'package:turbo_board/features/ai/data/repositories/ai_repository.dart';
 import 'package:turbo_board/features/ai/presentation/providers/ai_provider.dart';
+import 'package:turbo_board/features/lead_cockpit/data/models/cockpit_data.dart';
+import 'package:turbo_board/features/lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import 'package:turbo_board/features/sprint_report/data/models/sprint_narrative_report.dart';
 import 'package:turbo_board/features/sprint_report/data/models/sprint_report.dart';
 
@@ -40,6 +44,12 @@ ProviderContainer _container(AiRepository repo) =>
     ProviderContainer(overrides: [aiRepositoryProvider.overrideWithValue(repo)]);
 
 void main() {
+  // SprintNarrativeController.build() watches selectedProjectProvider, which
+  // internally calls SharedPreferences — initialize the binding once for the
+  // whole suite and reset prefs before each test.
+  setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   test('generate success stamps forecast status', () async {
     final c = _container(_FakeRepo(Result.success(const SprintNarrativeReport(executiveSummary: 'x'))));
     addTearDown(c.dispose);
@@ -60,6 +70,23 @@ void main() {
     addTearDown(c.dispose);
     await c.read(sprintNarrativeControllerProvider.notifier).generate(_report(behind: false));
     c.read(sprintNarrativeControllerProvider.notifier).clear();
+    expect(c.read(sprintNarrativeControllerProvider), isNull);
+  });
+
+  test('switching selected project resets narrative to null', () async {
+    final c = _container(_FakeRepo(Result.success(const SprintNarrativeReport(executiveSummary: 'x'))));
+    addTearDown(c.dispose);
+
+    // Generate a report so state is non-null.
+    await c.read(sprintNarrativeControllerProvider.notifier).generate(_report(behind: false));
+    expect(c.read(sprintNarrativeControllerProvider), isNotNull);
+
+    // Select a project — the controller watches selectedProjectProvider, so
+    // build() reruns and returns null, resetting state.
+    await c
+        .read(selectedProjectProvider.notifier)
+        .select(const ProjectRef(owner: 'org', number: 1, title: 'Project A'));
+
     expect(c.read(sprintNarrativeControllerProvider), isNull);
   });
 }

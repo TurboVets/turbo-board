@@ -4,6 +4,7 @@ import 'package:turbo_core/core.dart';
 
 import '../../../issue_detail/data/models/issue_detail.dart';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
+import '../../../lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
@@ -245,7 +246,12 @@ class SprintDigestController extends _$SprintDigestController {
 @Riverpod(keepAlive: true)
 class SprintNarrativeController extends _$SprintNarrativeController {
   @override
-  AsyncValue<SprintNarrativeReport>? build() => null;
+  AsyncValue<SprintNarrativeReport>? build() {
+    // Reset the generated narrative whenever the active project changes, so a
+    // stale report can never be shown against a different sprint's metrics.
+    ref.watch(selectedProjectProvider);
+    return null;
+  }
 
   Future<void> generate(SprintReport report) async {
     state = const AsyncValue.loading();
