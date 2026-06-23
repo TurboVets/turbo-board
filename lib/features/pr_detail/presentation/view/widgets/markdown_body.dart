@@ -86,6 +86,9 @@ class MarkdownBody extends StatelessWidget {
           child,
         ),
 
+        imageBuilder: (context, url, width, height) =>
+            _MarkdownImage(url: url, width: width, height: height, onTap: () => _openLink(url)),
+
         codeBuilder: (context, code, language, closed) => Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -130,6 +133,79 @@ class MarkdownBody extends StatelessWidget {
 
     if (children.length == 1) return children.first;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: children);
+  }
+}
+
+/// Renders an inline markdown image. Constrains to the available width so wide
+/// screenshots never overflow, shows a progress indicator while loading, and a
+/// graceful placeholder on failure. Tapping opens the image in the browser.
+class _MarkdownImage extends StatelessWidget {
+  const _MarkdownImage({required this.url, required this.width, required this.height, required this.onTap});
+
+  final String url;
+  final double? width;
+  final double? height;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final image = Image(
+      image: NetworkImage(url),
+      width: width,
+      height: height,
+      fit: BoxFit.contain,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return SizedBox(
+          width: width,
+          height: height ?? 120,
+          child: Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stack) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(color: scheme.surfaceContainerLow, borderRadius: BorderRadius.circular(4)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.broken_image_outlined, size: 16, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Image failed to load',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: double.infinity),
+            child: image,
+          ),
+        ),
+      ),
+    );
   }
 }
 
