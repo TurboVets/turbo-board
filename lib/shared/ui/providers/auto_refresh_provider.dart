@@ -7,10 +7,15 @@ import '../../../features/lead_cockpit/presentation/providers/lead_cockpit_provi
 import '../../../features/pr_detail/presentation/providers/pr_detail_provider.dart';
 import '../../../features/pr_inbox/presentation/providers/pr_inbox_provider.dart';
 import '../../../features/projects_board/presentation/providers/projects_board_provider.dart';
+import '../../../features/realtime/presentation/providers/realtime_provider.dart';
 import '../../../features/sprint_report/presentation/providers/sprint_report_provider.dart';
 import 'refresh_interval_provider.dart';
 
 part 'auto_refresh_provider.g.dart';
+
+/// While the realtime relay is connected, polling backs off to this interval
+/// (20 min) as a safety net for repos without a configured webhook.
+const int realtimeFallbackInterval = 1200;
 
 /// Drives app-wide periodic data refresh. Watches the user's chosen interval
 /// and, on each tick, invalidates every remote data provider so the visible
@@ -35,7 +40,9 @@ class AutoRefresh extends _$AutoRefresh with WidgetsBindingObserver {
 
   @override
   void build() {
-    _seconds = ref.watch(refreshIntervalProvider);
+    final userInterval = ref.watch(refreshIntervalProvider);
+    final connected = ref.watch(realtimeListenerProvider) == RealtimeStatus.connected;
+    _seconds = connected && userInterval < realtimeFallbackInterval ? realtimeFallbackInterval : userInterval;
     WidgetsBinding.instance.addObserver(this);
     // Only run the timer if we're currently in the foreground. On first build
     // lifecycleState may be null (pre-first-frame) — treat that as resumed.

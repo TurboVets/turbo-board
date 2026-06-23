@@ -5,6 +5,7 @@
 // - pausing the app lifecycle (not `resumed`) stops the timer from ticking
 // - returning to `resumed` fires an immediate catch-up tick and restarts the
 //   periodic timer
+// - stretches the interval to the realtime fallback (20m) while realtime is connected
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turbo_board/features/pr_inbox/data/models/pr_data.dart';
 import 'package:turbo_board/features/pr_inbox/presentation/providers/pr_inbox_provider.dart';
+import 'package:turbo_board/features/realtime/presentation/providers/realtime_provider.dart';
 import 'package:turbo_board/shared/ui/providers/auto_refresh_provider.dart';
 import 'package:turbo_board/shared/ui/providers/refresh_interval_provider.dart';
 
@@ -107,4 +109,41 @@ void main() {
       expect(builds(), base + 2, reason: 'periodic timer resumed after catch-up');
     });
   });
+
+  test('stretches the interval to the realtime fallback while connected', () {
+    fakeAsync((async) {
+      var builds = 0;
+      final container = ProviderContainer(
+        overrides: [
+          realtimeListenerProvider.overrideWith(() => _StubListener(RealtimeStatus.connected)),
+          prInboxProvider.overrideWith((ref) async {
+            builds++;
+            return <PrData>[];
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(prInboxProvider, (_, _) {});
+
+      container.read(autoRefreshProvider.notifier).didChangeAppLifecycleState(AppLifecycleState.resumed);
+      settle(async);
+      final base = builds;
+
+      // At the user default (5m) nothing should tick yet — we're stretched to 20m.
+      async.elapse(const Duration(seconds: refreshIntervalDefault));
+      settle(async);
+      expect(builds, base, reason: 'no tick before the stretched interval');
+
+      async.elapse(const Duration(seconds: realtimeFallbackInterval - refreshIntervalDefault));
+      settle(async);
+      expect(builds, base + 1, reason: 'one tick at the stretched 20m interval');
+    });
+  });
+}
+
+class _StubListener extends RealtimeListener {
+  _StubListener(this._status);
+  final RealtimeStatus _status;
+  @override
+  RealtimeStatus build() => _status;
 }
