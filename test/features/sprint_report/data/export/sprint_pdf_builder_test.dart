@@ -1,5 +1,6 @@
 // test/features/sprint_report/data/export/sprint_pdf_builder_test.dart
 // Test summary:
+// - sanitizePdfText maps each non-Latin-1 glyph to its ASCII equivalent
 // - full report builds a non-empty PDF (document.save() returns bytes)
 // - digest builds a non-empty PDF
 // - builds without throwing when narrative lists and metrics are empty
@@ -21,6 +22,10 @@ const _report = SprintNarrativeReport(
 const _metrics = [MetricRow(label: 'Points delivered', previous: '71', current: '82', delta: '↑ 15%')];
 
 void main() {
+  test('sanitizePdfText maps non-Latin-1 glyphs to ASCII', () {
+    expect(sanitizePdfText('• ↑ ↓ — – ‘ ’ “ ” …'), equals('- + - - - \' \' " " ...'));
+  });
+
   test('full report builds non-empty PDF', () async {
     final doc = buildSprintPdf(
       sprintName: 'Sprint 24',

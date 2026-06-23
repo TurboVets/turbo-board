@@ -6,6 +6,20 @@ import '../models/sprint_narrative_report.dart';
 import 'report_metrics.dart';
 import 'sprint_export_format.dart';
 
+/// Maps non-Latin-1 typographic glyphs to ASCII so the pdf package's
+/// built-in WinAnsi fonts render them instead of missing-glyph boxes.
+String sanitizePdfText(String s) => s
+    .replaceAll('•', '-')
+    .replaceAll('↑', '+')
+    .replaceAll('↓', '-')
+    .replaceAll('—', '-')
+    .replaceAll('–', '-')
+    .replaceAll('‘', "'")
+    .replaceAll('’', "'")
+    .replaceAll('“', '"')
+    .replaceAll('”', '"')
+    .replaceAll('…', '...');
+
 // Light, print-friendly palette (the on-screen app is dark; printed docs are not).
 const _ink = PdfColor.fromInt(0xFF1A1A1F);
 const _muted = PdfColor.fromInt(0xFF8A8A94);
@@ -36,7 +50,7 @@ pw.Widget _bullets(List<String> items) => pw.Column(
       .map(
         (i) => pw.Padding(
           padding: const pw.EdgeInsets.only(bottom: 3),
-          child: pw.Text('• $i', style: const pw.TextStyle(fontSize: 10, color: _ink)),
+          child: pw.Text('- ${sanitizePdfText(i)}', style: const pw.TextStyle(fontSize: 10, color: _ink)),
         ),
       )
       .toList(),
@@ -68,11 +82,14 @@ pw.Document buildSprintPdf({
         final blocks = <pw.Widget>[
           // Header
           pw.Text(
-            'Sprint Report — $sprintName',
+            'Sprint Report - ${sanitizePdfText(sprintName)}',
             style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: _ink),
           ),
           pw.SizedBox(height: 2),
-          pw.Text('$dateRange  ·  Report date: $reportDate', style: const pw.TextStyle(fontSize: 10, color: _muted)),
+          pw.Text(
+            '${sanitizePdfText(dateRange)}  ·  Report date: ${sanitizePdfText(reportDate)}',
+            style: const pw.TextStyle(fontSize: 10, color: _muted),
+          ),
           pw.SizedBox(height: 4),
           pw.Text(
             'Status: ${_statusLabel(report.overallStatus)}',
@@ -80,7 +97,7 @@ pw.Document buildSprintPdf({
           ),
           // Executive summary
           _h('Executive Summary'),
-          pw.Text(report.executiveSummary, style: const pw.TextStyle(fontSize: 10, color: _ink)),
+          pw.Text(sanitizePdfText(report.executiveSummary), style: const pw.TextStyle(fontSize: 10, color: _ink)),
         ];
 
         if (report.keyWins.isNotEmpty) blocks.add(_section('Key Wins', report.keyWins)!);
@@ -97,7 +114,16 @@ pw.Document buildSprintPdf({
               cellAlignment: pw.Alignment.centerLeft,
               border: null,
               headers: const ['Initiative', 'Status', 'Description', 'Impact'],
-              data: report.deliverables.map((d) => [d.title, d.status, d.description, d.impact]).toList(),
+              data: report.deliverables
+                  .map(
+                    (d) => [
+                      sanitizePdfText(d.title),
+                      sanitizePdfText(d.status),
+                      sanitizePdfText(d.description),
+                      sanitizePdfText(d.impact),
+                    ],
+                  )
+                  .toList(),
             ),
           );
         }
@@ -113,7 +139,16 @@ pw.Document buildSprintPdf({
               ),
               border: null,
               headers: const ['Metric', 'Previous', 'Current', 'Change'],
-              data: metrics.map((m) => [m.label, m.previous ?? '—', m.current, m.delta ?? '—']).toList(),
+              data: metrics
+                  .map(
+                    (m) => [
+                      sanitizePdfText(m.label),
+                      m.previous != null ? sanitizePdfText(m.previous!) : '-',
+                      sanitizePdfText(m.current),
+                      m.delta != null ? sanitizePdfText(m.delta!) : '-',
+                    ],
+                  )
+                  .toList(),
             ),
           );
         }
@@ -132,7 +167,7 @@ pw.Document buildSprintPdf({
           blocks.add(_h('Sprint Outcome'));
           blocks.add(
             pw.Text(
-              report.outcome,
+              sanitizePdfText(report.outcome),
               style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _ink),
             ),
           );
