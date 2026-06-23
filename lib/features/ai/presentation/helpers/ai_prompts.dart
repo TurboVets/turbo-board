@@ -6,6 +6,7 @@ import '../../../lead_cockpit/presentation/helpers/cockpit_palette.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../projects_board/data/models/board_data.dart' show ProjectBoardData;
+import '../../../sprint_report/data/models/sprint_narrative_report.dart';
 import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../data/models/triage_item.dart';
 
@@ -345,4 +346,91 @@ Map<IssueStatus, String> parseBoardInsights(String text) {
     if (status != null && line.isNotEmpty) out[status] = line;
   });
   return out;
+}
+
+// ─── Sprint narrative report ─────────────────────────────────────────────────
+
+/// Prompt for the narrative executive Sprint Report. Asks for a single JSON
+/// object matching [SprintNarrativeReport]. Explicitly forbids inventing any
+/// metric, date, or name not present in the supplied board data — parsed by
+/// [parseSprintReport].
+String buildSprintReportPrompt(SprintReport r) {
+  final epics = r.epics.take(8).map((e) => '"${e.title}" ${e.percent}%').join(', ');
+  final people = r.people.take(10).map((p) => '${p.handle}: ${p.done}d/${p.open}open').join(', ');
+  return '''
+You are writing an executive end-of-sprint report for engineering leadership, based ONLY on the
+board data below. Ground every statement in this data. DO NOT invent metrics, percentages, dates,
+customer names, or people that are not present here. Do not include latency, uptime, or coverage
+numbers — they are not provided.
+
+Reply with ONLY a JSON object (no prose, no markdown fences), with these keys:
+{
+  "executiveSummary": "2-3 sentence overview citing the real numbers",
+  "keyWins": ["short win", ...],                 // from completed epics / high-progress work
+  "deliverables": [{"title": "...", "status": "Complete|In Progress|Released", "description": "<= 8 words", "impact": "<= 8 words"}],
+  "techHighlights": {"platform": ["..."], "product": ["..."]},
+  "challenges": ["risk grounded in stuck/behind work"],
+  "mitigations": ["..."],
+  "learnings": ["..."],
+  "nextPriorities": ["from unfinished/low-progress epics"],
+  "recognition": ["@handle — what they did, from per-assignee load"],
+  "outcome": "one-sentence verdict"
+}
+Omit a key rather than fabricate its contents.
+
+Sprint: ${r.sprintName} (${r.dateRange}), ${r.daysRemaining} days remaining, ${r.repoCount} repos.
+Progress: ${r.pointsDone} of ${r.pointsCommitted} points done (${r.percentDone}%), ${r.totalTickets} tickets.
+Forecast: ${r.forecastLabel}${r.behind ? ' (behind)' : ' (on track)'}.
+Estimation: ${r.estimatedTickets} estimated, ${r.unestimatedTickets} unestimated.
+Status: ${_statusLines(r)}.
+Epics: ${epics.isEmpty ? 'none' : epics}.
+Per-assignee (done/open): ${people.isEmpty ? 'n/a' : people}.''';
+}
+
+/// Parses the narrative JSON object defensively. Extracts the first `{`…`}`
+/// block, decodes it, and builds the model field-by-field. Returns an empty
+/// report on any failure (mirrors [parseTriage]). `overallStatus` is left at its
+/// default here — the controller overwrites it from the deterministic forecast.
+SprintNarrativeReport parseSprintReport(String response) {
+  final start = response.indexOf('{');
+  final end = response.lastIndexOf('}');
+  if (start < 0 || end <= start) return const SprintNarrativeReport();
+
+  final Map<String, dynamic> raw;
+  try {
+    raw = jsonDecode(response.substring(start, end + 1)) as Map<String, dynamic>;
+  } catch (_) {
+    return const SprintNarrativeReport();
+  }
+
+  List<String> strs(Object? v) =>
+      v is List ? v.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList() : const [];
+  String str(Object? v) => v?.toString().trim() ?? '';
+
+  final deliverables = (raw['deliverables'] is List ? raw['deliverables'] as List : const [])
+      .whereType<Map<String, dynamic>>()
+      .map(
+        (d) => Deliverable(
+          title: str(d['title']),
+          status: str(d['status']),
+          description: str(d['description']),
+          impact: str(d['impact']),
+        ),
+      )
+      .toList();
+
+  final th = raw['techHighlights'] is Map<String, dynamic> ? raw['techHighlights'] as Map<String, dynamic> : const {};
+
+  return SprintNarrativeReport(
+    executiveSummary: str(raw['executiveSummary']),
+    keyWins: strs(raw['keyWins']),
+    deliverables: deliverables,
+    techHighlights: TechHighlights(platform: strs(th['platform']), product: strs(th['product'])),
+    challenges: strs(raw['challenges']),
+    mitigations: strs(raw['mitigations']),
+    learnings: strs(raw['learnings']),
+    nextPriorities: strs(raw['nextPriorities']),
+    recognition: strs(raw['recognition']),
+    outcome: str(raw['outcome']),
+  );
 }
