@@ -4,6 +4,7 @@
 // - (Task 6) chunkRepos splits a list into <=30-sized batches
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turbo_board/features/realtime/data/models/repo_event.dart';
+import 'package:turbo_board/features/realtime/data/repositories/realtime_repository.dart';
 
 void main() {
   group('repoEventFromData', () {
@@ -18,6 +19,27 @@ void main() {
 
     test('returns null when repo is missing', () {
       expect(repoEventFromData({'event': 'pull_request'}), isNull);
+    });
+  });
+
+  group('chunkRepos', () {
+    test('returns a single chunk when under the cap', () {
+      expect(chunkRepos(['a', 'b', 'c']), [
+        ['a', 'b', 'c'],
+      ]);
+    });
+
+    test('splits into <=30-sized chunks', () {
+      final repos = List.generate(65, (i) => 'r$i');
+      final chunks = chunkRepos(repos);
+      expect(chunks.length, 3);
+      expect(chunks[0].length, 30);
+      expect(chunks[1].length, 30);
+      expect(chunks[2].length, 5);
+    });
+
+    test('empty in -> empty out', () {
+      expect(chunkRepos(const []), isEmpty);
     });
   });
 }
