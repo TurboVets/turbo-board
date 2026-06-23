@@ -153,6 +153,50 @@ sealed class StuckIssue with _$StuckIssue {
   factory StuckIssue.fromJson(Map<String, dynamic> json) => _$StuckIssueFromJson(json);
 }
 
+/// A single ticket touched on a given sprint day — closed (done) or created
+/// (opened). [number] is the display tag (`#412`); [url] opens the GitHub page.
+@freezed
+sealed class FlowTicket with _$FlowTicket {
+  const factory FlowTicket({required String number, required String title, required String repo, String? url}) =
+      _FlowTicket;
+
+  factory FlowTicket.fromJson(Map<String, dynamic> json) => _$FlowTicketFromJson(json);
+}
+
+/// One day in the sprint with its throughput (closed) and inflow (created)
+/// counts plus the tickets behind each, shown as a tile + a detail popup.
+@freezed
+sealed class FlowDay with _$FlowDay {
+  const FlowDay._();
+
+  const factory FlowDay({
+    required DateTime date,
+    @Default(0) int done,
+    @Default(0) int opened,
+    @Default(<FlowTicket>[]) List<FlowTicket> doneTickets,
+    @Default(<FlowTicket>[]) List<FlowTicket> openedTickets,
+  }) = _FlowDay;
+
+  factory FlowDay.fromJson(Map<String, dynamic> json) => _$FlowDayFromJson(json);
+
+  bool get hasActivity => done > 0 || opened > 0;
+}
+
+/// Per-day sprint activity over the iteration window — drives the burnup chart
+/// (cumulative done vs cumulative scope) and the daily-activity tile strip.
+/// Sourced from each board item's `createdAt` / `closedAt` (no event-walk).
+@freezed
+sealed class SprintFlow with _$SprintFlow {
+  const SprintFlow._();
+
+  const factory SprintFlow({required DateTime start, required DateTime end, @Default(<FlowDay>[]) List<FlowDay> days}) =
+      _SprintFlow;
+
+  factory SprintFlow.fromJson(Map<String, dynamic> json) => _$SprintFlowFromJson(json);
+
+  bool get isEmpty => days.every((d) => !d.hasActivity);
+}
+
 /// Everything the Lead Cockpit screen renders, fetched as one unit.
 @freezed
 sealed class CockpitData with _$CockpitData {
@@ -160,6 +204,7 @@ sealed class CockpitData with _$CockpitData {
     required SprintHealth sprint,
     required List<TeamMemberLoad> team,
     required List<StuckIssue> stuck,
+    required SprintFlow flow,
   }) = _CockpitData;
 
   factory CockpitData.fromJson(Map<String, dynamic> json) => _$CockpitDataFromJson(json);

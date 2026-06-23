@@ -32,7 +32,9 @@ SprintReport _report() => const SprintReport(
   status: [StatusSlice(kind: ReportStatusKind.done, label: 'Done', tickets: 30, points: 84)],
 );
 
-CockpitData _cockpit() => const CockpitData(
+final _emptyFlow = SprintFlow(start: DateTime(2026, 6, 15), end: DateTime(2026, 6, 26), days: const []);
+
+CockpitData _cockpit() => CockpitData(
   sprint: SprintHealth(
     name: 'Sprint 24',
     daysRemaining: 6,
@@ -48,6 +50,7 @@ CockpitData _cockpit() => const CockpitData(
   ),
   team: [TeamMemberLoad(handle: 'sam', wip: 6, inReview: 1, stuck: 0, done: 9, points: 38)],
   stuck: [],
+  flow: _emptyFlow,
 );
 
 PrDetail _detail({String body = 'Adds a thing.'}) => PrDetail(

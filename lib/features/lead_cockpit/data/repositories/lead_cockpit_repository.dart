@@ -142,7 +142,7 @@ class MockLeadCockpitRepository implements LeadCockpitRepository {
   }
 }
 
-const _sampleCockpit = CockpitData(
+final _sampleCockpit = CockpitData(
   sprint: SprintHealth(
     name: 'Sprint 24 · Mobile Space',
     daysRemaining: 6,
@@ -339,4 +339,70 @@ const _sampleCockpit = CockpitData(
       prLabel: 'PR #338 ✓ approved, unmerged',
     ),
   ],
+  flow: _sampleFlow,
 );
+
+/// Sample sprint flow: two work weeks (Mon Jun 15 → Fri Jun 26 2026), with
+/// "today" = Tue Jun 23. Counts drive the burnup; two days carry ticket lists
+/// so the daily-detail popup has something to show.
+final _sampleFlow = SprintFlow(
+  start: _d15,
+  end: _d27,
+  days: [
+    FlowDay(
+      date: _d15,
+      done: 3,
+      opened: 5,
+      openedTickets: [
+        FlowTicket(number: '#455', title: 'Offline queue: retry submissions with backoff', repo: 'recruit-mobile'),
+        FlowTicket(number: '#456', title: 'Skeleton states for slow networks', repo: 'mobile'),
+        FlowTicket(number: '#457', title: 'Crash triage rotation — week 24', repo: 'mobile'),
+        FlowTicket(number: '#458', title: 'Add haptics to primary CTA flows', repo: 'mobile'),
+        FlowTicket(number: '#459', title: 'Design-token sync from Tether v2.0', repo: 'mobile-shared-components'),
+      ],
+    ),
+    FlowDay(
+      date: _d16,
+      done: 3,
+      opened: 2,
+      doneTickets: [
+        FlowTicket(number: '#412', title: 'Fix deeplink cold-start routes', repo: 'mobile'),
+        FlowTicket(number: '#418', title: 'Token refresh race on multi-tab web', repo: 'mobile-shared-components'),
+        FlowTicket(number: '#401', title: 'Migrate image picker to photo_manager', repo: 'mobile-shared-components'),
+      ],
+      openedTickets: [
+        FlowTicket(number: '#460', title: 'Background sync wakelock audit', repo: 'mobile'),
+        FlowTicket(number: '#461', title: 'E2E: form submission flow', repo: 'recruit-mobile'),
+      ],
+    ),
+    FlowDay(date: _d17, done: 2, opened: 1),
+    FlowDay(date: _d18, done: 0, opened: 3),
+    FlowDay(
+      date: _d19,
+      done: 4,
+      doneTickets: [
+        FlowTicket(number: '#427', title: 'Background sync wakelock audit', repo: 'mobile'),
+        FlowTicket(number: '#431', title: 'Add haptics to primary CTA flows', repo: 'mobile'),
+        FlowTicket(number: '#402', title: 'Harden deeplink cold-start routes', repo: 'mobile'),
+        FlowTicket(number: '#410', title: 'Crash: null check in resume-upload provider', repo: 'mobile'),
+      ],
+    ),
+    FlowDay(date: _d22, done: 6, opened: 2),
+    FlowDay(date: _d23, done: 3, opened: 1),
+    FlowDay(date: _d24),
+    FlowDay(date: _d25),
+    FlowDay(date: _d26),
+  ],
+);
+
+final _d15 = DateTime(2026, 6, 15);
+final _d16 = DateTime(2026, 6, 16);
+final _d17 = DateTime(2026, 6, 17);
+final _d18 = DateTime(2026, 6, 18);
+final _d19 = DateTime(2026, 6, 19);
+final _d22 = DateTime(2026, 6, 22);
+final _d23 = DateTime(2026, 6, 23);
+final _d24 = DateTime(2026, 6, 24);
+final _d25 = DateTime(2026, 6, 25);
+final _d26 = DateTime(2026, 6, 26);
+final _d27 = DateTime(2026, 6, 27);

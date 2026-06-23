@@ -36,6 +36,7 @@ query ProjectBoard($org: String!, $number: Int!, $first: Int!, $after: String) {
               title
               url
               closed
+              createdAt
               closedAt
               repository { name owner { login } }
               assignees(first: 5) { nodes { login } }

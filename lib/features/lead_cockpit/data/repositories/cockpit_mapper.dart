@@ -130,7 +130,69 @@ CockpitData cockpitFromProjectItems(String boardTitle, List<Map<String, dynamic>
         return p != 0 ? p : b.ageDays.compareTo(a.ageDays);
       });
 
-  return CockpitData(sprint: sprint, team: team.take(6).toList(), stuck: stuck.take(10).toList());
+  return CockpitData(
+    sprint: sprint,
+    team: team.take(6).toList(),
+    stuck: stuck.take(10).toList(),
+    flow: _sprintFlow(current, sprintItem, now),
+  );
+}
+
+DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
+
+/// Buckets the current sprint's items into per-weekday throughput (closed) and
+/// inflow (created), keyed by `closedAt` / `createdAt`. Weekends are skipped so
+/// the chart x-axis matches the design's working-day grid; items closed/opened
+/// on a weekend simply don't get a tile. Falls back to an
+/// earliest-activity→today window when the sprint has no iteration dates.
+SprintFlow _sprintFlow(List<_BoardItem> current, _BoardItem? sprintItem, DateTime now) {
+  DateTime start;
+  DateTime end;
+  if (sprintItem?.iterationStart != null) {
+    start = _dateOnly(sprintItem!.iterationStart!);
+    end = start.add(Duration(days: sprintItem.iterationDuration ?? 14));
+  } else {
+    final stamps = <DateTime>[
+      for (final i in current) ...[if (i.createdAt != null) i.createdAt!, if (i.closedAt != null) i.closedAt!],
+    ];
+    final earliest = stamps.isEmpty
+        ? now.subtract(const Duration(days: 13))
+        : stamps.reduce((a, b) => a.isBefore(b) ? a : b);
+    start = _dateOnly(earliest);
+    end = _dateOnly(now).add(const Duration(days: 1));
+  }
+
+  final days = <DateTime, FlowDay>{};
+  final order = <DateTime>[];
+  for (var d = start; d.isBefore(end); d = d.add(const Duration(days: 1))) {
+    if (d.weekday == DateTime.saturday || d.weekday == DateTime.sunday) continue;
+    final key = _dateOnly(d);
+    days[key] = FlowDay(date: key);
+    order.add(key);
+  }
+  if (order.isEmpty) return SprintFlow(start: start, end: end, days: const []);
+
+  bool inWindow(DateTime t) => !t.isBefore(start) && t.isBefore(end);
+
+  for (final i in current) {
+    final ticket = FlowTicket(number: i.number == null ? '' : '#${i.number}', title: i.title, repo: i.repo, url: i.url);
+    final created = i.createdAt;
+    if (created != null && inWindow(created)) {
+      final day = days[_dateOnly(created)];
+      if (day != null) {
+        days[_dateOnly(created)] = day.copyWith(opened: day.opened + 1, openedTickets: [...day.openedTickets, ticket]);
+      }
+    }
+    final closed = i.closedAt;
+    if (closed != null && inWindow(closed)) {
+      final day = days[_dateOnly(closed)];
+      if (day != null) {
+        days[_dateOnly(closed)] = day.copyWith(done: day.done + 1, doneTickets: [...day.doneTickets, ticket]);
+      }
+    }
+  }
+
+  return SprintFlow(start: start, end: end, days: [for (final k in order) days[k]!]);
 }
 
 /// A flattened board item parsed out of the GraphQL `fieldValues` shape.
@@ -140,6 +202,9 @@ class _BoardItem {
     required this.repo,
     required this.assignees,
     required this.updatedAt,
+    this.number,
+    this.createdAt,
+    this.closedAt,
     this.url,
     this.status,
     this.priority,
@@ -155,6 +220,9 @@ class _BoardItem {
   final String repo;
   final List<String> assignees;
   final DateTime updatedAt;
+  final int? number;
+  final DateTime? createdAt;
+  final DateTime? closedAt;
   final String? url;
   final int? subTotal;
   final int? subDone;
@@ -220,6 +288,11 @@ class _BoardItem {
     return _BoardItem(
       title: (content['title'] as String?) ?? '',
       repo: (content['repository']?['name'] as String?) ?? '',
+      number: (content['number'] as num?)?.toInt(),
+      // GitHub stamps are UTC (`…Z`); convert to local so per-day bucketing
+      // lines up with the viewer's calendar (and the local `now`).
+      createdAt: DateTime.tryParse((content['createdAt'] as String?) ?? '')?.toLocal(),
+      closedAt: DateTime.tryParse((content['closedAt'] as String?) ?? '')?.toLocal(),
       url: content['url'] as String?,
       subTotal: subTotal,
       subDone: subDone,
