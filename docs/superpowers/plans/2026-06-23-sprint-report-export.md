@@ -40,10 +40,10 @@
 **Interfaces:**
 - Consumes: nothing.
 - Produces:
-  - `enum SprintHealth { onTrack, atRisk, behind }`
+  - `enum SprintOutlook { onTrack, atRisk, behind }`
   - `class Deliverable { String title; String status; String description; String impact; }`
   - `class TechHighlights { List<String> platform; List<String> product; }`
-  - `class SprintNarrativeReport { String executiveSummary; List<String> keyWins; SprintHealth overallStatus; List<Deliverable> deliverables; TechHighlights techHighlights; List<String> challenges; List<String> mitigations; List<String> learnings; List<String> nextPriorities; List<String> recognition; String outcome; }` with `fromJson` and Freezed `copyWith`.
+  - `class SprintNarrativeReport { String executiveSummary; List<String> keyWins; SprintOutlook overallStatus; List<Deliverable> deliverables; TechHighlights techHighlights; List<String> challenges; List<String> mitigations; List<String> learnings; List<String> nextPriorities; List<String> recognition; String outcome; }` with `fromJson` and Freezed `copyWith`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -90,7 +90,7 @@ void main() {
 
   test('copyWith replaces overallStatus', () {
     final r = SprintNarrativeReport.fromJson({'executiveSummary': 'x'});
-    expect(r.copyWith(overallStatus: SprintHealth.behind).overallStatus, SprintHealth.behind);
+    expect(r.copyWith(overallStatus: SprintOutlook.behind).overallStatus, SprintOutlook.behind);
   });
 }
 ```
@@ -111,7 +111,7 @@ part 'sprint_narrative_report.g.dart';
 
 /// Overall sprint health. Set deterministically from the forecast after the AI
 /// call — the model never trusts the AI for this value.
-enum SprintHealth { onTrack, atRisk, behind }
+enum SprintOutlook { onTrack, atRisk, behind }
 
 @freezed
 sealed class Deliverable with _$Deliverable {
@@ -142,7 +142,7 @@ sealed class SprintNarrativeReport with _$SprintNarrativeReport {
   const factory SprintNarrativeReport({
     @Default('') String executiveSummary,
     @Default(<String>[]) List<String> keyWins,
-    @Default(SprintHealth.onTrack) SprintHealth overallStatus,
+    @Default(SprintOutlook.onTrack) SprintOutlook overallStatus,
     @Default(<Deliverable>[]) List<Deliverable> deliverables,
     @Default(TechHighlights()) TechHighlights techHighlights,
     @Default(<String>[]) List<String> challenges,
@@ -167,7 +167,7 @@ Expected: creates `sprint_narrative_report.freezed.dart` and `.g.dart`, no error
 Run: `flutter test test/features/sprint_report/data/models/sprint_narrative_report_test.dart`
 Expected: PASS (3 tests).
 
-> Note: Freezed `@Default(SprintHealth.onTrack)` with `json_serializable` maps the enum by name (`'onTrack'`). The "missing fields" test relies on generated `fromJson` defaulting absent keys — verified by Step 5.
+> Note: Freezed `@Default(SprintOutlook.onTrack)` with `json_serializable` maps the enum by name (`'onTrack'`). The "missing fields" test relies on generated `fromJson` defaulting absent keys — verified by Step 5.
 
 - [ ] **Step 6: Commit**
 
@@ -496,8 +496,8 @@ git commit -m "feat(ai): add generateSprintReport repository method"
 - Test: `test/features/ai/sprint_narrative_controller_test.dart`
 
 **Interfaces:**
-- Consumes: `aiRepositoryProvider` → `generateSprintReport` (Task 3); `SprintReport`; `SprintHealth`.
-- Produces: `sprintNarrativeControllerProvider` exposing `AsyncValue<SprintNarrativeReport>?` with `generate(SprintReport)` and `clear()`. `generate` stamps `overallStatus` from the report forecast (`behind ? SprintHealth.behind : SprintHealth.onTrack`).
+- Consumes: `aiRepositoryProvider` → `generateSprintReport` (Task 3); `SprintReport`; `SprintOutlook`.
+- Produces: `sprintNarrativeControllerProvider` exposing `AsyncValue<SprintNarrativeReport>?` with `generate(SprintReport)` and `clear()`. `generate` stamps `overallStatus` from the report forecast (`behind ? SprintOutlook.behind : SprintOutlook.onTrack`).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -540,7 +540,7 @@ void main() {
     addTearDown(c.dispose);
     await c.read(sprintNarrativeControllerProvider.notifier).generate(_report(behind: true));
     final state = c.read(sprintNarrativeControllerProvider);
-    expect(state!.value!.overallStatus, SprintHealth.behind);
+    expect(state!.value!.overallStatus, SprintOutlook.behind);
   });
 
   test('generate failure sets error', () async {
@@ -582,7 +582,7 @@ class SprintNarrativeController extends _$SprintNarrativeController {
     state = switch (result) {
       ResultSuccess(:final data) => AsyncValue.data(
           // Forecast status is deterministic — never trust the AI for it.
-          data.copyWith(overallStatus: report.behind ? SprintHealth.behind : SprintHealth.onTrack),
+          data.copyWith(overallStatus: report.behind ? SprintOutlook.behind : SprintOutlook.onTrack),
         ),
       ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
     };
@@ -739,7 +739,7 @@ git commit -m "feat(sprint_report): add REAL report metrics computation"
 - Test: `test/features/sprint_report/data/export/sprint_email_builder_test.dart`
 
 **Interfaces:**
-- Consumes: `SprintNarrativeReport`, `SprintHealth` (Task 1); `MetricRow` (Task 5).
+- Consumes: `SprintNarrativeReport`, `SprintOutlook` (Task 1); `MetricRow` (Task 5).
 - Produces:
   - `enum SprintExportFormat { fullReport, digest }`
   - `({String subject, String body}) buildSprintEmail({required String sprintName, required String dateRange, required SprintNarrativeReport report, required List<MetricRow> metrics, required SprintExportFormat format})`
@@ -761,7 +761,7 @@ import 'package:turbo_board/features/sprint_report/data/models/sprint_narrative_
 const _report = SprintNarrativeReport(
   executiveSummary: 'Closed 82 of 120 points.',
   keyWins: ['Released Checkout v2'],
-  overallStatus: SprintHealth.behind,
+  overallStatus: SprintOutlook.behind,
   outcome: 'Solid sprint.',
 );
 const _metrics = [MetricRow(label: 'Points delivered', current: '82')];
@@ -810,10 +810,10 @@ import '../models/sprint_narrative_report.dart';
 import 'report_metrics.dart';
 import 'sprint_export_format.dart';
 
-String _statusLabel(SprintHealth h) => switch (h) {
-  SprintHealth.onTrack => '🟢 On Track',
-  SprintHealth.atRisk => '🟡 At Risk',
-  SprintHealth.behind => '🔴 Behind Schedule',
+String _statusLabel(SprintOutlook h) => switch (h) {
+  SprintOutlook.onTrack => '🟢 On Track',
+  SprintOutlook.atRisk => '🟡 At Risk',
+  SprintOutlook.behind => '🔴 Behind Schedule',
 };
 
 void _section(StringBuffer b, String title, List<String> items) {
@@ -898,7 +898,7 @@ git commit -m "feat(sprint_report): add export format enum and email/text builde
 - Test: `test/features/sprint_report/data/export/sprint_pdf_builder_test.dart`
 
 **Interfaces:**
-- Consumes: `SprintNarrativeReport`, `SprintHealth`, `Deliverable` (Task 1); `MetricRow` (Task 5); `SprintExportFormat` (Task 6).
+- Consumes: `SprintNarrativeReport`, `SprintOutlook`, `Deliverable` (Task 1); `MetricRow` (Task 5); `SprintExportFormat` (Task 6).
 - Produces: `pw.Document buildSprintPdf({required String sprintName, required String dateRange, required String reportDate, required SprintNarrativeReport report, required List<MetricRow> metrics, required SprintExportFormat format})` — a light-themed document.
 
 - [ ] **Step 1: Add dependencies**
@@ -928,7 +928,7 @@ import 'package:turbo_board/features/sprint_report/data/models/sprint_narrative_
 const _report = SprintNarrativeReport(
   executiveSummary: 'Closed 82 of 120 points.',
   keyWins: ['Released Checkout v2'],
-  overallStatus: SprintHealth.behind,
+  overallStatus: SprintOutlook.behind,
   deliverables: [Deliverable(title: 'Checkout v2', status: 'Complete', description: 'Dashboard', impact: 'Self-service')],
   outcome: 'Solid sprint.',
 );
@@ -982,10 +982,10 @@ const _muted = PdfColor.fromInt(0xFF8A8A94);
 const _rule = PdfColor.fromInt(0xFFE6E6EA);
 const _accent = PdfColor.fromInt(0xFF0E9FBD);
 
-String _statusLabel(SprintHealth h) => switch (h) {
-  SprintHealth.onTrack => 'On Track',
-  SprintHealth.atRisk => 'At Risk',
-  SprintHealth.behind => 'Behind Schedule',
+String _statusLabel(SprintOutlook h) => switch (h) {
+  SprintOutlook.onTrack => 'On Track',
+  SprintOutlook.atRisk => 'At Risk',
+  SprintOutlook.behind => 'Behind Schedule',
 };
 
 pw.Widget _h(String text) => pw.Container(
@@ -1679,4 +1679,4 @@ git commit -m "chore(sprint_report): formatting and analysis pass" || echo "noth
 
 **Placeholder scan:** none — every code step is complete.
 
-**Type consistency:** `SprintNarrativeReport`/`Deliverable`/`TechHighlights`/`SprintHealth` (Task 1) used consistently in 2/3/4/6/7/9. `MetricRow` (Task 5) used in 6/7/9. `SprintExportFormat` (Task 6) used in 6/7/9. `SprintExporter` method names (`copySummary`/`openEmail`/`sharePdf`) consistent across 8/9 and both test fakes. `buildSprintEmail` returns `({String subject, String body})` consistently. ✓
+**Type consistency:** `SprintNarrativeReport`/`Deliverable`/`TechHighlights`/`SprintOutlook` (Task 1) used consistently in 2/3/4/6/7/9. `MetricRow` (Task 5) used in 6/7/9. `SprintExportFormat` (Task 6) used in 6/7/9. `SprintExporter` method names (`copySummary`/`openEmail`/`sharePdf`) consistent across 8/9 and both test fakes. `buildSprintEmail` returns `({String subject, String body})` consistently. ✓
