@@ -1,7 +1,7 @@
 // Test summary:
 // - enumerates sprints oldest→newest and selects the current one by date
 // - rolls up committed/done points and status slices (Triage/Cancelled excluded)
-// - counts estimated vs unestimated tickets
+// - counts estimated vs unestimated tickets (epics excluded — not point-bearing)
 // - builds epic rollups from subIssuesSummary (B2)
 // - groups points per assignee (done / in-progress / remaining)
 // - groups ticket counts per assignee (done / in-progress / remaining)
@@ -95,20 +95,22 @@ void main() {
     expect(r.sprintName, '$a · Mobile Space');
   });
 
-  test('rolls up points and status slices (Cancelled excluded)', () {
+  test('rolls up points and status slices (Cancelled and Epics excluded)', () {
     final r = sprintReportFromProjectItems('Mobile Space', nodes, now: now);
-    // done 5+3=8, inProgress 8, inReview 2, notStarted 0+10=10 → committed 28
-    expect(r.pointsCommitted, 28);
+    // done 5+3=8, inProgress 8, inReview 2, notStarted 0 (Epic X's 10 pts excluded) → committed 18
+    expect(r.pointsCommitted, 18);
     expect(r.pointsDone, 8);
     expect(r.status.firstWhere((s) => s.kind == ReportStatusKind.done).tickets, 2);
-    expect(r.status.firstWhere((s) => s.kind == ReportStatusKind.notStarted).points, 10);
+    expect(r.status.firstWhere((s) => s.kind == ReportStatusKind.notStarted).points, 0);
   });
 
-  test('estimate coverage', () {
+  test('estimate coverage excludes epics', () {
     final r = sprintReportFromProjectItems('Mobile Space', nodes, now: now);
-    expect(r.totalTickets, 7); // Sprint A items incl. Cancelled
+    expect(r.totalTickets, 7); // Sprint A items incl. Cancelled and Epic X
+    // Epic X has complexity but is a rollup container, not a point-bearing ticket:
+    // it counts toward neither estimated nor unestimated.
     expect(r.unestimatedTickets, 1);
-    expect(r.estimatedTickets, 6);
+    expect(r.estimatedTickets, 5); // Done×2, In Progress, In Review, Cancelled — Epic X excluded
   });
 
   test('epic rollup from subIssuesSummary', () {
@@ -128,7 +130,7 @@ void main() {
     final alice = r.people.firstWhere((p) => p.handle == 'alice');
     expect(alice.done, 8);
     expect(alice.inProgress, 8);
-    expect(alice.remaining, 12); // in-review 2 + not-started 10
+    expect(alice.remaining, 2); // in-review 2; Epic X's not-started 10 pts excluded
   });
 
   test('tickets per assignee', () {

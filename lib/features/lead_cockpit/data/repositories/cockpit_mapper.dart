@@ -35,7 +35,9 @@ CockpitData cockpitFromProjectItems(String boardTitle, List<Map<String, dynamic>
   int countStatus(IssueStatus s) => current.where((i) => i.status == s).length;
   final open = current.where((i) => i.isOpen).toList();
   final atRisk = open.where((i) => i.isHighPriority && i.ageDays(now) >= stuckAfterDays).length;
-  final unestimated = open.where((i) => i.complexity == null).length;
+  // Epics (issues with sub-issues) are rollup containers, not point-bearing
+  // tickets — exclude them from the unestimated count.
+  final unestimated = open.where((i) => !i.isEpic && i.complexity == null).length;
 
   String endLabel = '';
   int daysRemaining = 0;
@@ -77,7 +79,7 @@ CockpitData cockpitFromProjectItems(String boardTitle, List<Map<String, dynamic>
   final team =
       byAssignee.entries.map((e) {
         final list = e.value;
-        final points = list.fold<int>(0, (sum, i) => sum + (i.complexity?.round() ?? 0));
+        final points = list.where((i) => !i.isEpic).fold<int>(0, (sum, i) => sum + (i.complexity?.round() ?? 0));
         return TeamMemberLoad(
           handle: e.key,
           wip: list.where((i) => i.status == IssueStatus.inProgress).length,
@@ -85,7 +87,7 @@ CockpitData cockpitFromProjectItems(String boardTitle, List<Map<String, dynamic>
           done: doneByAssignee[e.key] ?? 0,
           stuck: list.where((i) => i.ageDays(now) >= stuckAfterDays).length,
           points: points,
-          unestimated: list.where((i) => i.complexity == null).length,
+          unestimated: list.where((i) => !i.isEpic && i.complexity == null).length,
           highPriority: list.where((i) => i.isHighPriority).length,
           items: (list..sort((a, b) => b.ageDays(now).compareTo(a.ageDays(now)))).take(3).map((i) {
             final age = i.ageDays(now);
@@ -164,6 +166,10 @@ class _BoardItem {
   final int? iterationDuration;
 
   bool get isOpen => status != IssueStatus.done && status != IssueStatus.cancelled;
+
+  /// Issues with sub-issues are epics — rollup containers, not point-bearing
+  /// tickets — so they're excluded from point/estimate counts.
+  bool get isEpic => (subTotal ?? 0) > 0;
   bool get isHighPriority => priority == IssuePriority.p0 || priority == IssuePriority.p1;
   int ageDays(DateTime now) => now.difference(updatedAt).inDays.clamp(0, 9999);
 

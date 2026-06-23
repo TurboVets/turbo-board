@@ -4,6 +4,7 @@
 // - Member items carry per-item age (when stuck), sub-issue rollup, and the GitHub url.
 // - Stuck list includes items aged past the threshold, P0/old items flagged critical and sorted first.
 // - At-risk counts open P0/P1 that are aging; unestimated counts open items lacking complexity.
+// - Epics (issues with sub-issues) are excluded from points and unestimated counts.
 // - Non-Issue content and items outside the current sprint are excluded.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turbo_board/features/lead_cockpit/data/repositories/cockpit_mapper.dart';
@@ -165,6 +166,20 @@ void main() {
 
       expect(data.sprint.atRisk, 1);
       expect(data.sprint.unestimated, 1);
+    });
+
+    test('excludes epics from points and unestimated counts', () {
+      final data = cockpitFromProjectItems('B', [
+        _item(title: 'epic-no-est', assignees: ['ann'], status: 'Not Started', subTotal: 4, subDone: 1, ageDays: 1),
+        _item(title: 'epic-with-est', assignees: ['ann'], complexity: 13, subTotal: 3, subDone: 0, ageDays: 1),
+        _item(title: 'ticket', assignees: ['ann'], complexity: 5, ageDays: 1),
+        _item(title: 'no-est', assignees: ['ann'], status: 'Not Started', ageDays: 1),
+      ], now: _now);
+
+      final ann = data.team.firstWhere((m) => m.handle == 'ann');
+      expect(ann.points, 5); // only the real ticket — both epics excluded
+      expect(ann.unestimated, 1); // only 'no-est'; the epic without an estimate is not counted
+      expect(data.sprint.unestimated, 1); // sprint-level also excludes the epic
     });
 
     test('maps common Status/Priority naming variants (case- and alias-tolerant)', () {

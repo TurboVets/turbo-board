@@ -51,7 +51,9 @@ SprintReport sprintReportFromProjectItems(
   final elapsed = start == null ? 0 : now.difference(start).inDays.clamp(0, totalDays);
   final daysRemaining = end == null ? 0 : end.difference(now).inDays.clamp(0, 999);
 
-  int pts(Iterable<_RItem> xs) => xs.fold<num>(0, (s, i) => s + (i.complexity ?? 0)).round();
+  // Epics (issues with sub-issues) are rollup containers, not point-bearing
+  // tickets — they're excluded from every point/estimate figure below.
+  int pts(Iterable<_RItem> xs) => xs.where((i) => !i.isEpic).fold<num>(0, (s, i) => s + (i.complexity ?? 0)).round();
   Iterable<_RItem> withStatus(ReportStatusKind k) => current.where((i) => i.kind == k);
 
   final slices = [
@@ -61,8 +63,9 @@ SprintReport sprintReportFromProjectItems(
   final committed = slices.fold<int>(0, (s, e) => s + e.points);
   final pointsDone = slices.firstWhere((s) => s.kind == ReportStatusKind.done).points;
 
-  final estimated = current.where((i) => i.complexity != null).toList();
-  final unestimated = current.length - estimated.length;
+  final estimable = current.where((i) => !i.isEpic).toList();
+  final estimated = estimable.where((i) => i.complexity != null).toList();
+  final unestimated = estimable.length - estimated.length;
 
   // ── Per-assignee point split ──
   final byAssignee = <String, List<_RItem>>{};
@@ -140,7 +143,7 @@ SprintReport sprintReportFromProjectItems(
   final actualRemaining = <int>[];
   if (start != null) {
     final closedPts = current
-        .where((i) => i.closed && i.closedAt != null && i.complexity != null)
+        .where((i) => !i.isEpic && i.closed && i.closedAt != null && i.complexity != null)
         .map((i) => (start: i.closedAt!, pts: i.complexity!.round()))
         .toList();
     for (var d = 0; d <= elapsed; d++) {
@@ -222,6 +225,10 @@ class _RItem {
   final int subsTotal;
   final int subsDone;
   final double subsPercent;
+
+  /// Issues with sub-issues are epics — rollup containers, not point-bearing
+  /// tickets — so they're excluded from point/estimate counts.
+  bool get isEpic => subsTotal > 0;
 
   static _RItem? parse(Map<String, dynamic> node) {
     final content = node['content'];
