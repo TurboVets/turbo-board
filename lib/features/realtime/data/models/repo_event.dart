@@ -24,10 +24,7 @@ class RepoEventChange {
 RepoEvent? repoEventFromData(Map<String, dynamic> data) {
   final repo = data['repo'];
   if (repo is! String) return null;
-  return RepoEvent(
-    repo: repo,
-    event: (data['event'] as String?) ?? '',
-    action: data['action'] as String?,
-    prNumber: data['prNumber'] as int?,
-  );
+  final event = data['event'];
+  if (event is! String) return null;
+  return RepoEvent(repo: repo, event: event, action: data['action'] as String?, prNumber: data['prNumber'] as int?);
 }

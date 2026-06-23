@@ -1,6 +1,7 @@
 // Test summary:
 // - repoEventFromData maps a full document
 // - repoEventFromData returns null when `repo` is missing
+// - repoEventFromData returns null when `event` is missing
 // - (Task 6) chunkRepos splits a list into <=30-sized batches
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turbo_board/features/realtime/data/models/repo_event.dart';
@@ -19,6 +20,10 @@ void main() {
 
     test('returns null when repo is missing', () {
       expect(repoEventFromData({'event': 'pull_request'}), isNull);
+    });
+
+    test('returns null when event is missing', () {
+      expect(repoEventFromData({'repo': 'acme/web'}), isNull);
     });
   });
 

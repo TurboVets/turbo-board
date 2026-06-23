@@ -20,7 +20,25 @@ describe("mapEvent", () => {
     expect(r).toEqual({ repo: "acme/web", event: "issue_comment", action: "created", prNumber: 7 });
   });
 
-  it("maps check_suite with no PR number", () => {
+  it("maps check_suite with an associated PR using check_suite.pull_requests[0].number", () => {
+    const r = mapEvent("check_suite", {
+      action: "completed",
+      repository: { full_name: "acme/web" },
+      check_suite: { pull_requests: [{ number: 99 }] },
+    });
+    expect(r).toEqual({ repo: "acme/web", event: "check_suite", action: "completed", prNumber: 99 });
+  });
+
+  it("maps check_suite with empty pull_requests to prNumber null", () => {
+    const r = mapEvent("check_suite", {
+      action: "completed",
+      repository: { full_name: "acme/web" },
+      check_suite: { pull_requests: [] },
+    });
+    expect(r).toEqual({ repo: "acme/web", event: "check_suite", action: "completed", prNumber: null });
+  });
+
+  it("maps check_suite with no pull_requests field to prNumber null", () => {
     const r = mapEvent("check_suite", {
       action: "completed",
       repository: { full_name: "acme/web" },
