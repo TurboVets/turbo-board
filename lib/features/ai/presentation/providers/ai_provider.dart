@@ -4,9 +4,11 @@ import 'package:turbo_core/core.dart';
 
 import '../../../issue_detail/data/models/issue_detail.dart';
 import '../../../lead_cockpit/data/models/cockpit_data.dart';
+import '../../../lead_cockpit/presentation/providers/lead_cockpit_provider.dart';
 import '../../../pr_detail/data/models/pr_detail.dart';
 import '../../../pr_inbox/data/models/pr_data.dart';
 import '../../../repo_setup/presentation/providers/auth_provider.dart';
+import '../../../sprint_report/data/models/sprint_narrative_report.dart';
 import '../../../sprint_report/data/models/sprint_report.dart';
 import '../../data/models/triage_item.dart';
 import '../../data/repositories/ai_repository.dart';
@@ -233,6 +235,32 @@ class SprintDigestController extends _$SprintDigestController {
     final result = await ref.read(aiRepositoryProvider).digestSprint(report);
     state = switch (result) {
       ResultSuccess(:final data) => AsyncValue.data(data),
+      ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+    };
+  }
+
+  void clear() => state = null;
+}
+
+/// On-demand structured narrative Sprint Report. `null` = not requested yet.
+@Riverpod(keepAlive: true)
+class SprintNarrativeController extends _$SprintNarrativeController {
+  @override
+  AsyncValue<SprintNarrativeReport>? build() {
+    // Reset the generated narrative whenever the active project changes, so a
+    // stale report can never be shown against a different sprint's metrics.
+    ref.watch(selectedProjectProvider);
+    return null;
+  }
+
+  Future<void> generate(SprintReport report) async {
+    state = const AsyncValue.loading();
+    final result = await ref.read(aiRepositoryProvider).generateSprintReport(report);
+    state = switch (result) {
+      ResultSuccess(:final data) => AsyncValue.data(
+        // Forecast status is deterministic — never trust the AI for it.
+        data.copyWith(overallStatus: report.behind ? SprintOutlook.behind : SprintOutlook.onTrack),
+      ),
       ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
     };
   }

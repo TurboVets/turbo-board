@@ -12,6 +12,7 @@ import '../../../lead_cockpit/presentation/view/widgets/project_picker.dart';
 import '../../data/models/sprint_report.dart';
 import '../providers/sprint_report_provider.dart';
 import 'widgets/burndown_chart.dart';
+import 'widgets/report_export_dialog.dart';
 
 Color _statusColor(ReportStatusKind k) => switch (k) {
   ReportStatusKind.done => TbSignal.ok.border,
@@ -67,6 +68,32 @@ class SprintReportScreen extends ConsumerWidget {
               const Spacer(),
               TbBadge('Issues', TbSignal.info, small: true),
               const SizedBox(width: 8),
+              if (report.hasValue) ...[
+                Builder(
+                  builder: (context) {
+                    final keyReady = ref.watch(aiKeyReadyProvider);
+                    return GestureDetector(
+                      onTap: keyReady
+                          ? () => showDialog<void>(
+                              context: context,
+                              builder: (_) => Dialog(
+                                backgroundColor: TbColors.surface,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 560),
+                                  child: ReportExportDialog(report: report.value!),
+                                ),
+                              ),
+                            )
+                          : null,
+                      child: Text(
+                        'EXPORT',
+                        style: TbText.label(size: 11, color: keyReady ? TbColors.cyan : TbColors.muted, tracking: 0.8),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 14),
+              ],
               GestureDetector(
                 onTap: () => ref.invalidate(sprintReportProvider),
                 child: Text('REFRESH', style: TbText.label(size: 11, color: TbColors.muted, tracking: 0.8)),

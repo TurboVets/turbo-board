@@ -51,3 +51,4 @@ app.*.map.json
 
 # Firebase hosting deploy cache (regenerated on deploy)
 .firebase/
+.superpowers/
