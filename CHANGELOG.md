@@ -11,6 +11,20 @@ and shows it at the bottom of the nav rail.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-23
+
+### Added
+- **Narrative Sprint Report** — a plain-English, AI-written recap of the sprint
+  built on the real numbers (committed vs. done points, scope changes, the
+  burndown). It reads like a teammate's standup summary instead of a wall of
+  charts, so you can paste it straight into a status update.
+- **Export the report** — ship the sprint report out as a **PDF** or kick off an
+  **email** draft, with a Text/PDF toggle and an inline PDF preview right in the
+  export dialog so you see exactly what lands before it leaves.
+- **Forecast risk indicator** on the sprint report — calls out when too many
+  unestimated tickets are quietly putting the sprint forecast at risk, so a tidy
+  burndown can't lull you into a false sense of security.
+
 ## [0.3.0] - 2026-06-23
 
 ### Added
