@@ -514,12 +514,24 @@ class _EstimateCoverage extends StatelessWidget {
 
   final SprintReport report;
 
+  /// Forecast risk derived from the share of unestimated tickets, since every
+  /// forecast on the screen excludes them. More unestimated work = less
+  /// trustworthy burndown/behind-ahead call.
+  ({String label, TbSignal signal}) get _risk {
+    final pct = report.unestimatedPercent;
+    if (pct == 0) return (label: 'Forecast solid', signal: TbSignal.ok);
+    if (pct <= 15) return (label: 'Low risk', signal: TbSignal.warn);
+    if (pct <= 35) return (label: 'Moderate risk', signal: TbSignal.orange);
+    return (label: 'High risk', signal: TbSignal.bad);
+  }
+
   @override
   Widget build(BuildContext context) {
     final estPct = report.totalTickets == 0 ? 100 : (report.estimatedTickets / report.totalTickets * 100).round();
+    final risk = _risk;
     return _Card(
       title: 'Estimate coverage',
-      headerTrailing: const TbBadge('Forecast risk', TbSignal.orange, small: true),
+      headerTrailing: TbBadge(risk.label, risk.signal, small: true),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
