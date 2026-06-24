@@ -1,11 +1,13 @@
 // test/features/sprint_report/presentation/report_export_dialog_test.dart
 // Test summary:
 // - with a generated narrative, tapping "Copy summary" calls exporter.copySummary with the built text
-// - tapping "PDF" calls exporter.sharePdf
+// - tapping the "PDF" export button (text view) calls exporter.sharePdf
+// - tapping the "PDF" view toggle renders an inline PdfPreview
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:turbo_board/features/ai/presentation/providers/ai_provider.dart';
 import 'package:turbo_board/features/sprint_report/data/export/sprint_exporter.dart';
 import 'package:turbo_board/features/sprint_report/data/models/sprint_narrative_report.dart';
@@ -79,9 +81,30 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('PDF'));
+    // Disambiguate the export button from the "PDF" view-toggle chip.
+    await tester.tap(find.widgetWithText(FilledButton, 'PDF'));
     await tester.pumpAndSettle();
     expect(fake.pdfCalled, isTrue);
+  });
+
+  testWidgets('PDF view toggle renders an inline PdfPreview', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sprintExporterProvider.overrideWithValue(_Fake()),
+          sprintNarrativeControllerProvider.overrideWith(() => _SeededController()),
+        ],
+        child: MaterialApp(
+          home: Scaffold(body: ReportExportDialog(report: _report())),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PdfPreview), findsNothing);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'PDF'));
+    await tester.pump();
+    expect(find.byType(PdfPreview), findsOneWidget);
   });
 }
 
