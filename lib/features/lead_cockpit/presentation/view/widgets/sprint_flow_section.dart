@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../shared/ui/theme/tb_text.dart';
 import '../../../../../shared/ui/theme/tb_tokens.dart';
+import '../../../../../shared/ui/widgets/tb_badge.dart';
 import '../../../data/models/cockpit_data.dart';
 
 /// Sprint Flow · Daily Activity — a burnup chart (cumulative done vs opened)
@@ -290,7 +291,7 @@ class _DayDetailDialog extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 560),
+        constraints: const BoxConstraints(maxWidth: 720, maxHeight: 560),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -429,6 +430,13 @@ class _TicketRow extends StatelessWidget {
           Expanded(
             child: Text(ticket.title, style: TbText.body(size: 13, color: const Color(0xFFDADADD))),
           ),
+          if (ticket.assignee.isNotEmpty) ...[
+            const SizedBox(width: 11),
+            Tooltip(
+              message: ticket.assignee,
+              child: TbAvatarTile(login: ticket.assignee, size: 18),
+            ),
+          ],
           const SizedBox(width: 10),
           Text(ticket.repo, style: TbText.label(size: 10, color: TbColors.dim, tracking: 0.4, upper: false)),
         ],

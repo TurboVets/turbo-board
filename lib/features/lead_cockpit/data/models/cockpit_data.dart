@@ -155,10 +155,17 @@ sealed class StuckIssue with _$StuckIssue {
 
 /// A single ticket touched on a given sprint day — closed (done) or created
 /// (opened). [number] is the display tag (`#412`); [url] opens the GitHub page.
+/// [assignee] is the GitHub login of the primary assignee — drives the row's
+/// avatar; empty when unassigned.
 @freezed
 sealed class FlowTicket with _$FlowTicket {
-  const factory FlowTicket({required String number, required String title, required String repo, String? url}) =
-      _FlowTicket;
+  const factory FlowTicket({
+    required String number,
+    required String title,
+    required String repo,
+    @Default('') String assignee,
+    String? url,
+  }) = _FlowTicket;
 
   factory FlowTicket.fromJson(Map<String, dynamic> json) => _$FlowTicketFromJson(json);
 }

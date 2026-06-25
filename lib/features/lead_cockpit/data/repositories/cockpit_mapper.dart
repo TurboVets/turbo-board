@@ -175,7 +175,13 @@ SprintFlow _sprintFlow(List<_BoardItem> current, _BoardItem? sprintItem, DateTim
   bool inWindow(DateTime t) => !t.isBefore(start) && t.isBefore(end);
 
   for (final i in current) {
-    final ticket = FlowTicket(number: i.number == null ? '' : '#${i.number}', title: i.title, repo: i.repo, url: i.url);
+    final ticket = FlowTicket(
+      number: i.number == null ? '' : '#${i.number}',
+      title: i.title,
+      repo: i.repo,
+      assignee: i.assignees.firstOrNull ?? '',
+      url: i.url,
+    );
     final created = i.createdAt;
     if (created != null && inWindow(created)) {
       final day = days[_dateOnly(created)];

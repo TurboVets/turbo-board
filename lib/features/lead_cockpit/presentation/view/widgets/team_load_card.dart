@@ -146,8 +146,19 @@ class _Stats extends StatelessWidget {
             children: [
               TbBadge('REVIEW ${member.inReview}', TbSignal.gray, small: true, tooltip: 'Items currently in review'),
               TbBadge('DONE ${member.done}', TbSignal.ok, small: true, tooltip: 'Completed items in this sprint'),
-              TbBadge('${member.points}PTS', TbSignal.info, small: true, tooltip: 'Sum of story points across all open items'),
-              if (member.stuck > 0) TbBadge('STUCK ${member.stuck}', TbSignal.bad, small: true, tooltip: 'Items that are currently blocked'),
+              TbBadge(
+                '${member.points}PTS',
+                TbSignal.info,
+                small: true,
+                tooltip: 'Sum of story points across all open items',
+              ),
+              if (member.stuck > 0)
+                TbBadge(
+                  'STUCK ${member.stuck}',
+                  TbSignal.bad,
+                  small: true,
+                  tooltip: 'Items that are currently blocked',
+                ),
               if (member.unestimated > 0)
                 TbBadge(
                   '${member.unestimated} UNSIZED',
