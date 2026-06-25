@@ -6,10 +6,10 @@ import '../../../../shared/ui/theme/tb_text.dart';
 import '../../../../shared/ui/theme/tb_tokens.dart';
 import '../../../../shared/ui/widgets/tb_badge.dart';
 import '../../../ai/presentation/providers/ai_provider.dart';
-import '../../../ai/presentation/view/widgets/ai_narrative_card.dart';
 import '../../data/models/cockpit_data.dart';
 import '../../data/repositories/cockpit_mapper.dart';
 import '../providers/lead_cockpit_provider.dart';
+import 'widgets/cockpit_ai_menu.dart';
 import 'widgets/project_picker.dart';
 import 'widgets/sprint_flow_section.dart';
 import 'widgets/sprint_health_strip.dart';
@@ -51,12 +51,18 @@ class LeadCockpitScreen extends ConsumerWidget {
       );
     }
 
+    // The AI reports menu rides in the top bar — only once a board has loaded
+    // (it needs the data to generate from) and a BYOK key is set.
+    final aiData = cockpit.asData?.value;
+    final aiButton = ref.watch(aiKeyReadyProvider) && aiData != null ? CockpitAiMenu(data: aiData) : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _Topbar(
           onRefresh: () => ref.invalidate(leadCockpitProvider),
           isRefreshing: cockpit.isLoading && cockpit.hasValue,
+          aiButton: aiButton,
         ),
         Expanded(
           child: cockpit.when(
@@ -96,7 +102,6 @@ class _CockpitBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final keyReady = ref.watch(aiKeyReadyProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(22),
       child: Center(
@@ -110,26 +115,6 @@ class _CockpitBody extends ConsumerWidget {
 
               SprintFlowSection(flow: data.flow),
               const SizedBox(height: 18),
-
-              // AI sprint brief + weekly digest (BYOK — only when a key is set).
-              if (keyReady) ...[
-                AiNarrativeCard(
-                  title: 'AI Sprint Brief',
-                  idleLabel: 'Sprint brief',
-                  state: ref.watch(cockpitBriefControllerProvider),
-                  onGenerate: () => ref.read(cockpitBriefControllerProvider.notifier).generate(data),
-                  onHide: () => ref.read(cockpitBriefControllerProvider.notifier).clear(),
-                ),
-                const SizedBox(height: 12),
-                AiNarrativeCard(
-                  title: 'AI Weekly Digest',
-                  idleLabel: 'Weekly digest',
-                  state: ref.watch(weeklyDigestControllerProvider),
-                  onGenerate: () => ref.read(weeklyDigestControllerProvider.notifier).generate(data),
-                  onHide: () => ref.read(weeklyDigestControllerProvider.notifier).clear(),
-                ),
-                const SizedBox(height: 18),
-              ],
 
               _TeamSection(team: data.team),
               const SizedBox(height: 20),
@@ -307,10 +292,14 @@ class _StuckList extends StatelessWidget {
 }
 
 class _Topbar extends StatefulWidget {
-  const _Topbar({required this.onRefresh, this.isRefreshing = false});
+  const _Topbar({required this.onRefresh, this.isRefreshing = false, this.aiButton});
 
   final VoidCallback? onRefresh;
   final bool isRefreshing;
+
+  /// The AI reports menu, shown left of Refresh. Null until a board has loaded
+  /// and a BYOK key is set.
+  final Widget? aiButton;
 
   @override
   State<_Topbar> createState() => _TopbarState();
@@ -332,6 +321,7 @@ class _TopbarState extends State<_Topbar> {
         children: [
           Text('Lead Cockpit · Issues', style: TbText.display(size: 14, tracking: 2.0)),
           const Spacer(),
+          if (widget.aiButton != null) ...[widget.aiButton!, const SizedBox(width: 10)],
           if (widget.onRefresh != null)
             MouseRegion(
               cursor: widget.isRefreshing ? SystemMouseCursors.basic : SystemMouseCursors.click,

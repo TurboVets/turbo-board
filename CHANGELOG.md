@@ -11,6 +11,26 @@ and shows it at the bottom of the nav rail.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-24
+
+### Added
+- **AI Daily Standup** in the Lead Cockpit — a tight, scannable read of where the
+  sprint stands today: a one-line snapshot (day, done, at-risk, unestimated) plus
+  In Review / Blocked / Next, with concrete next actions that call out every
+  critical item. Built from the live board snapshot.
+- **Local report cache + Regenerate** — generated cockpit reports are saved on
+  your device, so reopening a report shows the last result instantly instead of
+  spending another AI call. A Regenerate button is there when you want a fresh run.
+- **Select & copy AI text** — all AI-generated output (sprint reports, PR and
+  issue summaries, next-action suggestions, board insights) is now selectable, so
+  you can copy a line straight into a message or ticket.
+
+### Changed
+- **One AI button in the Lead Cockpit** — the separate Sprint Brief and Weekly
+  Digest banners are gone. A single AI button in the top bar now opens a menu of
+  all three reports (Daily Standup, Sprint Brief, Weekly Digest), each shown in a
+  focused dialog, keeping the board itself clean.
+
 ## [0.4.0] - 2026-06-23
 
 ### Added

@@ -51,7 +51,7 @@ class IssueNextActionCard extends ConsumerWidget {
               AsyncData(:final value) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(value, style: TbText.body(size: 13, height: 1.4)),
+                  SelectionArea(child: Text(value, style: TbText.body(size: 13, height: 1.4))),
                   const SizedBox(height: 8),
                   AiGhostButton(label: 'CLEAR', onPressed: notifier.clear),
                 ],

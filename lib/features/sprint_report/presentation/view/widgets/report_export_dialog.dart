@@ -117,7 +117,9 @@ class ReportExportDialog extends HookConsumerWidget {
             const SizedBox(height: 12),
             Flexible(
               child: view.value == _ExportView.text
-                  ? SingleChildScrollView(child: Text(mail().body, style: TbText.body(size: 12)))
+                  ? SingleChildScrollView(
+                      child: SelectionArea(child: Text(mail().body, style: TbText.body(size: 12))),
+                    )
                   : PdfPreview(
                       // Re-render whenever the length or custom rows change.
                       key: ValueKey('${format.value}-${customRows.value.length}'),
