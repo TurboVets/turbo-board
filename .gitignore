@@ -40,6 +40,16 @@ migrate_working_dir/
 # Environment / secrets
 .env
 
+# Firebase / fastlane service account keys & CI tokens — never commit
+fastlane/firebase-service-account.json
+*-service-account.json
+firebase-service-account*.json
+gha-creds-*.json
+
+# fastlane bundle output
+fastlane/report.xml
+fastlane/Preview.html
+
 # Symbolication / obfuscation related
 app.*.symbols
 app.*.map.json

@@ -1,0 +1,62 @@
+# Fastfile — web release for TurboBoard.
+#
+# Builds the Flutter web release bundle and deploys it to Firebase Hosting.
+# The Firebase project is read from .firebaserc (default: turboboard-59499) and
+# the hosting public dir from firebase.json (build/web).
+#
+# Usage:
+#   bundle exec fastlane deploy
+#
+# Non-interactive auth (so you never `firebase login` again) — pick one:
+#   1. Service account (recommended). Create a key in the Firebase console:
+#      Project settings → Service accounts → Generate new private key. Grant it
+#      the "Firebase Hosting Admin" role, then save it as:
+#         fastlane/firebase-service-account.json
+#      That's it — the lane finds it automatically (see SERVICE_ACCOUNT below),
+#      no export needed, ever. To use a different location, set
+#      GOOGLE_APPLICATION_CREDENTIALS yourself and it takes precedence.
+#   2. CI token (legacy): run `firebase login:ci`, then `export FIREBASE_TOKEN=…`
+#      The lane passes it through as --token.
+# Both the key file and FIREBASE_TOKEN are git-ignored — never commit them.
+#
+# (fastlane's blessed platforms are :ios/:mac/:android, so this web-only setup
+# uses top-level lanes rather than a `platform :web` block.)
+
+REPO_ROOT = File.expand_path("..", __dir__)
+
+# Default service-account key location. If the file is present and the user
+# hasn't set GOOGLE_APPLICATION_CREDENTIALS, the lane points the Firebase CLI at
+# it — so a one-time drop of the key is "remembered" on every deploy.
+SERVICE_ACCOUNT = File.join(REPO_ROOT, "fastlane", "firebase-service-account.json")
+
+desc "Build the Flutter web release and deploy it to Firebase Hosting (live)."
+lane :deploy do
+  build_web
+  firebase_deploy
+  UI.success("Deployed to Firebase Hosting — https://turboboard-59499.web.app")
+end
+
+desc "Compile the Flutter web release bundle into build/web."
+private_lane :build_web do
+  Dir.chdir(REPO_ROOT) do
+    sh("flutter", "build", "web", "--release")
+  end
+end
+
+desc "Deploy build/web to Firebase Hosting. Non-interactive: uses the service " \
+     "account at GOOGLE_APPLICATION_CREDENTIALS, or FIREBASE_TOKEN if set."
+private_lane :firebase_deploy do
+  # Auto-wire the service-account key if present and not already configured, so
+  # no shell export is needed. An explicit GOOGLE_APPLICATION_CREDENTIALS wins.
+  if (ENV["GOOGLE_APPLICATION_CREDENTIALS"] || "").empty? && File.exist?(SERVICE_ACCOUNT)
+    ENV["GOOGLE_APPLICATION_CREDENTIALS"] = SERVICE_ACCOUNT
+    UI.message("Using service account: #{SERVICE_ACCOUNT}")
+  end
+
+  cmd = ["firebase", "deploy", "--only", "hosting", "--non-interactive"]
+  token = ENV["FIREBASE_TOKEN"]
+  cmd += ["--token", token] if token && !token.empty?
+  Dir.chdir(REPO_ROOT) do
+    sh(*cmd)
+  end
+end

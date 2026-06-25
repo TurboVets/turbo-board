@@ -1,0 +1,3 @@
+# Web releases deploy to the Firebase project configured in .firebaserc
+# (default: turboboard-59499). Web has no per-store identifiers, so this file
+# is intentionally minimal — it exists to mark fastlane's project root.
