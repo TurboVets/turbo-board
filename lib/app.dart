@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import 'features/realtime/presentation/providers/realtime_provider.dart';
 import 'shared/router/app_router.dart';
 import 'shared/ui/providers/auto_refresh_provider.dart';
 import 'shared/ui/providers/text_scale_provider.dart';
@@ -55,6 +56,8 @@ class TurboBoardApp extends ConsumerWidget {
     final notifier = ref.read(textScaleProvider.notifier);
     // Keep the app-wide periodic refresh alive; rebuilds restart its timer.
     ref.watch(autoRefreshProvider);
+    // Keep the realtime relay listener alive for the whole app session.
+    ref.watch(realtimeListenerProvider);
 
     return Shortcuts(
       shortcuts: _shortcuts,

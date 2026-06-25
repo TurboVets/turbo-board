@@ -289,6 +289,142 @@ class _ReposStep extends ConsumerWidget {
           textAlign: TextAlign.center,
           style: TbText.label(size: 10, color: TbColors.dim, tracking: 0.3),
         ),
+        const SizedBox(height: 20),
+        const _WebhookInfoCard(),
+      ],
+    );
+  }
+}
+
+// ─── Webhook info card ────────────────────────────────────────────────────────
+
+/// Informational card shown on the watched-repos step explaining how to add a
+/// GitHub org or per-repo webhook that enables realtime board updates.
+class _WebhookInfoCard extends StatelessWidget {
+  const _WebhookInfoCard();
+
+  static const _payloadUrl = 'https://<region>-turboboard-59499.cloudfunctions.net/githubWebhook';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: TbColors.surface,
+        border: Border.all(color: TbColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Container(
+            color: TbColors.surface2,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            child: Text(
+              'ENABLE REALTIME UPDATES',
+              style: TbText.label(size: 11, weight: FontWeight.w600, tracking: 1.0),
+            ),
+          ),
+          const Divider(height: 1, color: TbColors.border),
+
+          // Body
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add one webhook so the board updates within seconds instead of on the refresh'
+                  ' interval. Org-level covers every repo at once; otherwise add it per repo.',
+                  style: TbText.body(size: 13, color: TbColors.muted, height: 1.55),
+                ),
+                const SizedBox(height: 14),
+
+                // Step grid
+                _WebhookRow(label: 'Org or repo', value: 'Settings → Webhooks → Add webhook'),
+                const SizedBox(height: 10),
+
+                // Payload URL row — selectable so it can be copied, wraps on narrow screens.
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PAYLOAD URL',
+                      style: TbText.label(size: 10, weight: FontWeight.w600, color: TbColors.dim, tracking: 1.0),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: TbColors.canvas,
+                        border: Border.all(color: TbColors.border),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: SelectableText(
+                        _payloadUrl,
+                        style: TbText.label(size: 11, weight: FontWeight.w500, color: TbColors.cyan, tracking: 0.2),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                _WebhookRow(label: 'Content type', value: 'application/json'),
+                const SizedBox(height: 10),
+                _WebhookRow(label: 'Secret', value: 'your project webhook secret'),
+                const SizedBox(height: 10),
+
+                // Events list
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'EVENTS',
+                      style: TbText.label(size: 10, weight: FontWeight.w600, color: TbColors.dim, tracking: 1.0),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Pull requests · Pull request reviews · Pull request review comments'
+                      ' · Check suites · Issue comments',
+                      style: TbText.body(size: 12, color: TbColors.muted, height: 1.5),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                Text(
+                  'Without a webhook a repo still updates on the normal refresh interval.',
+                  style: TbText.label(size: 10, weight: FontWeight.w400, color: TbColors.dim, tracking: 0.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A label + value row used inside [_WebhookInfoCard].
+class _WebhookRow extends StatelessWidget {
+  const _WebhookRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: TbText.label(size: 10, weight: FontWeight.w600, color: TbColors.dim, tracking: 1.0),
+        ),
+        const SizedBox(height: 4),
+        Text(value, style: TbText.body(size: 12, color: TbColors.muted, height: 1.5)),
       ],
     );
   }
