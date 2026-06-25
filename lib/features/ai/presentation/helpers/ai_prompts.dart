@@ -155,6 +155,49 @@ Closed this sprint (throughput): $shipped items; currently ${s.inProgress} in pr
 Stuck items: ${stuck.isEmpty ? 'none' : stuck}.''';
 }
 
+/// Daily standup for the Lead Cockpit: a tight, scannable read of where the
+/// sprint stands *today* and the one or two things to act on now. Grounded in
+/// the current board snapshot (no day-over-day delta), so "done" is sprint-wide.
+String buildDailyStandupPrompt(CockpitData c) {
+  final s = c.sprint;
+  final inReview = <String>[
+    for (final m in c.team)
+      for (final item in m.items)
+        if (item.status == IssueStatus.inReview)
+          '"${item.title}" (${m.handle}${item.ageDays > 0 ? ', ${item.ageDays}d' : ''})',
+  ];
+  final criticalCount = c.stuck.where((i) => i.critical).length;
+  final stuck = c.stuck
+      .map(
+        (i) =>
+            '"${i.title}" — ${i.ageDays}d in ${_statusName(i.status)}'
+            '${i.assignee.isEmpty ? '' : ' (${i.assignee})'}${i.critical ? ', CRITICAL' : ''}',
+      )
+      .join('; ');
+
+  return '''
+Write a daily standup snapshot for an engineering team lead — a tight read of where the sprint
+stands today and the few things to act on now. Structure the output as a one-line plain-text
+header, then exactly three sections, each a plain ALL-CAPS header line on its own followed by
+"- " bullets:
+
+<header line> — format exactly: "${s.name} · ${s.daysRemaining}d left · ${s.done}/${s.totalIssues} done · ${s.atRisk} at risk · ${s.unestimated} unestimated"
+IN REVIEW
+- one bullet per item in review (shorten long titles to ~6 words, cite who and age), or "- none"
+BLOCKED
+- the most urgent blocked/stuck items, CRITICAL ones first, at most 3 bullets (shorten titles, cite age); if more remain add a final "- (+N more)"; or "- none"
+NEXT
+- concrete next actions; you MUST name an action for every CRITICAL item ($criticalCount total), plus nudge the oldest review and point any unestimated tickets
+
+No preamble, no other headings, no closing remark. Shorten long ticket titles. Be specific and cite numbers.
+
+Sprint: ${s.name}, ${s.daysRemaining} days remaining.
+Status counts (of ${s.totalIssues}): ${s.done} done, ${s.inProgress} in progress, ${s.inReview} in review,
+${s.notStarted} not started, ${s.atRisk} at risk, ${s.unestimated} unestimated.
+In review now: ${inReview.isEmpty ? 'none' : inReview.join('; ')}.
+Blocked / stuck items ($criticalCount critical): ${stuck.isEmpty ? 'none' : stuck}.''';
+}
+
 // ─── Board triage ──────────────────────────────────────────────────────────
 
 String _ciName(PrCiState s) => switch (s) {

@@ -20,6 +20,7 @@ class AiNarrativeCard extends StatelessWidget {
     required this.state,
     required this.onGenerate,
     required this.onHide,
+    this.onRegenerate,
     this.caption = 'Generated from sprint board + PR state · claude-haiku · BYOK',
   });
 
@@ -28,6 +29,10 @@ class AiNarrativeCard extends StatelessWidget {
   final AsyncValue<String>? state;
   final VoidCallback onGenerate;
   final VoidCallback onHide;
+
+  /// When set, a "Regenerate" pill is shown alongside "Hide" in the data state —
+  /// used where the result is cached and the user may want a fresh run.
+  final VoidCallback? onRegenerate;
   final String caption;
 
   /// Body text tone from the design (#DADADD — between primary and muted).
@@ -66,7 +71,17 @@ class AiNarrativeCard extends StatelessWidget {
                     style: TbText.label(size: 10, color: TbColors.muted, tracking: 1.4),
                   ),
                 ),
-                if (s is! AsyncLoading) _ActionPill(label: _actionLabel(s), onTap: _actionTap(s)),
+                if (s is! AsyncLoading)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (s is AsyncData && onRegenerate != null) ...[
+                        _ActionPill(label: 'Regenerate', onTap: onRegenerate!),
+                        const SizedBox(width: 8),
+                      ],
+                      _ActionPill(label: _actionLabel(s), onTap: _actionTap(s)),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -121,7 +136,7 @@ class _DataBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Narrative(text: text),
+              SelectionArea(child: _Narrative(text: text)),
               const SizedBox(height: 10),
               Text(caption, style: TbText.label(size: 9, color: TbColors.dim, tracking: 0.7)),
             ],

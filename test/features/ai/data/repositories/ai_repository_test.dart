@@ -193,5 +193,16 @@ void main() {
       stubAnthropic(msg(null, status: 500));
       expect(await repo.weeklyDigest(cockpit()), isA<ResultFailure<String>>());
     });
+
+    test('dailyStandup returns trimmed bullets', () async {
+      stubAnthropic(msg(textContent('IN REVIEW\n- #412 (alice, 2d)\nBLOCKED\n- none\nNEXT\n- nudge alice  ')));
+      final r = await repo.dailyStandup(cockpit());
+      expect((r as ResultSuccess<String>).data, contains('IN REVIEW'));
+    });
+
+    test('dailyStandup surfaces a failure on a 500', () async {
+      stubAnthropic(msg(null, status: 500));
+      expect(await repo.dailyStandup(cockpit()), isA<ResultFailure<String>>());
+    });
   });
 }

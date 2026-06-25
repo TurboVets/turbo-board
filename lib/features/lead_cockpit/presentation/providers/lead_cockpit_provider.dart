@@ -12,6 +12,42 @@ import '../../data/repositories/lead_cockpit_repository.dart';
 part 'lead_cockpit_provider.g.dart';
 
 const _selectedProjectKey = 'lead_cockpit_project';
+const _reportPrefix = 'cockpit_ai_report|';
+
+/// Persisted cache of generated cockpit AI reports, keyed by
+/// `cockpit_ai_report|<projectKey>|<reportName>`. Hydrated once from
+/// shared_preferences; a generated report is stored here so reopening the
+/// dialog shows the last result instead of regenerating. Survives restarts.
+@Riverpod(keepAlive: true)
+class CockpitReports extends _$CockpitReports {
+  @override
+  Future<Map<String, String>> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      for (final key in prefs.getKeys())
+        if (key.startsWith(_reportPrefix) && prefs.getString(key) != null) key: prefs.getString(key)!,
+    };
+  }
+
+  String _key(String projectKey, String report) => '$_reportPrefix$projectKey|$report';
+
+  /// The cached report text for the project + report, or null if none stored.
+  String? cached(String projectKey, String report) => state.asData?.value[_key(projectKey, report)];
+
+  /// Stores [text] for the project + report, updating the in-memory map and
+  /// shared_preferences. Prefs failures are swallowed (the in-memory cache still
+  /// updates) so a storage hiccup never breaks report display.
+  Future<void> write(String projectKey, String report, String text) async {
+    final key = _key(projectKey, report);
+    state = AsyncData({...?state.asData?.value, key: text});
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, text);
+    } catch (_) {
+      // In-memory cache is updated; persistence is best-effort.
+    }
+  }
+}
 
 /// The GitHub Projects v2 board the cockpit reads, persisted to
 /// shared_preferences. `null` means "not picked yet" — the cockpit shows a
@@ -87,6 +123,25 @@ class CockpitBriefController extends _$CockpitBriefController {
   Future<void> generate(CockpitData cockpit) async {
     state = const AsyncValue.loading();
     final result = await ref.read(aiRepositoryProvider).sprintBrief(cockpit);
+    state = switch (result) {
+      ResultSuccess(:final data) => AsyncValue.data(data),
+      ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),
+    };
+  }
+
+  void clear() => state = null;
+}
+
+/// On-demand AI daily standup for the Lead Cockpit. `null` means "not requested
+/// yet"; reuses the BYOK Anthropic client behind [aiRepositoryProvider].
+@riverpod
+class DailyStandupController extends _$DailyStandupController {
+  @override
+  AsyncValue<String>? build() => null;
+
+  Future<void> generate(CockpitData cockpit) async {
+    state = const AsyncValue.loading();
+    final result = await ref.read(aiRepositoryProvider).dailyStandup(cockpit);
     state = switch (result) {
       ResultSuccess(:final data) => AsyncValue.data(data),
       ResultFailure(:final message) => AsyncValue.error(message, StackTrace.current),

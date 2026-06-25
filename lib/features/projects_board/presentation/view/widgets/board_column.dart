@@ -81,7 +81,11 @@ class BoardColumnView extends ConsumerWidget {
     data: (map) {
       final line = map[column.status];
       if (line == null) return const SizedBox.shrink();
-      return _insightShell(Text(line, style: TbText.body(size: 11, color: TbColors.muted, height: 1.4)));
+      return _insightShell(
+        SelectionArea(
+          child: Text(line, style: TbText.body(size: 11, color: TbColors.muted, height: 1.4)),
+        ),
+      );
     },
   );
 

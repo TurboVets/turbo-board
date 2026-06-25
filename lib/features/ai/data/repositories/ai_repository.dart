@@ -39,6 +39,9 @@ abstract class AiRepository {
   /// Weekly team pulse for the Lead Cockpit, from the current board snapshot.
   Future<Result<String>> weeklyDigest(CockpitData cockpit);
 
+  /// Daily standup snapshot for the Lead Cockpit (in review / blocked / next).
+  Future<Result<String>> dailyStandup(CockpitData cockpit);
+
   /// Ranks the most action-worthy open PRs (review first / unblock / merge /
   /// nudge) from the current board.
   Future<Result<List<TriageItem>>> triage(List<PrData> prs);
@@ -142,6 +145,10 @@ class LlmAiRepository implements AiRepository {
   @override
   Future<Result<String>> weeklyDigest(CockpitData cockpit) =>
       _narrative(buildWeeklyDigestPrompt(cockpit), maxTokens: 450, failure: 'Could not generate the weekly digest.');
+
+  @override
+  Future<Result<String>> dailyStandup(CockpitData cockpit) =>
+      _narrative(buildDailyStandupPrompt(cockpit), maxTokens: 350, failure: 'Could not generate the daily standup.');
 
   @override
   Future<Result<List<TriageItem>>> triage(List<PrData> prs) async {

@@ -56,20 +56,27 @@ class PrSummaryCard extends ConsumerWidget {
               AsyncData(:final value) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final bullet in value)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 7),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                  SelectionArea(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final bullet in value)
                           Padding(
-                            padding: const EdgeInsets.only(top: 6, right: 8),
-                            child: TbSignalDot(color: TbColors.cyan, size: 6),
+                            padding: const EdgeInsets.only(bottom: 7),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6, right: 8),
+                                  child: TbSignalDot(color: TbColors.cyan, size: 6),
+                                ),
+                                Expanded(child: Text(bullet, style: TbText.body(size: 13, height: 1.4))),
+                              ],
+                            ),
                           ),
-                          Expanded(child: Text(bullet, style: TbText.body(size: 13, height: 1.4))),
-                        ],
-                      ),
+                      ],
                     ),
+                  ),
                   const SizedBox(height: 4),
                   AiGhostButton(
                     label: 'REGENERATE',
