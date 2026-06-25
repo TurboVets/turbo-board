@@ -1,7 +1,7 @@
 name: turbo_board
 description: "TurboBoard — a single dashboard to watch all open PRs (and later, issues) across selected GitHub repos."
 publish_to: "none"
-version: 0.4.0+9
+version: 0.5.0+10
 
 environment:
   sdk: ">=3.10.0"
